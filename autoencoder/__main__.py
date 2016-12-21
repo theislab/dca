@@ -56,14 +56,14 @@ def parse_args():
             help="Batch size")
     parser_train.add_argument('--dropoutrate', type=float, default=0.0,
             help="Dropout rate")
-    parser_train.add_argument('--epochs', type=int, default=100,
+    parser_train.add_argument('-e', '--epochs', type=int, default=100,
             help="Max number of epochs to continue training in case of no "
                  "improvement on validation loss")
     parser_train.add_argument('--checkpoint_every', type=int, default=100,
             help="How many batches to save checkpoints after")
-    parser_train.add_argument('--hiddensize', type=int, default=100,
+    parser_train.add_argument('-s', '--hiddensize', type=int, default=100,
             help="Size of hidden layers")
-    parser_train.add_argument('--learningrate', type=float, default=1e-4,
+    parser_train.add_argument('-r', '--learningrate', type=float, default=1e-4,
             help="Learning rate")
 
     parser_train.set_defaults(func=train.train_with_args)
@@ -78,9 +78,9 @@ def parse_args():
             help='Encode a given dataset using a pre-trained model.')
     parser_encode.add_argument('dataset', type=str,
             help="File path of the dataset ")
-    parser_encode.add_argument('weightfile', type=str,
+    parser_encode.add_argument('logdir', type=str,
             help="File path of the model weights ")
-    parser_encode.add_argument('--hiddensize', type=int, default=100,
+    parser_encode.add_argument('-s', '--hiddensize', type=int, default=100,
             help="Size of hidden layers")
     parser_encode.set_defaults(func=encode.encode_with_args)
 
