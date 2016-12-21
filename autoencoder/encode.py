@@ -9,6 +9,10 @@ def encode(input_file, output_file, log_dir):
     size = X.shape[1]
 
     model = load_model(log_dir)
+    assert model.input_shape[1] == size, \
+           'Input size of data and pretrained model must be same'
+
+
     encoder = get_encoder(model)
     predictions = encoder.predict(X)
     np.savetxt(output_file, predictions)
