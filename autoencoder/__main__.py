@@ -52,6 +52,8 @@ def parse_args():
             help="File path of the training set ")
     parser_train.add_argument('-l', '--logdir', type=str, default='logs',
             help="The directory where training logs will be saved (default=logs)")
+    parser_train.add_argument('-a', '--outputactivation', type=str,
+            help="Type of activation for the output layer.")
     parser_train.add_argument('-b', '--batchsize', type=int, default=128,
             help="Batch size")
     parser_train.add_argument('--dropoutrate', type=float, default=0.0,

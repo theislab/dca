@@ -20,10 +20,11 @@ import tensorflow as tf
 slim = tf.contrib.slim
 
 
-def autoencoder(input_size, hidden_size=100):
+def autoencoder(input_size, hidden_size=100,
+                output_activation=None):
     inp = Input(shape=(input_size,))
     encoded = Dense(hidden_size, activation='relu')(inp)
-    decoded = Dense(input_size)(encoded)
+    decoded = Dense(input_size, activation=output_activation)(encoded)
 
     autoencoder = Model(input=inp, output=decoded)
     encoder = get_encoder(autoencoder)

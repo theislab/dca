@@ -28,11 +28,13 @@ from keras.callbacks import TensorBoard, ModelCheckpoint
 
 
 def train(X, hidden_size=32, learning_rate=0.01,
-          log_dir='logs', epochs=10, batch_size=32, **kwargs):
+          log_dir='logs', output_activation=None, epochs=10,
+          batch_size=32, **kwargs):
 
     assert isinstance(X, np.ndarray), 'Input mush be a numpy array'
 
-    model, _, _ = autoencoder(X.shape[1], hidden_size=hidden_size)
+    model, _, _ = autoencoder(X.shape[1], hidden_size=hidden_size,
+                              output_activation=output_activation)
 
     optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
     model.compile(loss='mse', optimizer=optimizer)
@@ -63,5 +65,6 @@ def train_with_args(args):
     train(X=X, hidden_size=args.hiddensize,
           learning_rate=args.learningrate,
           log_dir=args.logdir,
+          output_activation=args.outputactivation,
           epochs=args.epochs,
           batch_size=args.batchsize)
