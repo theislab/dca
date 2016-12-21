@@ -19,17 +19,40 @@ from keras.models import Model
 import tensorflow as tf
 slim = tf.contrib.slim
 
+
 def autoencoder(input_size, hidden_size=100):
     inp = Input(shape=(input_size,))
     encoded = Dense(hidden_size, activation='relu')(inp)
     decoded = Dense(input_size)(encoded)
 
     autoencoder = Model(input=inp, output=decoded)
-    encoder = Model(input=inp, output=encoded)
-
-    # create a placeholder for an encoded (32-dimensional) input
-    encoded_input = Input(shape=(hidden_size,))
-    decoder_layer = autoencoder.layers[-1]
-    decoder = Model(input=encoded_input, output=decoder_layer(encoded_input))
+    encoder = get_encoder(autoencoder)
+    decoder = get_decoder(autoencoder)
 
     return autoencoder, encoder, decoder
+
+
+def get_decoder(model):
+    num_dec_layers = int((len(model.layers)-1) / 2)
+    dec_layer_num = num_dec_layers + 1
+    dec_layer = model.layers[dec_layer_num]
+    hidden_size = dec_layer.input_dim
+
+    in_layer = Input(shape=((hidden_size, )))
+    out_layer = in_layer
+    for layer in model.layers[dec_layer_num:]:
+        out_layer = layer(out_layer)
+
+    return Model(input=in_layer, output=out_layer)
+
+
+def get_encoder(model):
+    input_size = model.input_shape[1]
+    num_enc_layers = int((len(model.layers)-1) / 2)
+
+    in_layer = Input(shape=((input_size, )))
+    out_layer = in_layer
+    for layer in model.layers[1: (num_enc_layers+1)]:
+        out_layer = layer(out_layer)
+
+    return Model(input=in_layer, output=out_layer)
