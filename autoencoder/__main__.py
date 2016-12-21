@@ -78,10 +78,10 @@ def parse_args():
             help='Encode a given dataset using a pre-trained model.')
     parser_encode.add_argument('dataset', type=str,
             help="File path of the dataset ")
-    parser_encode.add_argument('logdir', type=str,
-            help="File path of the model weights ")
-    parser_encode.add_argument('-s', '--hiddensize', type=int, default=100,
-            help="Size of hidden layers")
+    parser_encode.add_argument('-o', '--outputfile', type=str,
+            help="File path of the output", required=True)
+    parser_encode.add_argument('-l', '--logdir', type=str,
+            help="File path of the model pre-trained model", required=True)
     parser_encode.set_defaults(func=encode.encode_with_args)
 
     return parser.parse_args()
