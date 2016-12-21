@@ -36,11 +36,14 @@ def train(X, hidden_size=32, learning_rate=0.01,
 
     optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
     model.compile(loss='mse', optimizer=optimizer)
-    checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}.hdf5" % log_dir,
-                                   verbose=1, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % log_dir,
+                                   verbose=1)
 
-    #with open('%s/arch.json' % log_dir, 'w'):
-        #json.dump(model.to_json())
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    with open('%s/arch.json' % log_dir, 'w') as f:
+        json.dump(model.to_json(), f)
 
     print(model.summary())
     model.fit(X, X,
@@ -48,8 +51,8 @@ def train(X, hidden_size=32, learning_rate=0.01,
             batch_size=batch_size,
             shuffle=True,
             callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
-                       checkpointer]
-            )
+                       checkpointer],
+            **kwargs)
 
 
 def train_with_args(args):
