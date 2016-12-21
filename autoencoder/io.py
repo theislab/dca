@@ -23,6 +23,7 @@ import pickle, os
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold, train_test_split
+from keras.models import load_model as keras_load_model
 
 
 def write_records(inputfile, outputfile, kfold, transpose=False):
@@ -63,6 +64,10 @@ def read_records(inputfile):
         return pickle.load(open(inputfile, 'rb'))
     else:
         raise Exception('Undefined extension')
+
+
+def load_model(log_dir):
+    return keras_load_model("%s/weights.hdf5" % log_dir)
 
 
 def preprocess(args):
