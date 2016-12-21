@@ -1,11 +1,11 @@
 import numpy as np
 
 from .network import autoencoder, get_encoder
-from .io import read_records, load_model
+from .io import read_csv, load_model
 
 
 def encode(input_file, output_file, log_dir):
-    X = read_records(input_file)
+    X = read_csv(input_file)
     size = X.shape[1]
 
     model = load_model(log_dir)

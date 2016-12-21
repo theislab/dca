@@ -79,9 +79,9 @@ def parse_args():
     parser_encode = subparsers.add_parser('encode',
             help='Encode a given dataset using a pre-trained model.')
     parser_encode.add_argument('dataset', type=str,
-            help="File path of the dataset ")
+            help="File path of the input set in CSV/TSV format")
     parser_encode.add_argument('-o', '--outputfile', type=str,
-            help="File path of the output", required=True)
+            help="File path of the output in CSV/TSV format", required=True)
     parser_encode.add_argument('-l', '--logdir', type=str,
             help="File path of the model pre-trained model", required=True)
     parser_encode.set_defaults(func=encode.encode_with_args)

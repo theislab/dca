@@ -26,9 +26,14 @@ from sklearn.model_selection import KFold, train_test_split
 from keras.models import load_model as keras_load_model
 
 
-def write_records(inputfile, outputfile, kfold, transpose=False):
+def read_csv(inputfile):
     matrix = pd.read_csv(inputfile, sep=None, engine='python')
     matrix = matrix.as_matrix()
+    return matrix
+
+
+def write_records(inputfile, outputfile, kfold, transpose=False):
+    matrix = read_csv(inputfile)
     if transpose:
         matrix = matrix.transpose()
 
