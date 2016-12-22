@@ -20,6 +20,7 @@ from __future__ import print_function
 import os, json
 
 from .network import autoencoder
+from .loss import impute_loss
 from . import io
 
 import numpy as np
@@ -37,7 +38,7 @@ def train(X, hidden_size=32, learning_rate=0.01,
                               output_activation=output_activation)
 
     optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
-    model.compile(loss='mse', optimizer=optimizer)
+    model.compile(loss=impute_loss, optimizer=optimizer)
     checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % log_dir,
                                    verbose=1)
 
