@@ -52,6 +52,8 @@ def write_records(inputfile, outputfile, kfold, transpose=False):
     X = list()
 
     # Prepare indices for k-fold cv and train/valid/test split
+    # For example 5-fold generates 3-1-1 equally sized folds for
+    # train/val/test tests
     for cv_trainval, cv_test in KFold(kfold, True, 42).split(range(nsample)):
         cv_train, cv_val = train_test_split(cv_trainval, test_size=1/(kfold-1))
         X.append((matrix[cv_train, :], matrix[cv_val, :], matrix[cv_test, :]))
