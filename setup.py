@@ -7,6 +7,8 @@ try:
     tf = 'tensorflow-gpu' if num_gpus > 1 else 'tensorflow'
 except CalledProcessError:
     tf = 'tensorflow'
+except FileNotFoundError:
+    tf = 'tensorflow'
 
 
 setup(
