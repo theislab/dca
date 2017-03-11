@@ -35,7 +35,6 @@ def parse_args():
     # Preprocess subparser
     parser_preprocess = subparsers.add_parser('preprocess',
             help='Create a training set from CSV/TSV files')
-    parser_preprocess.set_defaults(func=io.preprocess)
     parser_preprocess.add_argument('input', type=str,
             help='Input in TSV/CSV format')
     parser_preprocess.add_argument('-o', '--output', type=str,
@@ -44,6 +43,8 @@ def parse_args():
             help='k-fold CV')
     parser_preprocess.add_argument('-t', '--transpose', dest='transpose',
             action='store_true', help='Transpose input matrix')
+
+    parser_preprocess.set_defaults(func=io.preprocess_with_args)
 
     # train subparser
     parser_train = subparsers.add_parser('train',

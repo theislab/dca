@@ -32,37 +32,7 @@ def read_csv(inputfile):
     return matrix
 
 
-def write_records(inputfile, outputfile, kfold, transpose=False):
-    matrix = read_csv(inputfile)
-    if transpose:
-        matrix = matrix.transpose()
-
-    nsample = matrix.shape[0]
-
-    # add file extension if missing
-    outfile, outfile_ext = os.path.splitext(outputfile)
-    if not outfile_ext:
-        ext = 'npy' if not kfold else 'folds'
-        outputfile = '.'.join([outfile, ext])
-
-    if kfold is None:
-        np.save(outputfile, matrix)
-        return
-
-    X = list()
-
-    # Prepare indices for k-fold cv and train/valid/test split
-    # For example 5-fold generates 3-1-1 equally sized folds for
-    # train/val/test tests
-    for cv_trainval, cv_test in KFold(kfold, True, 42).split(range(nsample)):
-        cv_train, cv_val = train_test_split(cv_trainval, test_size=1/(kfold-1))
-        X.append((matrix[cv_train, :], matrix[cv_val, :], matrix[cv_test, :]))
-
-    with open(outputfile, 'wb') as out:
-        pickle.dump(X, out)
-
-
-def read_records(inputfile):
+def read_from_file(inputfile):
     infile, infile_ext = os.path.splitext(inputfile)
 
     if infile_ext == '.npy':
@@ -77,6 +47,50 @@ def load_model(log_dir):
     return keras_load_model("%s/weights.hdf5" % log_dir)
 
 
-def preprocess(args):
-    write_records(args.input, args.output, kfold=args.kfold,
-                  transpose=args.transpose)
+def preprocess(inputfile, kfold, transpose=False, outputfile=None):
+    matrix = read_csv(inputfile)
+    if transpose:
+        matrix = matrix.transpose()
+
+    X = dict()
+
+    if kfold:
+        X['type'] = 'kfold'
+        X['k'] = kfold
+        X['folds'] = list()
+
+        nsample = matrix.shape[0]
+
+        # Prepare indices for k-fold cv and train/valid/test split
+        # For example 5-fold generates 3-1-1 equally sized folds for
+        # train/val/test tests
+        for cv_trainval, cv_test in KFold(kfold, True, 42).split(range(nsample)):
+            cv_train, cv_val = train_test_split(cv_trainval,
+                    test_size=1/(kfold-1), random_state=42)
+            X['folds'].append((matrix[cv_train, :],
+                               matrix[cv_val,   :],
+                               matrix[cv_test,  :]))
+
+    else:
+        X['type'] = 'valtest'
+        X['train'], X['test'] = train_test_split(matrix, test_size=.1,
+                                                 random_state=42)
+        X['train'], X['val']  = train_test_split(X['train'], test_size=.1,
+                                                 random_state=43)
+
+    if outputfile is not None:
+        # add file extension if missing
+        outfile, outfile_ext = os.path.splitext(outputfile)
+        if not outfile_ext:
+            ext = 'ae'
+            outputfile = '.'.join([outfile, ext])
+
+        with open(outputfile, 'wb') as out:
+            pickle.dump(X, out)
+
+    return X
+
+
+def preprocess_with_args(args):
+    preprocess(args.input, kfold=args.kfold, transpose=args.transpose,
+               outputfile=args.output)
