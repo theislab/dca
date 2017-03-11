@@ -6,9 +6,9 @@ try:
                                  '--format=csv']).decode().strip().split('\n'))
     tf = 'tensorflow-gpu' if num_gpus > 1 else 'tensorflow'
 except CalledProcessError:
-    tf = 'tensorflow'
+    tf = 'tensorflow>=1.0.0'
 except FileNotFoundError:
-    tf = 'tensorflow'
+    tf = 'tensorflow>=1.0.0'
 
 
 setup(
@@ -20,7 +20,7 @@ setup(
     packages=['autoencoder'],
     install_requires=[tf,
                       'numpy>=1.7',
-                      'keras>=1.2',
+                      'keras>=1.2.2',
                       'six>=1.10.0',
                       'scikit-learn',
                       'pandas' #for preprocessing
