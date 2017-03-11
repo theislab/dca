@@ -60,8 +60,6 @@ def train(X, hidden_size=32, learning_rate=0.01,
                 **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
         #               verbose=1, sample_weight=None)
-    else:
-        raise NotImplementedError
 
 
 def train_with_args(args):
