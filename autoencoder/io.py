@@ -49,37 +49,38 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None,
     X = dict()
     X['shape'] = matrix.shape
 
-    if kfold:
-        X['type'] = 'kfold'
-        X['k'] = kfold
-        X['folds'] = list()
-
-        nsample = matrix.shape[0]
-
-        # Prepare indices for k-fold cv and train/valid/test split
-        # For example 5-fold generates 3-1-1 equally sized folds for
-        # train/val/test tests
-        for cv_trainval, cv_test in KFold(kfold, True, 42).split(range(nsample)):
-            cv_train, cv_val = train_test_split(cv_trainval,
-                    test_size=1/(kfold-1), random_state=42)
-            X['folds'].append((matrix[cv_train, :],
-                               matrix[cv_val,   :],
-                               matrix[cv_test,  :]))
-
-    else:
-        X['type'] = 'valtest'
-        X['train'], X['test'] = train_test_split(matrix, test_size=.1,
-                                                 random_state=42)
-        X['train'], X['val']  = train_test_split(X['train'], test_size=.1,
-                                                 random_state=43)
-
     if censorfile:
-        X['censor'] = read_csv(censorfile)
+        censor = read_csv(censorfile)
         if censortranspose:
-            X['censor'] = X['censor'].transpose()
+            censor = censor.transpose()
 
-        assert X['censor'].shape == X['shape'], 'Input size of censorfile does not ' \
-                                                'match the input file'
+        assert censor.shape == X['shape'], 'Input size of censorfile does not ' \
+                                           'match the input file'
+
+    X['k'] = kfold if kfold else -1
+    X['folds'] = list()
+    if censorfile:
+        X['censorfolds'] = list()
+
+    nsample = matrix.shape[0]
+
+    # Prepare indices for k-fold cv and train/valid/test split
+    # For example 10-fold generates 8-1-1 equally sized folds for
+    # train/val/test tests
+    for cv_trainval, cv_test in KFold(kfold if kfold else 10, True, 42).split(range(nsample)):
+        cv_train, cv_val = train_test_split(cv_trainval,
+                                            test_size=1/((kfold if kfold else 10) - 1),
+                                            random_state=42)
+        X['folds'].append({'train': matrix[cv_train, :],
+                           'val':   matrix[cv_val,   :],
+                           'test':  matrix[cv_test,  :]})
+
+        if censorfile:
+            X['censorfolds'].append({'train': censor[cv_train, :],
+                                     'val':   censor[cv_val,   :],
+                                     'test':  censor[cv_test,  :]})
+        if not kfold: break #if kfold is not give just split it 8-1-1 once
+
 
     if outputfile:
         # add file extension if missing
