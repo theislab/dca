@@ -33,14 +33,7 @@ def read_csv(inputfile):
 
 
 def read_from_file(inputfile):
-    infile, infile_ext = os.path.splitext(inputfile)
-
-    if infile_ext == '.npy':
-        return np.load(inputfile)
-    elif infile_ext == '.folds':
         return pickle.load(open(inputfile, 'rb'))
-    else:
-        raise Exception('Undefined extension')
 
 
 def load_model(log_dir):
