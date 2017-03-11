@@ -25,6 +25,7 @@ from . import io
 import numpy as np
 from keras.optimizers import SGD
 from keras.callbacks import TensorBoard, ModelCheckpoint
+from keras import backend as K
 
 
 def train(X, hidden_size=32, learning_rate=0.01,
@@ -60,6 +61,9 @@ def train(X, hidden_size=32, learning_rate=0.01,
                 **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
         #               verbose=1, sample_weight=None)
+
+    #https://github.com/tensorflow/tensorflow/issues/3388
+    K.clear_session()
 
 
 def train_with_args(args):
