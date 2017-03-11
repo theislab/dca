@@ -4,11 +4,9 @@ from .network import autoencoder, get_encoder
 from .io import read_csv, load_model
 
 
-def encode(input_file, output_file, log_dir):
-    X = read_csv(input_file)
-    size = X.shape[1]
+def encode(data, model, output_file):
+    size = data.shape[1]
 
-    model = load_model(log_dir)
     assert model.input_shape[1] == size, \
            'Input size of data and pretrained model must be same'
 
@@ -18,6 +16,8 @@ def encode(input_file, output_file, log_dir):
 
 
 def encode_with_args(args):
-    encode(input_file = args.dataset,
-           output_file = args.outputfile,
-           log_dir = args.logdir)
+    X = read_csv(args.dataset)
+    if args.transpose:
+        X = X.transpose()
+    model = load_model(args.logdir)
+    encode(X, model, args.outputfile)

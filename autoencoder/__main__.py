@@ -91,6 +91,8 @@ def parse_args():
             help='Encode a given dataset using a pre-trained model.')
     parser_encode.add_argument('dataset', type=str,
             help="File path of the input set in CSV/TSV format")
+    parser_encode.add_argument('-t', '--transpose', dest='transpose',
+            action='store_true', help='Transpose input matrix')
     parser_encode.add_argument('-o', '--outputfile', type=str,
             help="File path of the output in CSV/TSV format", required=True)
     parser_encode.add_argument('-l', '--logdir', type=str,
