@@ -43,6 +43,8 @@ def parse_args():
             help='k-fold CV')
     parser_preprocess.add_argument('-t', '--transpose', dest='transpose',
             action='store_true', help='Transpose input matrix')
+    parser_preprocess.add_argument('-c', '--censorfile', type=str,
+            help="Censor file to calculate loss only on specific values")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 
@@ -55,8 +57,6 @@ def parse_args():
             help="The directory where training logs will be saved (default=logs)")
     parser_train.add_argument('-t', '--type', type=str,
             help="Type of autoencoder. Possible values: normal, poisson, nb, zinb")
-    parser_train.add_argument('-c', '--censorfile', type=str,
-            help="Censor file to calculate loss only on specific values")
     parser_train.add_argument('--censorthreshold', type=float,
             help="Censor threshold")
     parser_train.add_argument('--censortype', type=str,
