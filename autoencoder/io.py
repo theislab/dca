@@ -40,7 +40,7 @@ def load_model(log_dir):
     return keras_load_model("%s/weights.hdf5" % log_dir)
 
 
-def preprocess(matrix, kfold, transpose=False, outputfile=None,
+def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
                censor=None):
 
     X = dict()
