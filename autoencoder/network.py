@@ -16,12 +16,31 @@
 import numpy as np
 from keras.layers import Input, Dense
 from keras.models import Model
+from keras.objectives import mean_sequared_error
 import tensorflow as tf
 slim = tf.contrib.slim
 
+from .loss import poisson_loss, NB
 
 def autoencoder(input_size, hidden_size=100,
-                output_activation=None):
+                aetype=None):
+
+    assert aetype in ['normal', 'poisson', 'nb', 'zinb'], \
+                     'AE type not supported'
+
+    if aetype == 'normal':
+        output_activation = None
+        loss = mean_squared_error
+    elif aetype == 'poisson':
+        output_activation = tf.exp
+        loss = poisson_loss
+    elif aetype == 'nb':
+        output_activation = tf.exp
+        nb = NB(theta_init=tf.zeros([1, input_size]))
+        loss = nb.loss
+    elif aetype == 'zinb':
+        raise NotImplementedError
+
     inp = Input(shape=(input_size,))
     encoded = Dense(hidden_size, activation='relu')(inp)
     decoded = Dense(input_size, activation=output_activation)(encoded)
@@ -30,7 +49,13 @@ def autoencoder(input_size, hidden_size=100,
     encoder = get_encoder(autoencoder)
     decoder = get_decoder(autoencoder)
 
-    return autoencoder, encoder, decoder
+    #Ugly hack to inject NB dispersion parameters
+    if aetype == 'nb':
+        # add theta as a trainable variable to Keras model
+        # otherwise, keras optimizers will not update it
+        autoencoder.layers[-1].trainable_weights.append(nb.theta_variable)
+
+    return autoencoder, encoder, decoder, loss
 
 
 def get_decoder(model):

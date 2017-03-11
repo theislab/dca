@@ -20,7 +20,6 @@ from __future__ import print_function
 import os, json
 
 from .network import autoencoder
-from .loss import impute_loss
 from . import io
 
 import numpy as np
@@ -29,16 +28,15 @@ from keras.callbacks import TensorBoard, ModelCheckpoint
 
 
 def train(X, hidden_size=32, learning_rate=0.01,
-          log_dir='logs', output_activation=None, epochs=10,
-          batch_size=32, **kwargs):
+          log_dir='logs', aetype=None, epochs=10,
+          batch_size=32, censortype=None, censorthreshold=None,
+          hyperpar=None, **kwargs):
 
-    assert isinstance(X, np.ndarray), 'Input mush be a numpy array'
-
-    model, _, _ = autoencoder(X.shape[1], hidden_size=hidden_size,
-                              output_activation=output_activation)
+    model, _, _, loss = autoencoder(X['shape'][1], hidden_size=hidden_size,
+                                    aetype=aetype)
 
     optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
-    model.compile(loss=impute_loss, optimizer=optimizer)
+    model.compile(loss=loss, optimizer=optimizer)
     checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % log_dir,
                                    verbose=1)
 
@@ -61,11 +59,11 @@ def train(X, hidden_size=32, learning_rate=0.01,
 def train_with_args(args):
     X = io.read_records(args.trainingset)
 
-    assert isinstance(X, np.ndarray), 'Only numpy for now'
-
     train(X=X, hidden_size=args.hiddensize,
           learning_rate=args.learningrate,
           log_dir=args.logdir,
-          output_activation=args.outputactivation,
+          aetype=args.type,
           epochs=args.epochs,
-          batch_size=args.batchsize)
+          censorthreshold=args.censorthreshold,
+          censortype=args.censortype,
+          hyperpar=args.hyperpar)
