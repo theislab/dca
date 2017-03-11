@@ -47,6 +47,7 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None,
         matrix = matrix.transpose()
 
     X = dict()
+    X['shape'] = matrix.shape
 
     if kfold:
         X['type'] = 'kfold'
@@ -76,6 +77,9 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None,
         X['censor'] = read_csv(censorfile)
         if censortranspose:
             X['censor'] = X['censor'].transpose()
+
+    assert X['censor'].shape == X['shape'], 'Input size of censorfile does not ' \
+                                            'match the input file'
 
     if outputfile:
         # add file extension if missing
