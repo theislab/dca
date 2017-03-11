@@ -40,26 +40,15 @@ def load_model(log_dir):
     return keras_load_model("%s/weights.hdf5" % log_dir)
 
 
-def preprocess(inputfile, kfold, transpose=False, outputfile=None,
-               censorfile=None, censortranspose=False):
-    matrix = read_csv(inputfile)
-    if transpose:
-        matrix = matrix.transpose()
+def preprocess(matrix, kfold, transpose=False, outputfile=None,
+               censor=None):
 
     X = dict()
     X['shape'] = matrix.shape
 
-    if censorfile:
-        censor = read_csv(censorfile)
-        if censortranspose:
-            censor = censor.transpose()
-
-        assert censor.shape == X['shape'], 'Input size of censorfile does not ' \
-                                           'match the input file'
-
     X['k'] = kfold if kfold else -1
     X['folds'] = list()
-    if censorfile:
+    if censor:
         X['censorfolds'] = list()
 
     nsample = matrix.shape[0]
@@ -75,7 +64,7 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None,
                            'val':   matrix[cv_val,   :],
                            'test':  matrix[cv_test,  :]})
 
-        if censorfile:
+        if censor:
             X['censorfolds'].append({'train': censor[cv_train, :],
                                      'val':   censor[cv_val,   :],
                                      'test':  censor[cv_test,  :]})
@@ -96,6 +85,17 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None,
 
 
 def preprocess_with_args(args):
-    preprocess(args.input, kfold=args.kfold, transpose=args.transpose,
-               outputfile=args.output, censorfile=args.censorfile,
-               censortranspose=args.censortranspose)
+    matrix = read_csv(args.input)
+    if args.transpose:
+        matrix = matrix.transpose()
+
+    if args.censorfile:
+        censor = read_csv(args.censorfile)
+        if args.censortranspose:
+            censor = censor.transpose()
+
+        assert censor.shape == matrix.shape, 'Input size of censorfile does not ' \
+                                             'match the input file'
+
+    result = preprocess(matrix, kfold=args.kfold,
+               outputfile=args.output, censor=censor)
