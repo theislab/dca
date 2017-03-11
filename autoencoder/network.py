@@ -16,7 +16,7 @@
 import numpy as np
 from keras.layers import Input, Dense
 from keras.models import Model
-from keras.objectives import mean_sequared_error
+from keras.objectives import mean_squared_error
 import tensorflow as tf
 slim = tf.contrib.slim
 
