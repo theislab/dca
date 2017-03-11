@@ -45,6 +45,8 @@ def parse_args():
             action='store_true', help='Transpose input matrix')
     parser_preprocess.add_argument('-c', '--censorfile', type=str,
             help="Censor file to calculate loss only on specific values")
+    parser_preprocess.add_argument('--censortranspose', dest='censortranspose',
+            action='store_true', help="Transpose censorfile")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 

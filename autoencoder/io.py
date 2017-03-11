@@ -40,7 +40,8 @@ def load_model(log_dir):
     return keras_load_model("%s/weights.hdf5" % log_dir)
 
 
-def preprocess(inputfile, kfold, transpose=False, outputfile=None):
+def preprocess(inputfile, kfold, transpose=False, outputfile=None,
+               censorfile=None, censortranspose=False):
     matrix = read_csv(inputfile)
     if transpose:
         matrix = matrix.transpose()
@@ -71,7 +72,12 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None):
         X['train'], X['val']  = train_test_split(X['train'], test_size=.1,
                                                  random_state=43)
 
-    if outputfile is not None:
+    if censorfile:
+        X['censor'] = read_csv(censorfile)
+        if censortranspose:
+            X['censor'] = X['censor'].transpose()
+
+    if outputfile:
         # add file extension if missing
         outfile, outfile_ext = os.path.splitext(outputfile)
         if not outfile_ext:
@@ -86,4 +92,5 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None):
 
 def preprocess_with_args(args):
     preprocess(args.input, kfold=args.kfold, transpose=args.transpose,
-               outputfile=args.output)
+               outputfile=args.output, censorfile=args.censorfile,
+               censortranspose=args.censortranspose)
