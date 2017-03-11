@@ -67,12 +67,12 @@ def parse_args():
             help="Batch size")
     parser_train.add_argument('--dropoutrate', type=float, default=0.0,
             help="Dropout rate")
-    parser_train.add_argument('-e', '--epochs', type=int, default=100,
+    parser_train.add_argument('-e', '--epochs', type=int, default=10,
             help="Max number of epochs to continue training in case of no "
                  "improvement on validation loss")
     parser_train.add_argument('--checkpoint_every', type=int, default=100,
             help="How many batches to save checkpoints after")
-    parser_train.add_argument('-s', '--hiddensize', type=int, default=100,
+    parser_train.add_argument('-s', '--hiddensize', type=int, default=10,
             help="Size of hidden layers")
     parser_train.add_argument('-r', '--learningrate', type=float, default=1e-4,
             help="Learning rate")
