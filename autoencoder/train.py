@@ -49,21 +49,37 @@ def train(X, hidden_size=32, learning_rate=0.01,
 
     print(model.summary())
 
-    results = list()
+    losses = list()
     for data in X['folds']:
-        model.fit(data['train'], data['train'],
-                nb_epoch=epochs,
-                batch_size=batch_size,
-                shuffle=True,
-                callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
-                           checkpointer],
-                validation_data=(data['val'], data['val']),
-                **kwargs)
+        loss = model.fit(data['train'], data['train'],
+                         nb_epoch=epochs,
+                         batch_size=batch_size,
+                         shuffle=True,
+                         #callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
+                         #           checkpointer],
+                         validation_data=(data['val'], data['val']),
+                         **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
         #               verbose=1, sample_weight=None)
+        losses.append(loss)
+
+    # run final training on full dataset
+    full_data = np.concatenate((X['folds'][0]['train'],
+                                X['folds'][0]['val'],
+                                X['folds'][0]['test']))
+
+    model.fit(full_data, full_data,
+                     nb_epoch=epochs,
+                     batch_size=batch_size,
+                     shuffle=True,
+                     callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
+                                checkpointer],
+                     **kwargs)
 
     #https://github.com/tensorflow/tensorflow/issues/3388
     K.clear_session()
+
+    return model
 
 
 def train_with_args(args):
