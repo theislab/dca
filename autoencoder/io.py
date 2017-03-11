@@ -78,8 +78,8 @@ def preprocess(inputfile, kfold, transpose=False, outputfile=None,
         if censortranspose:
             X['censor'] = X['censor'].transpose()
 
-    assert X['censor'].shape == X['shape'], 'Input size of censorfile does not ' \
-                                            'match the input file'
+        assert X['censor'].shape == X['shape'], 'Input size of censorfile does not ' \
+                                                'match the input file'
 
     if outputfile:
         # add file extension if missing
