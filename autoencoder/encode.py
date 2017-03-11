@@ -4,7 +4,7 @@ from .network import autoencoder, get_encoder
 from .io import read_csv, load_model
 
 
-def encode(data, model, output_file):
+def encode(data, model, output_file=None):
     size = data.shape[1]
 
     assert model.input_shape[1] == size, \
@@ -12,7 +12,9 @@ def encode(data, model, output_file):
 
     encoder = get_encoder(model)
     predictions = encoder.predict(X)
-    np.savetxt(output_file, predictions)
+    if output_file:
+        np.savetxt(output_file, predictions)
+    return predictions
 
 
 def encode_with_args(args):
