@@ -57,8 +57,8 @@ def parse_args():
             help="File path of the training set ")
     parser_train.add_argument('-l', '--logdir', type=str, default='logs',
             help="The directory where training logs will be saved (default=logs)")
-    parser_train.add_argument('-t', '--type', type=str,
-            help="Type of autoencoder. Possible values: normal, poisson, nb, zinb")
+    parser_train.add_argument('-t', '--type', type=str, default='normal',
+            help="Type of autoencoder. Possible values: normal(default), poisson, nb, zinb")
     parser_train.add_argument('--censorthreshold', type=float,
             help="Censor threshold")
     parser_train.add_argument('--censortype', type=str,

@@ -57,7 +57,7 @@ def train(X, hidden_size=32, learning_rate=0.01,
 
 
 def train_with_args(args):
-    X = io.read_records(args.trainingset)
+    X = io.read_from_file(args.trainingset)
 
     train(X=X, hidden_size=args.hiddensize,
           learning_rate=args.learningrate,
