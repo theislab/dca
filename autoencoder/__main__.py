@@ -52,8 +52,14 @@ def parse_args():
             help="File path of the training set ")
     parser_train.add_argument('-l', '--logdir', type=str, default='logs',
             help="The directory where training logs will be saved (default=logs)")
-    parser_train.add_argument('-a', '--outputactivation', type=str,
-            help="Type of activation for the output layer.")
+    parser_train.add_argument('-t', '--type', type=str,
+            help="Type of autoencoder. Possible values: normal, poisson, nb, zinb")
+    parser_train.add_argument('-c', '--censorfile', type=str,
+            help="Censor file to calculate loss only on specific values")
+    parser_train.add_argument('--censorthreshold', type=float,
+            help="Censor threshold")
+    parser_train.add_argument('--censortype', type=str,
+            help="Censor type. Possible values: none, censor, input.")
     parser_train.add_argument('-b', '--batchsize', type=int, default=128,
             help="Batch size")
     parser_train.add_argument('--dropoutrate', type=float, default=0.0,
@@ -67,6 +73,8 @@ def parse_args():
             help="Size of hidden layers")
     parser_train.add_argument('-r', '--learningrate', type=float, default=1e-4,
             help="Learning rate")
+    parser_train.add_argument('-a', '--hyperpar', dest='hyperpar',
+            action='store_true', help="Perform hyperparameter search")
 
     parser_train.set_defaults(func=train.train_with_args)
 
