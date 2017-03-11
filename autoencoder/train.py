@@ -47,13 +47,21 @@ def train(X, hidden_size=32, learning_rate=0.01,
         json.dump(model.to_json(), f)
 
     print(model.summary())
-    model.fit(X, X,
-            nb_epoch=epochs,
-            batch_size=batch_size,
-            shuffle=True,
-            callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
-                       checkpointer],
-            **kwargs)
+
+    results = list()
+    for data in X['folds']:
+        model.fit(data['train'], data['train'],
+                nb_epoch=epochs,
+                batch_size=batch_size,
+                shuffle=True,
+                callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
+                           checkpointer],
+                validation_data=(data['val'], data['val']),
+                **kwargs)
+        #model.evaluate(data['test'], data['test'], batch_size=32,
+        #               verbose=1, sample_weight=None)
+    else:
+        raise NotImplementedError
 
 
 def train_with_args(args):
