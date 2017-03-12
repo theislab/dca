@@ -97,6 +97,8 @@ def parse_args():
             help="File path of the output in CSV/TSV format", required=True)
     parser_encode.add_argument('-l', '--logdir', type=str,
             help="File path of the model pre-trained model", required=True)
+    parser_encode.add_argument('-r', '--reduced', dest='reduced',
+            action='store_true', help="Encode input to the hidden size")
     parser_encode.set_defaults(func=encode.encode_with_args)
 
     return parser.parse_args()
