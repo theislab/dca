@@ -11,7 +11,7 @@ def encode(data, model, output_file=None):
            'Input size of data and pretrained model must be same'
 
     encoder = get_encoder(model)
-    predictions = encoder.predict(X)
+    predictions = encoder.predict(data)
     if output_file:
         np.savetxt(output_file, predictions)
     return predictions
