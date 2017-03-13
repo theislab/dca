@@ -43,10 +43,10 @@ def parse_args():
             help='k-fold CV')
     parser_preprocess.add_argument('-t', '--transpose', dest='transpose',
             action='store_true', help='Transpose input matrix')
-    parser_preprocess.add_argument('-c', '--censorfile', type=str,
-            help="Censor file to calculate loss only on specific values")
-    parser_preprocess.add_argument('--censortranspose', dest='censortranspose',
-            action='store_true', help="Transpose censorfile")
+    parser_preprocess.add_argument('-m', '--maskfile', type=str,
+            help="Mask file with binary values to calculate loss only on specific values")
+    parser_preprocess.add_argument('--masktranspose', dest='masktranspose',
+            action='store_true', help="Transpose maskfile")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 
@@ -59,10 +59,6 @@ def parse_args():
             help="The directory where training logs will be saved (default=logs)")
     parser_train.add_argument('-t', '--type', type=str, default='normal',
             help="Type of autoencoder. Possible values: normal(default), poisson, nb, zinb")
-    parser_train.add_argument('--censorthreshold', type=float,
-            help="Censor threshold")
-    parser_train.add_argument('--censortype', type=str,
-            help="Censor type. Possible values: none, censor, input.")
     parser_train.add_argument('-b', '--batchsize', type=int, default=128,
             help="Batch size")
     parser_train.add_argument('--dropoutrate', type=float, default=0.0,

@@ -26,9 +26,10 @@ from sklearn.model_selection import KFold, train_test_split
 from keras.models import load_model as keras_load_model
 
 
-def read_csv(inputfile):
+def read_csv(inputfile, type=np.float):
     matrix = pd.read_csv(inputfile, sep=None, engine='python')
     matrix = matrix.as_matrix()
+    matrix = matrix.astype(type)
     return matrix
 
 
@@ -40,16 +41,19 @@ def load_model(log_dir):
     return keras_load_model("%s/weights.hdf5" % log_dir)
 
 
-def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
-               censor=None):
+def preprocess(matrix, kfold=None, transpose=False, outputfile=None, mask=None):
+    if matrix.dtype != np.float:
+        matrix = matrix.astype(np.float)
 
     X = dict()
     X['shape'] = matrix.shape
 
     X['k'] = kfold if kfold else -1
     X['folds'] = list()
-    if censor:
-        X['censorfolds'] = list()
+
+    if mask is not None:
+        matrix = matrix.copy()
+        matrix[~mask] = np.nan #set elements with zeros to NaN
 
     nsample = matrix.shape[0]
 
@@ -64,10 +68,6 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
                            'val':   matrix[cv_val,   :],
                            'test':  matrix[cv_test,  :]})
 
-        if censor:
-            X['censorfolds'].append({'train': censor[cv_train, :],
-                                     'val':   censor[cv_val,   :],
-                                     'test':  censor[cv_test,  :]})
         if not kfold: break #if kfold is not give just split it 8-1-1 once
 
 
@@ -89,13 +89,13 @@ def preprocess_with_args(args):
     if args.transpose:
         matrix = matrix.transpose()
 
-    if args.censorfile:
-        censor = read_csv(args.censorfile)
-        if args.censortranspose:
-            censor = censor.transpose()
+    if args.maskfile:
+        mask = read_csv(args.maskfile, type=np.bool)
+        if args.masktranspose:
+            mask = mask.transpose()
 
-        assert censor.shape == matrix.shape, 'Input size of censorfile does not ' \
-                                             'match the input file'
+        assert mask.shape == matrix.shape, 'Input size of maskfile does not ' \
+                                           'match that of the input file'
 
     result = preprocess(matrix, kfold=args.kfold,
-               outputfile=args.output, censor=censor)
+             outputfile=args.output, mask=mask)
