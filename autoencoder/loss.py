@@ -1,12 +1,14 @@
 import tensorflow as tf
 import numpy as np
-from keras.objectives import mean_squared_error
+from . import backend as K
 
 
-def impute_loss(y_true, y_pred, threshold=0.01):
-    mask = y_true > threshold
-    mask = tf.cast(mask, tf.float32)
-    return mean_squared_error(y_true, y_pred*mask)
+def mse_loss(y_true, y_pred):
+    ret = K.square(y_pred - y_true)
+
+    # mask nan values in error
+    ret[tf.is_nan(y_true)] = 0.
+    return K.mean(ret, axis=-1)
 
 
 # In the implementations, I try to keep the function signature
@@ -23,8 +25,11 @@ def poisson_loss(y_true, y_pred):
 
     # last term can be avoided since it doesn't depend on y_pred
     # however keeping it gives a nice lower bound to zero
-    return tf.reduce_mean(y_pred - y_true*tf.log(y_pred+1e-10) +
-           tf.lgamma(y_true+1.0))
+    ret = y_pred - y_true*tf.log(y_pred+1e-10) + tf.lgamma(y_true+1.0)
+
+    # mask nan values in error
+    ret[tf.is_nan(y_true)] = 0.
+    return tf.reduce_mean(ret)
 
 
 # We need a class (or closure) here,
@@ -86,6 +91,9 @@ class NB(object):
 
             final = t1 + t2 + t3 + t4 + t5 + t6
 
+            # mask nan values in error
+            final[tf.is_nan(y_true)] = 0.
+
             if reduce:
                 final = tf.reduce_mean(final)
 
@@ -113,6 +121,10 @@ class ZINB(NB):
             zero_nb = tf.pow(theta/(theta+y_pred+eps), theta)
             zero_case = -tf.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
             result = tf.where(tf.less(y_true, 1e-8), zero_case, nb_case)
+
+            # mask nan values in error
+            result[tf.is_nan(y_true)] = 0.
+
             result = tf.reduce_mean(result)
 
             if self.debug:
