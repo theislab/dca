@@ -3,12 +3,25 @@ import numpy as np
 from . import backend as K
 
 
+def _nan2zero(x):
+    return tf.where(tf.is_nan(x), tf.zeros_like(x), x)
+
+
+def _nelem(x):
+    nelem = tf.reduce_sum(tf.cast(~tf.is_nan(x, tf.int32)))
+    return tf.where(tf.equal(nelem, 0), 1, nelem)
+
+
+def _reduce_mean(x):
+    nelem = _nelem(x)
+    x = _nan2zero(x)
+    return K.sum(x)/nelem
+
+
 def mse_loss(y_true, y_pred):
     ret = K.square(y_pred - y_true)
 
-    # mask nan values in error
-    ret[tf.is_nan(y_true)] = 0.
-    return K.mean(ret, axis=-1)
+    return _reduce_mean(ret)
 
 
 # In the implementations, I try to keep the function signature
@@ -27,9 +40,7 @@ def poisson_loss(y_true, y_pred):
     # however keeping it gives a nice lower bound to zero
     ret = y_pred - y_true*tf.log(y_pred+1e-10) + tf.lgamma(y_true+1.0)
 
-    # mask nan values in error
-    ret[tf.is_nan(y_true)] = 0.
-    return tf.reduce_mean(ret)
+    return _reduce_mean(ret)
 
 
 # We need a class (or closure) here,
@@ -91,11 +102,8 @@ class NB(object):
 
             final = t1 + t2 + t3 + t4 + t5 + t6
 
-            # mask nan values in error
-            final[tf.is_nan(y_true)] = 0.
-
             if reduce:
-                final = tf.reduce_mean(final)
+                final = _reduce_mean(final)
 
         return final
 
@@ -122,10 +130,7 @@ class ZINB(NB):
             zero_case = -tf.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
             result = tf.where(tf.less(y_true, 1e-8), zero_case, nb_case)
 
-            # mask nan values in error
-            result[tf.is_nan(y_true)] = 0.
-
-            result = tf.reduce_mean(result)
+            result = _reduce_mean(result)
 
             if self.debug:
                 tf.summary.histogram('nb_case', nb_case)
