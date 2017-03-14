@@ -8,13 +8,13 @@ def _nan2zero(x):
 
 def _nelem(x):
     nelem = tf.reduce_sum(tf.cast(~tf.is_nan(x), tf.float32))
-    return tf.where(tf.equal(nelem, 0.), 1., nelem)
+    return tf.cast(tf.where(tf.equal(nelem, 0.), 1., nelem), x.dtype)
 
 
 def _reduce_mean(x):
     nelem = _nelem(x)
     x = _nan2zero(x)
-    return tf.reduce_sum(x)/nelem
+    return tf.divide(tf.reduce_sum(x), nelem)
 
 
 def mse_loss(y_true, y_pred):
