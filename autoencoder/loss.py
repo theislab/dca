@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-from . import backend as K
 
 
 def _nan2zero(x):
@@ -15,11 +14,11 @@ def _nelem(x):
 def _reduce_mean(x):
     nelem = _nelem(x)
     x = _nan2zero(x)
-    return K.sum(x)/nelem
+    return tf.reduce_sum(x)/nelem
 
 
 def mse_loss(y_true, y_pred):
-    ret = K.square(y_pred - y_true)
+    ret = tf.square(y_pred - y_true)
 
     return _reduce_mean(ret)
 
