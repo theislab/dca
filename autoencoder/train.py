@@ -44,19 +44,22 @@ def train(X, hidden_size=32, l2_coef=0., optimizer=None, learning_rate=0.01,
     # Callbacks
     checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % log_dir,
                                    verbose=1)
-    es_cb = EarlyStopping(monitor='val_loss', min_delta=0,
-                          patience=early_stopping_epoch,
-                          verbose=0, mode='auto')
+    es_cb = EarlyStopping(monitor='val_loss', patience=early_stopping_epoch)
+    es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stopping_epoch)
 
-    lr_cb = ReduceLROnPlateau(monitor='val_loss', factor=0.1,
-                              patience=reduce_lr_epoch,
-                              verbose=0, mode='auto', epsilon=0.0001,
-                              cooldown=0, min_lr=0)
+    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr_epoch)
+    lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr_epoch)
+
     tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=1)
     callbacks = []
+    callbacks_train = []
 
-    if reduce_lr_epoch: callbacks.append(lr_cb)
-    if early_stopping_epoch: callbacks.append(es_cb)
+    if reduce_lr_epoch:
+        callbacks.append(lr_cb)
+        callbacks_train.append(lr_cb_train)
+    if early_stopping_epoch:
+        callbacks.append(es_cb)
+        callbacks_train.append(es_cb_train)
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -88,7 +91,7 @@ def train(X, hidden_size=32, l2_coef=0., optimizer=None, learning_rate=0.01,
                      nb_epoch=epochs,
                      batch_size=batch_size,
                      shuffle=True,
-                     callbacks=[tb_cb, checkpointer],
+                     callbacks=callbacks_train.extend([tb_cb, checkpointer]),
                      **kwargs)
 
     #https://github.com/tensorflow/tensorflow/issues/3388
