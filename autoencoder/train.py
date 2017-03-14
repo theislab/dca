@@ -24,22 +24,39 @@ from . import io
 
 import numpy as np
 from keras.optimizers import SGD
-from keras.callbacks import TensorBoard, ModelCheckpoint
+from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras import backend as K
 
 
-def train(X, hidden_size=32, learning_rate=0.01,
-          log_dir='logs', aetype=None, epochs=10,
-          batch_size=32, censortype=None, censorthreshold=None,
+def train(X, hidden_size=32, optimizer=None, learning_rate=0.01,
+          log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
+          early_stopping_epoch=40, batch_size=32,
+          censortype=None, censorthreshold=None,
           hyperpar=None, **kwargs):
 
     model, _, _, loss = autoencoder(X['shape'][1], hidden_size=hidden_size,
                                     aetype=aetype)
+    if optimizer is None:
+        optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
-    optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
     model.compile(loss=loss, optimizer=optimizer)
+
+    # Callbacks
     checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % log_dir,
                                    verbose=1)
+    es_cb = EarlyStopping(monitor='val_loss', min_delta=0,
+                          patience=early_stopping_epoch,
+                          verbose=0, mode='auto')
+
+    lr_cb = ReduceLROnPlateau(monitor='val_loss', factor=0.1,
+                              patience=reduce_lr_epoch,
+                              verbose=0, mode='auto', epsilon=0.0001,
+                              cooldown=0, min_lr=0)
+    tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=1)
+    callbacks = [tb_cb, checkpointer]
+
+    if reduce_lr: callbacks.append(lr_cb)
+    if early_stopping: callbacks.append(es_cb)
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -49,37 +66,35 @@ def train(X, hidden_size=32, learning_rate=0.01,
 
     print(model.summary())
 
-    losses = list()
+    fold_losses = list()
     for data in X['folds']:
         loss = model.fit(data['train'], data['train'],
                          nb_epoch=epochs,
                          batch_size=batch_size,
                          shuffle=True,
-                         #callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
-                         #           checkpointer],
+                         #callbacks=[tb_cb, checkpointer],
                          validation_data=(data['val'], data['val']),
                          **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
         #               verbose=1, sample_weight=None)
-        losses.append(loss)
+        fold_losses.append(loss.history)
 
     # run final training on full dataset
     full_data = np.concatenate((X['folds'][0]['train'],
                                 X['folds'][0]['val'],
                                 X['folds'][0]['test']))
 
-    model.fit(full_data, full_data,
+    loss = model.fit(full_data, full_data,
                      nb_epoch=epochs,
                      batch_size=batch_size,
                      shuffle=True,
-                     callbacks=[TensorBoard(log_dir=log_dir, histogram_freq=1),
-                                checkpointer],
+                     callbacks=callbacks,
                      **kwargs)
 
     #https://github.com/tensorflow/tensorflow/issues/3388
-    K.clear_session()
+    #K.clear_session()
 
-    return model
+    return model, {'full': loss.history, 'fold': fold_losses}
 
 
 def train_with_args(args):

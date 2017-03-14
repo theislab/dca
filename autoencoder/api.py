@@ -10,8 +10,8 @@ def autoencode(count_matrix, kfold=None, reduced=False,
                epochs=10):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask)
-    model = train(x, hidden_size=hidden_size, learning_rate=learning_rate,
-                  aetype=type, epochs=epochs)
+    model, losses = train(x, hidden_size=hidden_size, learning_rate=learning_rate,
+                          aetype=type, epochs=epochs)
     encoded = encode(count_matrix, model, reduced=reduced)
 
     return encoded
