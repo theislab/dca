@@ -55,8 +55,8 @@ def train(X, hidden_size=32, optimizer=None, learning_rate=0.01,
     tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=1)
     callbacks = [tb_cb, checkpointer]
 
-    if reduce_lr: callbacks.append(lr_cb)
-    if early_stopping: callbacks.append(es_cb)
+    if reduce_lr_epoch: callbacks.append(lr_cb)
+    if early_stopping_epoch: callbacks.append(es_cb)
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
