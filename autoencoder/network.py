@@ -14,7 +14,7 @@
 # ==============================================================================
 
 import numpy as np
-from keras.layers import Input, Dense
+from keras.layers import Input, Dense, Lambda
 from keras.models import Model
 from keras.regularizers import l2
 from keras.objectives import mean_squared_error
@@ -44,8 +44,10 @@ def autoencoder(input_size, hidden_size=10, l2_coef=0.,
         raise NotImplementedError
 
     inp = Input(shape=(input_size,))
+    nan = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))(inp)
+
     encoded = Dense(hidden_size, activation='relu',
-                    W_regularizer=l2(l2_coef))(inp)
+                    W_regularizer=l2(l2_coef))(nan)
     decoded = Dense(input_size, activation=output_activation,
                     W_regularizer=l2(l2_coef))(encoded)
 
