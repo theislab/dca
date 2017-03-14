@@ -28,14 +28,14 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceL
 from keras import backend as K
 
 
-def train(X, hidden_size=32, optimizer=None, learning_rate=0.01,
+def train(X, hidden_size=32, l2_coef=0., optimizer=None, learning_rate=0.01,
           log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
           early_stopping_epoch=40, batch_size=32,
           censortype=None, censorthreshold=None,
           hyperpar=None, **kwargs):
 
     model, _, _, loss = autoencoder(X['shape'][1], hidden_size=hidden_size,
-                                    aetype=aetype)
+                                    l2_coef=l2_coef, aetype=aetype)
     if optimizer is None:
         optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 

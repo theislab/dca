@@ -16,13 +16,15 @@
 import numpy as np
 from keras.layers import Input, Dense
 from keras.models import Model
+from keras.regularizers import l2
 from keras.objectives import mean_squared_error
+from keras import backend as K
 import tensorflow as tf
 slim = tf.contrib.slim
 
 from .loss import poisson_loss, NB
 
-def autoencoder(input_size, hidden_size=100,
+def autoencoder(input_size, hidden_size=10, l2_coef=0.,
                 aetype=None):
 
     assert aetype in ['normal', 'poisson', 'nb', 'zinb'], \
@@ -32,18 +34,20 @@ def autoencoder(input_size, hidden_size=100,
         output_activation = None
         loss = mean_squared_error
     elif aetype == 'poisson':
-        output_activation = tf.exp
+        output_activation = K.exp
         loss = poisson_loss
     elif aetype == 'nb':
-        output_activation = tf.exp
+        output_activation = K.exp
         nb = NB(theta_init=tf.zeros([1, input_size]))
         loss = nb.loss
     elif aetype == 'zinb':
         raise NotImplementedError
 
     inp = Input(shape=(input_size,))
-    encoded = Dense(hidden_size, activation='relu')(inp)
-    decoded = Dense(input_size, activation=output_activation)(encoded)
+    encoded = Dense(hidden_size, activation='relu',
+                    kernel_regularizer=l2(l2_coef))(inp)
+    decoded = Dense(input_size, activation=output_activation,
+                    kernel_regularizer=l2(l2_coef))(encoded)
 
     autoencoder = Model(input=inp, output=decoded)
     encoder = get_encoder(autoencoder)
