@@ -7,7 +7,7 @@ def autoencode(count_matrix, kfold=None, reduced=False,
                mask=None, type='normal',
                learning_rate=1e-2,
                hidden_size=10,
-               epochs=10):
+               epochs=200):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask)
     model, losses = train(x, hidden_size=hidden_size, learning_rate=learning_rate,

@@ -53,7 +53,7 @@ def train(X, hidden_size=32, optimizer=None, learning_rate=0.01,
                               verbose=0, mode='auto', epsilon=0.0001,
                               cooldown=0, min_lr=0)
     tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=1)
-    callbacks = [tb_cb, checkpointer]
+    callbacks = []
 
     if reduce_lr_epoch: callbacks.append(lr_cb)
     if early_stopping_epoch: callbacks.append(es_cb)
@@ -72,7 +72,7 @@ def train(X, hidden_size=32, optimizer=None, learning_rate=0.01,
                          nb_epoch=epochs,
                          batch_size=batch_size,
                          shuffle=True,
-                         #callbacks=[tb_cb, checkpointer],
+                         callbacks=callbacks,
                          validation_data=(data['val'], data['val']),
                          **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
@@ -88,7 +88,7 @@ def train(X, hidden_size=32, optimizer=None, learning_rate=0.01,
                      nb_epoch=epochs,
                      batch_size=batch_size,
                      shuffle=True,
-                     callbacks=callbacks,
+                     callbacks=[tb_cb, checkpointer],
                      **kwargs)
 
     #https://github.com/tensorflow/tensorflow/issues/3388
