@@ -45,9 +45,9 @@ def autoencoder(input_size, hidden_size=10, l2_coef=0.,
 
     inp = Input(shape=(input_size,))
     encoded = Dense(hidden_size, activation='relu',
-                    kernel_regularizer=l2(l2_coef))(inp)
+                    W_regularizer=l2(l2_coef))(inp)
     decoded = Dense(input_size, activation=output_activation,
-                    kernel_regularizer=l2(l2_coef))(encoded)
+                    W_regularizer=l2(l2_coef))(encoded)
 
     autoencoder = Model(input=inp, output=decoded)
     encoder = get_encoder(autoencoder)
