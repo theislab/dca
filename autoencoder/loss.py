@@ -35,11 +35,14 @@ def poisson_loss(y_true, y_pred):
     # dist = tf.contrib.distributions
     # return -tf.reduce_mean(dist.Poisson(y_pred).log_pmf(y_true))
 
+    nelem = _nelem(y_true)
+    y_true = _nan2zero(y_true)
+
     # last term can be avoided since it doesn't depend on y_pred
     # however keeping it gives a nice lower bound to zero
     ret = y_pred - y_true*tf.log(y_pred+1e-10) + tf.lgamma(y_true+1.0)
 
-    return _reduce_mean(ret)
+    return tf.divide(tf.reduce_sum(ret), nelem)
 
 
 # We need a class (or closure) here,
@@ -82,6 +85,9 @@ class NB(object):
             y_true = tf.cast(y_true, tf.float32)
             y_pred = tf.cast(y_pred, tf.float32) * scale_factor
 
+            nelem = _nelem(y_true)
+            y_true = _nan2zero(y_true)
+
             theta = 1.0/(self.theta+eps)
 
             t1 = -tf.lgamma(y_true+theta+eps)
@@ -100,9 +106,11 @@ class NB(object):
                 tf.summary.histogram('t6', t6)
 
             final = t1 + t2 + t3 + t4 + t5 + t6
+            final = _nan2zero(final)
 
             if reduce:
-                final = _reduce_mean(final)
+                final = tf.divide(tf.reduce_sum(final), nelem)
+
 
         return final
 
