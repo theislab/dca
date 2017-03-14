@@ -8,7 +8,7 @@ def _nan2zero(x):
 
 
 def _nelem(x):
-    nelem = tf.reduce_sum(tf.cast(~tf.is_nan(x, tf.int32)))
+    nelem = tf.reduce_sum(tf.cast(~tf.is_nan(x), tf.int32))
     return tf.where(tf.equal(nelem, 0), 1, nelem)
 
 
