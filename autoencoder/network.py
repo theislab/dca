@@ -51,7 +51,7 @@ def autoencoder(input_size, hidden_size=10, l2_coef=0.,
     decoded = Dense(input_size, activation=output_activation,
                     kernel_regularizer=l2(l2_coef))(encoded)
 
-    autoencoder = Model(input=inp, output=decoded)
+    autoencoder = Model(inputs=inp, outputs=decoded)
     encoder = get_encoder(autoencoder)
     decoder = get_decoder(autoencoder)
 
