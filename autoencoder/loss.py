@@ -97,6 +97,15 @@ class NB(object):
             t5 = -(y_true * (tf.log(y_pred+eps)))
             t6 = (theta+y_true) * tf.log(theta+y_pred+eps)
 
+            assert_ops = [
+                    tf.verify_tensor_all_finite(y_pred, 'y_pred has inf/nans'),
+                    tf.verify_tensor_all_finite(t1, 't1 has inf/nans'),
+                    tf.verify_tensor_all_finite(t2, 't2 has inf/nans'),
+                    tf.verify_tensor_all_finite(t3, 't3 has inf/nans'),
+                    tf.verify_tensor_all_finite(t4, 't4 has inf/nans'),
+                    tf.verify_tensor_all_finite(t5, 't5 has inf/nans'),
+                    tf.verify_tensor_all_finite(t6, 't6 has inf/nans')]
+
             if self.debug:
                 tf.summary.histogram('t1', t1)
                 tf.summary.histogram('t2', t2)
@@ -105,8 +114,11 @@ class NB(object):
                 tf.summary.histogram('t5', t5)
                 tf.summary.histogram('t6', t6)
 
-            final = t1 + t2 + t3 + t4 + t5 + t6
-            final = _nan2zero(final)
+                with tf.control_dependencies(assert_ops):
+                    final = t1 + t2 + t3 + t4 + t5 + t6
+
+            else:
+                final = t1 + t2 + t3 + t4 + t5 + t6
 
             if reduce:
                 final = tf.divide(tf.reduce_sum(final), nelem)
