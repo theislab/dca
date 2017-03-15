@@ -26,8 +26,8 @@ from sklearn.model_selection import KFold, train_test_split
 from keras.models import load_model as keras_load_model
 
 
-def read_csv(inputfile, type=np.float):
-    matrix = pd.read_csv(inputfile, sep=None, engine='python')
+def read_csv(inputfile, type=np.float, header=None):
+    matrix = pd.read_csv(inputfile, sep=None, engine='python', header=header)
     matrix = matrix.as_matrix()
     matrix = matrix.astype(type)
     return matrix
