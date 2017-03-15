@@ -37,7 +37,7 @@ def autoencoder(input_size, hidden_size=10, l2_coef=0.,
         output_activation = K.exp
         loss = poisson_loss
     elif aetype == 'nb':
-        output_activation = K.exp
+        output_activation = tf.nn.softplus
         nb = NB(theta_init=tf.zeros([1, input_size]))
         loss = nb.loss
     elif aetype == 'zinb':
