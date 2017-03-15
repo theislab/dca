@@ -47,9 +47,9 @@ def autoencoder(input_size, hidden_size=10, l2_coef=0.,
     nan = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))(inp)
 
     encoded = Dense(hidden_size, activation='relu',
-                    W_regularizer=l2(l2_coef))(nan)
+                    kernel_regularizer=l2(l2_coef))(nan)
     decoded = Dense(input_size, activation=output_activation,
-                    W_regularizer=l2(l2_coef))(encoded)
+                    kernel_regularizer=l2(l2_coef))(encoded)
 
     autoencoder = Model(input=inp, output=decoded)
     encoder = get_encoder(autoencoder)
@@ -68,9 +68,9 @@ def get_decoder(model):
     num_dec_layers = int((len(model.layers)-1) / 2)
     dec_layer_num = num_dec_layers + 1
     dec_layer = model.layers[dec_layer_num]
-    hidden_size = dec_layer.input_dim
+    hidden_size = dec_layer.input_shape
 
-    in_layer = Input(shape=((hidden_size, )))
+    in_layer = Input(shape=hidden_size)
     out_layer = in_layer
     for layer in model.layers[dec_layer_num:]:
         out_layer = layer(out_layer)
