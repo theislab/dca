@@ -72,7 +72,7 @@ def train(X, hidden_size=32, l2_coef=0., optimizer=None, learning_rate=0.01,
     fold_losses = list()
     for data in X['folds']:
         loss = model.fit(data['train'], data['train'],
-                         nb_epoch=epochs,
+                         epochs=epochs,
                          batch_size=batch_size,
                          shuffle=True,
                          callbacks=callbacks,
@@ -88,7 +88,7 @@ def train(X, hidden_size=32, l2_coef=0., optimizer=None, learning_rate=0.01,
                                 X['folds'][0]['test']))
 
     loss = model.fit(full_data, full_data,
-                     nb_epoch=epochs,
+                     epochs=epochs,
                      batch_size=batch_size,
                      shuffle=True,
                      callbacks=callbacks_train.extend([tb_cb, checkpointer]),

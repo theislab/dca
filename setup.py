@@ -20,7 +20,7 @@ setup(
     packages=['autoencoder'],
     install_requires=[tf,
                       'numpy>=1.7',
-                      'keras>=1.2.2',
+                      'keras>=2.0.0',
                       'six>=1.10.0',
                       'scikit-learn',
                       'pandas' #for preprocessing
