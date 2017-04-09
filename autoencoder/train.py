@@ -27,7 +27,7 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceL
 from keras import backend as K
 
 
-def train(X, model, optimizer=None, learning_rate=0.01,
+def train(X, model, loss, optimizer=None, learning_rate=0.01,
           log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
           early_stopping_epoch=40, batch_size=32,
           censortype=None, censorthreshold=None,

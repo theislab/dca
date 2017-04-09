@@ -19,7 +19,7 @@ def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
                         masking=(mask is not None),
                         aetype=type)
 
-    losses = train(x, model,
+    losses = train(x, model, loss,
                    learning_rate=learning_rate,
                    epochs=epochs, **kwargs)
 
