@@ -82,7 +82,7 @@ def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
         pi = pi_layer(last_hidden)
         output = Dense(input_size, activation=tf.nn.softplus,
                        kernel_regularizer=l2(l2_coef))(last_hidden)
-        zinb = ZINB(pi, theta_init=tf.zeros([1, num_out]), masking=masking)
+        zinb = ZINB(pi, theta_init=tf.zeros([1, input_size]), masking=masking)
         loss = zinb.loss
         extra_models['pi'] = Model(inputs=inp, outputs=pi)
     elif aetype == 'zinb-meanmix':
