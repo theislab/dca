@@ -1,7 +1,7 @@
 import numpy as np
 
 from .network import autoencoder, get_encoder
-from .io import read_csv, load_model
+from .io import read_text, load_model
 
 
 def encode(data, model, output_file=None, reduced=False):
@@ -24,7 +24,7 @@ def encode(data, model, output_file=None, reduced=False):
 
 
 def encode_with_args(args):
-    X = read_csv(args.dataset)
+    X = read_text(args.dataset)
     if args.transpose:
         X = X.transpose()
     model = load_model(args.logdir)

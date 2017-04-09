@@ -26,9 +26,9 @@ from sklearn.model_selection import KFold, train_test_split
 from keras.models import load_model as keras_load_model
 
 
-def read_csv(inputfile, type=np.float, header=None):
-    """Reads a csv file and returns a numpy matrix. No header expected by
-    default.
+def read_text(inputfile, type=np.float, header=None):
+    """Reads a csv/tsv file and returns a numpy matrix. No header expected by
+    default. Spearator is inferred automatically.
 
     Args:
         inputfile: Name of the input file
@@ -128,12 +128,12 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
 
 
 def preprocess_with_args(args):
-    matrix = read_csv(args.input)
+    matrix = read_text(args.input)
     if args.transpose:
         matrix = matrix.transpose()
 
     if args.maskfile:
-        mask = read_csv(args.maskfile, type=np.bool)
+        mask = read_text(args.maskfile, type=np.bool)
         if args.masktranspose:
             mask = mask.transpose()
 
