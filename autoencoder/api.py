@@ -5,11 +5,11 @@ from .encode import encode
 
 
 def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
-               mask=None, type='normal', activation='relu',
+               mask=None, type='normal', activation='relu', testset=False,
                learning_rate=1e-2, hidden_size=(256,64,256), l2_coef=0.,
                epochs=200, **kwargs):
 
-    x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=False)
+    x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
 
     model, encoder, decoder, loss, extras = \
             autoencoder(x['shape'][1],
