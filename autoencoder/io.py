@@ -53,7 +53,8 @@ def load_model(log_dir):
     return keras_load_model("%s/weights.hdf5" % log_dir)
 
 
-def preprocess(matrix, kfold=None, transpose=False, outputfile=None, mask=None):
+def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
+        mask=None, testset=True):
     '''Accepts the AE input matrix and splits it into k-folds. One fold is
     reserved for val and test set and the rest is for the training. For
     example 10-fold results in a list of 10 folds, 8 for training, 1 for val
@@ -65,7 +66,9 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None, mask=None):
         transpose: Use transposed input matrix.
         outputfile: Name of the output file in pickle format.
         mask: Binary mask matrix of same shape as input denoting the positions
-            in the input that will not be used in loss calculations.
+            in the input that will not be used in loss calculations. Elements
+            to be masked in the loss is set to NaNs in the input matrix.
+        testset: Use one fold as test set.
 
     Returns:
         A dictionary with 'shape', 'k', folds' keys.
@@ -75,7 +78,7 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None, mask=None):
         'k' denotes the number of folds.
 
         'folds' is a list of dicts of length 'k'. Each dict has 'train',
-            'val' and 'test' keys.
+            'val' and 'test' keys (if testset is True).
 
     '''
     if matrix.dtype != np.float:
@@ -96,13 +99,17 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None, mask=None):
     # Prepare indices for k-fold cv and train/valid/test split
     # For example 10-fold generates 8-1-1 equally sized folds for
     # train/val/test tests
-    for cv_trainval, cv_test in KFold(kfold if kfold else 10, True, 42).split(range(nsample)):
-        cv_train, cv_val = train_test_split(cv_trainval,
-                                            test_size=1/((kfold if kfold else 10) - 1),
-                                            random_state=42)
-        X['folds'].append({'train': matrix[cv_train, :],
-                           'val':   matrix[cv_val,   :],
-                           'test':  matrix[cv_test,  :]})
+    for cv_train, cv_val in KFold(kfold if kfold else 10, True, 42).split(range(nsample)):
+        if testset:
+            cv_train, cv_test = train_test_split(cv_train,
+                                                 test_size=1/((kfold if kfold else 10) - 1),
+                                                 random_state=42)
+            X['folds'].append({'train': matrix[cv_train, :],
+                               'val':   matrix[cv_val,   :],
+                               'test':  matrix[cv_test,  :]})
+        else:
+            X['folds'].append({'train': matrix[cv_train, :],
+                               'val':   matrix[cv_val,   :]})
 
         if not kfold: break #if kfold is not give just split it 8-1-1 once
 
