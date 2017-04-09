@@ -16,7 +16,7 @@ def autoencode(count_matrix, kfold=None, reduced=False,
                         hidden_size=hidden_size,
                         l2_coef=l2_coef,
                         activation=activation,
-                        masking=(mask is None),
+                        masking=(mask is not None),
                         aetype=type)
 
     losses = train(x, model,
