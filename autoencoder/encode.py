@@ -11,6 +11,7 @@ def encode(data, model, output_file=None, reduced=False):
            'Input size of data and pretrained model must be same'
 
     if reduced:
+        #FIXME
         encoder = get_encoder(model)
         predictions = encoder.predict(data)
     else:

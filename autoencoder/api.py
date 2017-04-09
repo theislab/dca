@@ -4,7 +4,7 @@ from .network import autoencoder
 from .encode import encode
 
 
-def autoencode(count_matrix, kfold=None, reduced=False,
+def autoencode(count_matrix, kfold=None,
                mask=None, type='normal', activation='relu',
                learning_rate=1e-2, hidden_size=(256,64,256), l2_coef=0.,
                epochs=200, **kwargs):
@@ -23,8 +23,14 @@ def autoencode(count_matrix, kfold=None, reduced=False,
                    learning_rate=learning_rate,
                    epochs=epochs, **kwargs)
 
-    encoded = encode(count_matrix, model, reduced=reduced)
+    #encoded = encode(count_matrix, model, reduced=reduced)
+    reduced = encoder.predict(count_matrix)
+    reconstructed = model.predict(count_matrix)
 
-    return {'encoded': encoded,
+    return {'reduced': reduced,
+            'reconstructed': reconstructed,
             'model':   model,
+            'encoder': encoder,
+            'decoder': decoder,
+            'extra_models': extras,
             'losses':  losses}
