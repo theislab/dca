@@ -27,6 +27,18 @@ from keras.models import load_model as keras_load_model
 
 
 def read_csv(inputfile, type=np.float, header=None):
+    """Reads a csv file and returns a numpy matrix. No header expected by
+    default.
+
+    Args:
+        inputfile: Name of the input file
+        type: Type of resulting matrix. numpy.float by default.
+        header: Whether header should be inferred. None by default does not
+            expect a header row. 'infer' automatically infers.
+
+    Returns:
+        matrix: Numpy matrix
+    """
     matrix = pd.read_csv(inputfile, sep=None, engine='python', header=header)
     matrix = matrix.as_matrix()
     matrix = matrix.astype(type)
@@ -42,6 +54,30 @@ def load_model(log_dir):
 
 
 def preprocess(matrix, kfold=None, transpose=False, outputfile=None, mask=None):
+    '''Accepts the AE input matrix and splits it into k-folds. One fold is
+    reserved for val and test set and the rest is for the training. For
+    example 10-fold results in a list of 10 folds, 8 for training, 1 for val
+    and 1 for test. Pickles everything in a dict, if requested.
+
+    Args:
+        matrix: Input matrix for autoencoder.
+        kfold: Number of folds to be used in k-fold CV.
+        transpose: Use transposed input matrix.
+        outputfile: Name of the output file in pickle format.
+        mask: Binary mask matrix of same shape as input denoting the positions
+            in the input that will not be used in loss calculations.
+
+    Returns:
+        A dictionary with 'shape', 'k', folds' keys.
+
+        'shape' is the initial shape of the input matrix.
+
+        'k' denotes the number of folds.
+
+        'folds' is a list of dicts of length 'k'. Each dict has 'train',
+            'val' and 'test' keys.
+
+    '''
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
 
