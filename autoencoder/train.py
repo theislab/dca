@@ -27,10 +27,9 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceL
 from keras import backend as K
 
 
-def train(X, model, optimizer=None, learning_rate=0.01,
+def train(X, model, optimizer=None, learning_rate=0.01, train_on_full=False,
           log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
           early_stopping_epoch=40, batch_size=32,
-          censortype=None, censorthreshold=None,
           hyperpar=None, **kwargs):
 
     if optimizer is None:
@@ -79,22 +78,27 @@ def train(X, model, optimizer=None, learning_rate=0.01,
         #               verbose=1, sample_weight=None)
         fold_losses.append(loss.history)
 
-    # run final training on full dataset
-    full_data = np.concatenate((X['folds'][0]['train'],
-                                X['folds'][0]['val'],
-                                X['folds'][0]['test']))
+    ret =  {'fold': fold_losses}
 
-    loss = model.fit(full_data, full_data,
-                     epochs=epochs,
-                     batch_size=batch_size,
-                     shuffle=True,
-                     callbacks=callbacks_train.extend([tb_cb, checkpointer]),
-                     **kwargs)
+    if train_on_full:
+        # run final training on full dataset
+        full_data = np.concatenate((X['folds'][0]['train'],
+                                    X['folds'][0]['val']))
+        if 'test' in X['folds'][0]:
+            full_data = np.concatenate((full_data, X['folds'][0]['test']))
+
+        loss = model.fit(full_data, full_data,
+                         epochs=epochs,
+                         batch_size=batch_size,
+                         shuffle=True,
+                         callbacks=callbacks_train.extend([tb_cb, checkpointer]),
+                         **kwargs)
+        ret['full'] = loss.history
 
     #https://github.com/tensorflow/tensorflow/issues/3388
     #K.clear_session()
 
-    return {'full': loss.history, 'fold': fold_losses}
+    return ret
 
 
 def train_with_args(args):
@@ -105,6 +109,4 @@ def train_with_args(args):
           log_dir=args.logdir,
           aetype=args.type,
           epochs=args.epochs,
-          censorthreshold=args.censorthreshold,
-          censortype=args.censortype,
           hyperpar=args.hyperpar)
