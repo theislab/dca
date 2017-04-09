@@ -24,8 +24,23 @@ slim = tf.contrib.slim
 
 from .loss import poisson_loss, NB
 
-def autoencoder(input_size, hidden_size=10, l2_coef=0.,
+def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
                 aetype=None):
+    '''Construct an autoencoder in Keras and return model, encoder and decoder
+    parts.
+
+    Args:
+        input_size: Size of the input (i.e. number of features)
+        hidden_size: Tuple of sizes for each hidden layer.
+        l2_coef: L2 regularization coefficient.
+        aetype: Type of autoencoder. Available values are 'normal', 'poisson',
+            'nb', 'zinb' and 'zinb-meanmix'. 'zinb' refers to zero-inflated
+            negative binomial with constant mixture params. 'zinb-meanmix'
+            formulates mixture parameters as a function of NB mean.
+
+    Returns:
+        A tuple of Keras model, encoder, decoder and loss history.
+    '''
 
     assert aetype in ['normal', 'poisson', 'nb', 'zinb'], \
                      'AE type not supported'
