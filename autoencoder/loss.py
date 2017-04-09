@@ -55,7 +55,7 @@ def poisson_loss(y_true, y_pred):
 # calculation of the loss to balance the
 # learning rates of theta and network weights
 class NB(object):
-    def __init__(self, theta=None, theta_init=[0.0],
+    def __init__(self, theta=None, theta_init=[0.0], masking=False,
                  scale_factor=1.0, scope='nbinom_loss/',
                  debug=False, **theta_kwargs):
 
@@ -64,6 +64,7 @@ class NB(object):
         self.scale_factor = scale_factor
         self.debug = debug
         self.scope = scope
+        self.masking = masking
 
         with tf.name_scope(self.scope):
             # a variable may be given by user or it can be created here
@@ -85,8 +86,9 @@ class NB(object):
             y_true = tf.cast(y_true, tf.float32)
             y_pred = tf.cast(y_pred, tf.float32) * scale_factor
 
-            nelem = _nelem(y_true)
-            y_true = _nan2zero(y_true)
+            if self.masking:
+                nelem = _nelem(y_true)
+                y_true = _nan2zero(y_true)
 
             theta = 1.0/(self.theta+eps)
 
@@ -121,15 +123,17 @@ class NB(object):
                 final = t1 + t2 + t3 + t4 + t5 + t6
 
             if reduce:
-                final = tf.divide(tf.reduce_sum(final), nelem)
+                if masking:
+                    final = tf.divide(tf.reduce_sum(final), nelem)
+                else:
+                    final = tf.reduce_mean(final)
 
 
         return final
 
 
 class ZINB(NB):
-    def __init__(self, pi, scope='zinb_loss/',
-                 **kwargs):
+    def __init__(self, pi, scope='zinb_loss/', **kwargs):
         super().__init__(scope=scope, **kwargs)
         self.pi = pi
 
@@ -149,7 +153,10 @@ class ZINB(NB):
             zero_case = -tf.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
             result = tf.where(tf.less(y_true, 1e-8), zero_case, nb_case)
 
-            result = _reduce_mean(result)
+            if self.masking:
+                result = _reduce_mean(result)
+            else:
+                result = tf.reduce_mean(result)
 
             if self.debug:
                 tf.summary.histogram('nb_case', nb_case)
