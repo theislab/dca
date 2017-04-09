@@ -22,7 +22,7 @@ from keras import backend as K
 import tensorflow as tf
 slim = tf.contrib.slim
 
-from .loss import poisson_loss, NB
+from .loss import poisson_loss, NB, ZINB
 
 def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
                 activation='relu', masking=False, aetype=None):
