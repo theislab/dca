@@ -77,8 +77,9 @@ def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
                        kernel_regularizer=l2(l2_coef))(last_hidden)
         loss = nb.loss
     elif aetype == 'zinb':
-        pi = Dense(input_size, activation='sigmoid',
-                       kernel_regularizer=l2(l2_coef))(last_hidden)
+        pi_layer = Dense(input_size, activation='sigmoid',
+                       kernel_regularizer=l2(l2_coef))
+        pi = pi_layer(last_hidden)
         output = Dense(input_size, activation=tf.nn.softplus,
                        kernel_regularizer=l2(l2_coef))(last_hidden)
         zinb = ZINB(pi, theta_init=tf.zeros([1, num_out]), masking=masking)
@@ -99,7 +100,7 @@ def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
         autoencoder.layers[-1].trainable_weights.append(nb.theta_variable)
     elif aetype == 'zinb':
         autoencoder.layers[-1].trainable_weights.extend([zinb.theta_variable,
-                                                         *pi.trainable_weights])
+                                                         *pi_layer.trainable_weights])
 
     return autoencoder, encoder, decoder, loss, extra_models
 
