@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import os, json
 
-from .network import autoencoder
 from . import io
 
 import numpy as np
@@ -28,14 +27,12 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceL
 from keras import backend as K
 
 
-def train(X, hidden_size=32, l2_coef=0., optimizer=None, learning_rate=0.01,
+def train(X, model, optimizer=None, learning_rate=0.01,
           log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
           early_stopping_epoch=40, batch_size=32,
           censortype=None, censorthreshold=None,
           hyperpar=None, **kwargs):
 
-    model, _, _, loss = autoencoder(X['shape'][1], hidden_size=hidden_size,
-                                    l2_coef=l2_coef, aetype=aetype)
     if optimizer is None:
         optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
@@ -97,7 +94,7 @@ def train(X, hidden_size=32, l2_coef=0., optimizer=None, learning_rate=0.01,
     #https://github.com/tensorflow/tensorflow/issues/3388
     #K.clear_session()
 
-    return model, {'full': loss.history, 'fold': fold_losses}
+    return {'full': loss.history, 'fold': fold_losses}
 
 
 def train_with_args(args):
