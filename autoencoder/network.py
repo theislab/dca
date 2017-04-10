@@ -59,29 +59,29 @@ def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
 
     for i, hid_size in enumerate(hidden_size):
         last_hidden = Dense(hid_size, activation=activation,
-                      kernel_regularizer=l2(l2_coef))(last_hidden)
+                      kernel_regularizer=l2(l2_coef), name='encoder_%s'%i)(last_hidden)
         if i == int(np.floor(len(hidden_size) / 2.0)):
             middle_layer = last_hidden
 
     if aetype == 'normal':
         loss = mean_squared_error
         output = Dense(input_size, activation=None,
-                       kernel_regularizer=l2(l2_coef))(last_hidden)
+                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
     elif aetype == 'poisson':
         output = Dense(input_size, activation=K.exp,
-                       kernel_regularizer=l2(l2_coef))(last_hidden)
+                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = poisson_loss
     elif aetype == 'nb':
         nb = NB(theta_init=tf.zeros([1, input_size]), masking=masking)
         output = Dense(input_size, activation=tf.nn.softplus,
-                       kernel_regularizer=l2(l2_coef))(last_hidden)
+                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = nb.loss
     elif aetype == 'zinb':
         pi_layer = Dense(input_size, activation='sigmoid',
-                       kernel_regularizer=l2(l2_coef))
+                       kernel_regularizer=l2(l2_coef), name='pi')
         pi = pi_layer(last_hidden)
-        output = Dense(input_size, activation=tf.nn.softplus,
-                       kernel_regularizer=l2(l2_coef))(last_hidden)
+        output = Dense(input_size, activation=K.exp,
+                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         zinb = ZINB(pi, theta_init=tf.zeros([1, input_size]), masking=masking)
         loss = zinb.loss
         extra_models['pi'] = Model(inputs=inp, outputs=pi)
