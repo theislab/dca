@@ -59,7 +59,7 @@ def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
 
     for i, hid_size in enumerate(hidden_size):
         last_hidden = Dense(hid_size, activation=activation,
-                      kernel_regularizer=l2(l2_coef), name='encoder_%s'%i)(last_hidden)
+                      kernel_regularizer=l2(l2_coef), name='hidden_%s'%i)(last_hidden)
         if i == int(np.floor(len(hidden_size) / 2.0)):
             middle_layer = last_hidden
 
