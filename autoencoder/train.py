@@ -46,7 +46,6 @@ def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=Fals
     lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr_epoch)
     lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr_epoch)
 
-    tb_cb = TensorBoard(log_dir=log_dir, histogram_freq=1)
     callbacks = []
     callbacks_train = []
 
@@ -66,12 +65,15 @@ def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=Fals
     print(model.summary())
 
     fold_losses = list()
-    for data in X['folds']:
+    for i, data in enumerate(X['folds']):
+        tb_log_dir = os.path.join(log_dir, 'fold%0i' % i)
+        tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
+
         loss = model.fit(data['train'], data['train'],
                          epochs=epochs,
                          batch_size=batch_size,
                          shuffle=True,
-                         callbacks=callbacks,
+                         callbacks=callbacks+[tb_cb],
                          validation_data=(data['val'], data['val']),
                          **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
@@ -86,6 +88,9 @@ def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=Fals
                                     X['folds'][0]['val']))
         if 'test' in X['folds'][0]:
             full_data = np.concatenate((full_data, X['folds'][0]['test']))
+
+        tb_log_dir = os.path.join(log_dir, 'full')
+        tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
         loss = model.fit(full_data, full_data,
                          epochs=epochs,
