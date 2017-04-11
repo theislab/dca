@@ -51,6 +51,8 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
 
     ae = True if output_size is None else False
     extra_models  = {}
+    if output_size is None:
+        output_size = input_size
 
     inp = Input(shape=(input_size,))
     if masking:
@@ -67,24 +69,24 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
 
     if loss_type == 'normal':
         loss = mean_squared_error
-        output = Dense(input_size, activation=None,
+        output = Dense(output_size, activation=None,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
     elif loss_type == 'poisson':
-        output = Dense(input_size, activation=K.exp,
+        output = Dense(output_size, activation=K.exp,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = poisson_loss
     elif loss_type == 'nb':
-        nb = NB(theta_init=tf.zeros([1, input_size]), masking=masking)
-        output = Dense(input_size, activation=tf.nn.softplus,
+        nb = NB(theta_init=tf.zeros([1, output_size]), masking=masking)
+        output = Dense(output_size, activation=tf.nn.softplus,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = nb.loss
     elif loss_type == 'zinb':
-        pi_layer = Dense(input_size, activation='sigmoid',
+        pi_layer = Dense(output_size, activation='sigmoid',
                        kernel_regularizer=l2(l2_coef), name='pi')
         pi = pi_layer(last_hidden)
-        output = Dense(input_size, activation=K.exp,
+        output = Dense(output_size, activation=K.exp,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-        zinb = ZINB(pi, theta_init=tf.zeros([1, input_size]), masking=masking)
+        zinb = ZINB(pi, theta_init=tf.zeros([1, output_size]), masking=masking)
         loss = zinb.loss
         extra_models['pi'] = Model(inputs=inp, outputs=pi)
     elif loss_type == 'zinb-meanmix':
