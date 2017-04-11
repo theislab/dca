@@ -8,6 +8,7 @@ head(bioChemists)
 
 #encode design matrix
 design <- cbind.data.frame(art=bioChemists$art, model.matrix(art~., bioChemists)[,-1])
+colnames(design) <- colnames(bioChemists)
 head(design)
 write_tsv(design, 'biochemists.tsv')
 
