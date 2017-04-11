@@ -123,7 +123,7 @@ class NB(object):
                 final = t1 + t2 + t3 + t4 + t5 + t6
 
             if reduce:
-                if masking:
+                if self.masking:
                     final = tf.divide(tf.reduce_sum(final), nelem)
                 else:
                     final = tf.reduce_mean(final)
