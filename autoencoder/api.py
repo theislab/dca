@@ -1,6 +1,6 @@
 from .io import preprocess
 from .train import train
-from .network import autoencoder
+from .network import mlp
 from .encode import encode
 
 
@@ -11,23 +11,26 @@ def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
 
-    model, encoder, decoder, loss, extras = \
-            autoencoder(x['shape'][1],
-                        hidden_size=hidden_size,
-                        l2_coef=l2_coef,
-                        activation=activation,
-                        masking=(mask is not None),
-                        aetype=type)
+    net = mlp(x['shape'][1],
+              hidden_size=hidden_size,
+              l2_coef=l2_coef,
+              activation=activation,
+              masking=(mask is not None),
+              loss_type=type)
+
+    model, encoder, decoder, loss, extras = net['model'], net['encoder'], \
+                                            net['decoder'], net['loss'], \
+                                            net['extra_models']
 
     losses = train(x, model, loss,
                    learning_rate=learning_rate,
                    epochs=epochs, **kwargs)
 
-    ret =  {'model':   model,
-            'encoder': encoder,
-            'decoder': decoder,
-            'extra_models': extras,
-            'losses':  losses}
+    ret = {'model':   model,
+           'encoder': encoder,
+           'decoder': decoder,
+           'extra_models': extras,
+           'losses':  losses}
 
     if dimreduce:
         ret['reduced'] = encoder.predict(count_matrix)

@@ -24,30 +24,32 @@ slim = tf.contrib.slim
 
 from .loss import poisson_loss, NB, ZINB
 
-def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
-                activation='relu', masking=False, aetype=None):
-    '''Construct an autoencoder in Keras and return model, encoder and decoder
-    parts.
+def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
+                activation='relu', masking=False, loss_type='normal'):
+    '''Construct an MLP (or autoencoder if output_size is not given)
+    in Keras and return model (also encoder and decoderin case of AE).
 
     Args:
         input_size: Size of the input (i.e. number of features)
+        output_size: Size of the output layer (AE if not specified)
         hidden_size: Tuple of sizes for each hidden layer.
         l2_coef: L2 regularization coefficient.
         activation: Activation function of hidden layers. relu is default.
         masking: Whether masking will be supported in the model.
-        aetype: Type of autoencoder. Available values are 'normal', 'poisson',
+        loss_type: Type of loss function. Available values are 'normal', 'poisson',
             'nb', 'zinb' and 'zinb-meanmix'. 'zinb' refers to zero-inflated
             negative binomial with constant mixture params. 'zinb-meanmix'
             formulates mixture parameters as a function of NB mean.
 
     Returns:
-        A tuple of Keras model, encoder, decoder, loss function and extra
+        A dict of Keras model, encoder, decoder, loss function and extra
             models. Extra models keep mixture coefficients (i.e. pi) for ZINB.
     '''
 
-    assert aetype in ['normal', 'poisson', 'nb', 'zinb', 'zinb-meanmix'], \
-                     'AE type not supported'
+    assert loss_type in ['normal', 'poisson', 'nb', 'zinb', 'zinb-meanmix'], \
+                         'loss type not supported'
 
+    ae = True if output_size is None else False
     extra_models  = {}
 
     inp = Input(shape=(input_size,))
@@ -63,20 +65,20 @@ def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
         if i == int(np.floor(len(hidden_size) / 2.0)):
             middle_layer = last_hidden
 
-    if aetype == 'normal':
+    if loss_type == 'normal':
         loss = mean_squared_error
         output = Dense(input_size, activation=None,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-    elif aetype == 'poisson':
+    elif loss_type == 'poisson':
         output = Dense(input_size, activation=K.exp,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = poisson_loss
-    elif aetype == 'nb':
+    elif loss_type == 'nb':
         nb = NB(theta_init=tf.zeros([1, input_size]), masking=masking)
         output = Dense(input_size, activation=tf.nn.softplus,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = nb.loss
-    elif aetype == 'zinb':
+    elif loss_type == 'zinb':
         pi_layer = Dense(input_size, activation='sigmoid',
                        kernel_regularizer=l2(l2_coef), name='pi')
         pi = pi_layer(last_hidden)
@@ -85,24 +87,28 @@ def autoencoder(input_size, hidden_size=(256, 64, 256), l2_coef=0.,
         zinb = ZINB(pi, theta_init=tf.zeros([1, input_size]), masking=masking)
         loss = zinb.loss
         extra_models['pi'] = Model(inputs=inp, outputs=pi)
-    elif aetype == 'zinb-meanmix':
+    elif loss_type == 'zinb-meanmix':
         #TODO: Add another output module and make pi a function of mean
         raise NotImplemented
 
-    autoencoder = Model(inputs=inp, outputs=output)
-    encoder = Model(inputs=inp, outputs=middle_layer)
-    decoder = Model(inputs=middle_layer, outputs=output)
+    ret  = {'model': Model(inputs=inp, outputs=output)}
+
+    if ae:
+        ret['encoder'] = Model(inputs=inp, outputs=middle_layer)
+        ret['decoder'] = None #Model(inputs=middle_layer, outputs=output)
 
     #Ugly hack to inject NB dispersion parameters
-    if aetype == 'nb':
+    if loss_type == 'nb':
         # add theta as a trainable variable to Keras model
         # otherwise, keras optimizers will not update it
-        autoencoder.layers[-1].trainable_weights.append(nb.theta_variable)
-    elif aetype == 'zinb':
-        autoencoder.layers[-1].trainable_weights.extend([zinb.theta_variable,
+        ret['model'].layers[-1].trainable_weights.append(nb.theta_variable)
+    elif loss_type == 'zinb':
+        ret['model'].layers[-1].trainable_weights.extend([zinb.theta_variable,
                                                          *pi_layer.trainable_weights])
+    ret['extra_models'] = extra_models
+    ret['loss'] = loss
 
-    return autoencoder, encoder, decoder, loss, extra_models
+    return ret
 
 
 #TODO: take Lambda layer and multiple output layers into account
