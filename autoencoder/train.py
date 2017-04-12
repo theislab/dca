@@ -38,16 +38,17 @@ def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=Fals
     model.compile(loss=loss, optimizer=optimizer)
 
     # Callbacks
-    checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % log_dir,
-                                   verbose=1)
+    checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}-{val_loss:.2f}.hdf5" % log_dir,
+                                   verbose=1,
+                                   save_best_only=True)
     es_cb = EarlyStopping(monitor='val_loss', patience=early_stopping_epoch)
     es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stopping_epoch)
 
     lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr_epoch)
     lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr_epoch)
 
-    callbacks = []
-    callbacks_train = []
+    callbacks = [checkpointer]
+    callbacks_train = [checkpointer]
 
     if reduce_lr_epoch:
         callbacks.append(lr_cb)
@@ -96,7 +97,7 @@ def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=Fals
                          epochs=epochs,
                          batch_size=batch_size,
                          shuffle=True,
-                         callbacks=callbacks_train.extend([tb_cb, checkpointer]),
+                         callbacks=callbacks_train+[tb_cb],
                          **kwargs)
         ret['full'] = loss.history
 
