@@ -77,7 +77,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         loss = poisson_loss
     elif loss_type == 'nb':
         nb = NB(theta_init=tf.zeros([1, output_size]), masking=masking)
-        output = Dense(output_size, activation=tf.nn.softplus,
+        output = Dense(output_size, activation=K.exp,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = nb.loss
     elif loss_type == 'zinb':
