@@ -62,10 +62,14 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         last_hidden = inp
 
     for i, hid_size in enumerate(hidden_size):
-        last_hidden = Dense(hid_size, activation=activation,
-                      kernel_regularizer=l2(l2_coef), name='hidden_%s'%i)(last_hidden)
         if i == int(np.floor(len(hidden_size) / 2.0)):
             middle_layer = last_hidden
+            layer_name = 'center'
+        else:
+            layer_name = 'hidden_%s' % i
+
+        last_hidden = Dense(hid_size, activation=activation,
+                      kernel_regularizer=l2(l2_coef), name=layer_name)(last_hidden)
 
     if loss_type == 'normal':
         loss = mean_squared_error
@@ -112,29 +116,11 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
 
     return ret
 
-
-#TODO: take Lambda layer and multiple output layers into account
 def get_decoder(model):
-    num_dec_layers = int((len(model.layers)-1) / 2)
-    dec_layer_num = num_dec_layers + 1
-    dec_layer = model.layers[dec_layer_num]
-    hidden_size = dec_layer.input_shape
-
-    in_layer = Input(shape=hidden_size)
-    out_layer = in_layer
-    for layer in model.layers[dec_layer_num:]:
-        out_layer = layer(out_layer)
-
-    return Model(input=in_layer, output=out_layer)
-
+    i = [l for l in model.layers if l.name == 'center'][0]
+    return Model(inputs=model.get_layer(index=i+1).input,
+                 outputs=model.output)
 
 def get_encoder(model):
-    input_size = model.input_shape[1]
-    num_enc_layers = int((len(model.layers)-1) / 2)
-
-    in_layer = Input(shape=((input_size, )))
-    out_layer = in_layer
-    for layer in model.layers[1: (num_enc_layers+1)]:
-        out_layer = layer(out_layer)
-
-    return Model(input=in_layer, output=out_layer)
+    return Model(inputs=model.input,
+                 outputs=model.get_layer('center').output)
