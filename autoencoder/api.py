@@ -6,7 +6,7 @@ from .network import mlp
 def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
                mask=None, type='normal', activation='relu', testset=False,
                learning_rate=1e-2, hidden_size=(256,64,256), l2_coef=0.,
-               epochs=200, batch_size=32, **kwargs):
+               epochs=200, batch_size=32, optimizer=None, **kwargs):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
 
@@ -24,7 +24,7 @@ def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
     losses = train(x, model, loss,
                    learning_rate=learning_rate,
                    epochs=epochs, batch_size=batch_size,
-                   **kwargs)
+                   optimizer=optimizer, **kwargs)
 
     ret = {'model':   model,
            'encoder': encoder,
