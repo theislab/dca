@@ -76,7 +76,8 @@ class NB(object):
             self.theta_variable = theta
 
             # to keep dispersion always non-negative
-            self.theta = tf.nn.softplus(theta)
+            #self.theta = tf.nn.softplus(theta)
+            self.theta = tf.exp(theta)
 
     def loss(self, y_true, y_pred, reduce=True):
         scale_factor = self.scale_factor
