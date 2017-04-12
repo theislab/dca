@@ -1,13 +1,12 @@
 from .io import preprocess
 from .train import train
 from .network import mlp
-from .encode import encode
 
 
 def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
                mask=None, type='normal', activation='relu', testset=False,
                learning_rate=1e-2, hidden_size=(256,64,256), l2_coef=0.,
-               epochs=200, **kwargs):
+               epochs=200, batch_size=32, **kwargs):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
 
@@ -24,7 +23,8 @@ def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
 
     losses = train(x, model, loss,
                    learning_rate=learning_rate,
-                   epochs=epochs, **kwargs)
+                   epochs=epochs, batch_size=batch_size,
+                   **kwargs)
 
     ret = {'model':   model,
            'encoder': encoder,
