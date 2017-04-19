@@ -14,18 +14,18 @@
 # ==============================================================================
 
 import numpy as np
-from keras.layers import Input, Dense, Lambda
+from keras.layers import Input, Dense, Lambda, Dropout
 from keras.models import Model
 from keras.regularizers import l2
 from keras.objectives import mean_squared_error
 from keras import backend as K
 import tensorflow as tf
-slim = tf.contrib.slim
 
 from .loss import poisson_loss, NB, ZINB
 
 def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
-                activation='relu', masking=False, loss_type='normal'):
+        hidden_dropout=0.1, activation='relu',
+        masking=False, loss_type='normal'):
     '''Construct an MLP (or autoencoder if output_size is not given)
     in Keras and return model (also encoder and decoderin case of AE).
 
@@ -54,6 +54,11 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
     if output_size is None:
         output_size = input_size
 
+    if isinstance(hidden_dropout, list):
+        assert len(hidden_dropout) == len(hidden_size)
+    else:
+        hidden_dropout = [hidden_dropout]*len(hidden_size)
+
     inp = Input(shape=(input_size,))
     if masking:
         nan = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))(inp)
@@ -61,7 +66,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
     else:
         last_hidden = inp
 
-    for i, hid_size in enumerate(hidden_size):
+    for i, (hid_size, hid_drop) in enumerate(zip(hidden_size, hidden_dropout)):
         if i == int(np.floor(len(hidden_size) / 2.0)):
             middle_layer = last_hidden
             layer_name = 'center'
@@ -70,6 +75,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
 
         last_hidden = Dense(hid_size, activation=activation,
                       kernel_regularizer=l2(l2_coef), name=layer_name)(last_hidden)
+        last_hidden = Dropout(hid_drop)(last_hidden)
 
     if loss_type == 'normal':
         loss = mean_squared_error

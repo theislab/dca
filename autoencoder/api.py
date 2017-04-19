@@ -6,13 +6,15 @@ from .network import mlp
 def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
                mask=None, type='normal', activation='relu', testset=False,
                learning_rate=1e-2, hidden_size=(256,64,256), l2_coef=0.,
-               epochs=200, batch_size=32, optimizer=None, **kwargs):
+               hidden_dropout=0.1, epochs=200, batch_size=32,
+               optimizer=None, **kwargs):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
 
     net = mlp(x['shape'][1],
               hidden_size=hidden_size,
               l2_coef=l2_coef,
+              hidden_dropout=hidden_dropout,
               activation=activation,
               masking=(mask is not None),
               loss_type=type)
