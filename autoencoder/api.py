@@ -18,6 +18,7 @@ def autoencode(count_matrix,
                epochs=200,
                batch_size=32,
                optimizer=None,
+               init='glorot_uniform',
                **kwargs):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
@@ -27,6 +28,7 @@ def autoencode(count_matrix,
               l2_coef=l2_coef,
               hidden_dropout=hidden_dropout,
               activation=activation,
+              init=init,
               masking=(mask is not None),
               loss_type=type)
 

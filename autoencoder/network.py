@@ -24,7 +24,7 @@ import tensorflow as tf
 from .loss import poisson_loss, NB, ZINB
 
 def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
-        hidden_dropout=0.1, activation='relu',
+        hidden_dropout=0.1, activation='relu', init='glorot_uniform',
         masking=False, loss_type='normal'):
     '''Construct an MLP (or autoencoder if output_size is not given)
     in Keras and return model (also encoder and decoderin case of AE).
@@ -72,7 +72,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         else:
             layer_name = 'hidden_%s' % i
 
-        last_hidden = Dense(hid_size, activation=None,
+        last_hidden = Dense(hid_size, activation=None, kernel_initializer=init,
                       kernel_regularizer=l2(l2_coef), name=layer_name)(last_hidden)
 
         # Use separate act. layers to give user the option to get pre-activations
@@ -82,22 +82,22 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
 
     if loss_type == 'normal':
         loss = mean_squared_error
-        output = Dense(output_size, activation=None,
+        output = Dense(output_size, activation=None, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
     elif loss_type == 'poisson':
-        output = Dense(output_size, activation=K.exp,
+        output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = poisson_loss
     elif loss_type == 'nb':
         nb = NB(theta_init=tf.zeros([1, output_size]), masking=masking)
-        output = Dense(output_size, activation=K.exp,
+        output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = nb.loss
     elif loss_type == 'zinb':
-        pi_layer = Dense(output_size, activation='sigmoid',
+        pi_layer = Dense(output_size, activation='sigmoid', kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='pi')
         pi = pi_layer(last_hidden)
-        output = Dense(output_size, activation=K.exp,
+        output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         zinb = ZINB(pi, theta_init=tf.zeros([1, output_size]), masking=masking)
         loss = zinb.loss
