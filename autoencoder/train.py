@@ -28,7 +28,7 @@ from keras import backend as K
 
 
 def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=False,
-          log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
+          log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=0,
           early_stopping_epoch=40, batch_size=32,
           hyperpar=None, **kwargs):
 
@@ -38,7 +38,7 @@ def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=Fals
     model.compile(loss=loss, optimizer=optimizer)
 
     # Callbacks
-    checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}-{val_loss:.2f}.hdf5" % log_dir,
+    checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}-{val_loss:.4f}.hdf5" % log_dir,
                                    verbose=1,
                                    save_best_only=True)
     es_cb = EarlyStopping(monitor='val_loss', patience=early_stopping_epoch)
