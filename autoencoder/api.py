@@ -3,11 +3,22 @@ from .train import train
 from .network import mlp
 
 
-def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
-               mask=None, type='normal', activation='relu', testset=False,
-               learning_rate=1e-2, hidden_size=(256,64,256), l2_coef=0.,
-               hidden_dropout=0.1, epochs=200, batch_size=32,
-               optimizer=None, **kwargs):
+def autoencode(count_matrix,
+               kfold=None,
+               dimreduce=True,
+               reconstruct=True,
+               mask=None,
+               type='normal',
+               activation='relu',
+               testset=False,
+               learning_rate=1e-2,
+               hidden_size=(256,64,256),
+               l2_coef=0.,
+               hidden_dropout=0.1,
+               epochs=200,
+               batch_size=32,
+               optimizer=None,
+               **kwargs):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
 
@@ -19,24 +30,17 @@ def autoencode(count_matrix, kfold=None, dimreduce=True, reconstruct=True,
               masking=(mask is not None),
               loss_type=type)
 
-    model, encoder, decoder, loss, extras = net['model'], net['encoder'], \
-                                            net['decoder'], net['loss'], \
-                                            net['extra_models']
-
-    losses = train(x, model, loss,
+    losses = train(x, net['model'], net['loss'],
                    learning_rate=learning_rate,
                    epochs=epochs, batch_size=batch_size,
                    optimizer=optimizer, **kwargs)
 
-    ret = {'model':   model,
-           'encoder': encoder,
-           'decoder': decoder,
-           'extra_models': extras,
-           'losses':  losses}
+    net['losses'] = losses
 
     if dimreduce:
-        ret['reduced'] = encoder.predict(count_matrix)
+        net['reduced'] = net['encoder'].predict(count_matrix)
+        net['reduced_linear'] = net['encoder_linear'].predict(count_matrix)
     if reconstruct:
-        ret['reconstructed'] = model.predict(count_matrix)
+        net['reconstructed'] = net['model'].predict(count_matrix)
 
-    return ret
+    return net
