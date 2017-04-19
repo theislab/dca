@@ -14,7 +14,7 @@
 # ==============================================================================
 
 import numpy as np
-from keras.layers import Input, Dense, Lambda, Dropout
+from keras.layers import Input, Dense, Lambda, Dropout, Activation
 from keras.models import Model
 from keras.regularizers import l2
 from keras.objectives import mean_squared_error
@@ -68,14 +68,17 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
 
     for i, (hid_size, hid_drop) in enumerate(zip(hidden_size, hidden_dropout)):
         if i == int(np.floor(len(hidden_size) / 2.0)):
-            middle_layer = last_hidden
             layer_name = 'center'
         else:
             layer_name = 'hidden_%s' % i
 
-        last_hidden = Dense(hid_size, activation=activation,
+        last_hidden = Dense(hid_size, activation=None,
                       kernel_regularizer=l2(l2_coef), name=layer_name)(last_hidden)
-        last_hidden = Dropout(hid_drop)(last_hidden)
+
+        # Use separate act. layers to give user the option to get pre-activations
+        # of layers when requested
+        last_hidden = Activation(activation, name='%s_act'%layer_name)(last_hidden)
+        last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
 
     if loss_type == 'normal':
         loss = mean_squared_error
@@ -106,8 +109,9 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
     ret  = {'model': Model(inputs=inp, outputs=output)}
 
     if ae:
-        ret['encoder'] = Model(inputs=inp, outputs=middle_layer)
-        ret['decoder'] = None #Model(inputs=middle_layer, outputs=output)
+        ret['encoder_linear'] = get_encoder(ret['model'], activation = False)
+        ret['encoder'] = get_encoder(ret['model'], activation = True)
+        ret['decoder'] = None #get_decoder(ret['model'])
 
     #Ugly hack to inject NB dispersion parameters
     if loss_type == 'nb':
@@ -123,10 +127,19 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
     return ret
 
 def get_decoder(model):
-    i = [l for l in model.layers if l.name == 'center'][0]
+    i = 0
+    for l in model.layers:
+        if l.name == 'center_drop': break
+        i += 1
+
     return Model(inputs=model.get_layer(index=i+1).input,
                  outputs=model.output)
 
-def get_encoder(model):
-    return Model(inputs=model.input,
-                 outputs=model.get_layer('center').output)
+def get_encoder(model, activation=True):
+    if activation:
+        ret =  Model(inputs=model.input,
+                     outputs=model.get_layer('center_act').output)
+    else:
+        ret =  Model(inputs=model.input,
+                     outputs=model.get_layer('center').output)
+    return ret
