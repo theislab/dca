@@ -93,6 +93,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = nb.loss
+        extra_models['dispersion'] = lambda :K.function([], [1/nb.theta])([])[0].squeeze()
     elif loss_type == 'zinb':
         pi_layer = Dense(output_size, activation='sigmoid', kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='pi')
@@ -102,6 +103,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         zinb = ZINB(pi, theta_init=tf.zeros([1, output_size]), masking=masking)
         loss = zinb.loss
         extra_models['pi'] = Model(inputs=inp, outputs=pi)
+        extra_models['dispersion'] = lambda :K.function([], [1/zinb.theta])([])[0].squeeze()
     elif loss_type == 'zinb-meanmix':
         #TODO: Add another output module and make pi a function of mean
         raise NotImplemented
