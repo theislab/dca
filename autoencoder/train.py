@@ -28,8 +28,8 @@ from keras import backend as K
 
 
 def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=False,
-          log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=0,
-          early_stopping_epoch=40, batch_size=32,
+          log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
+          early_stopping_epoch=25, batch_size=32,
           hyperpar=None, **kwargs):
 
     if optimizer is None:
