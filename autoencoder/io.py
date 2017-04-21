@@ -45,8 +45,12 @@ def read_text(inputfile, type=np.float, header=None):
     return matrix
 
 
+def save_matrix(matrix, filename):
+    np.savetxt(filename, matrix, delimiter="\t")
+
+
 def read_from_file(inputfile):
-        return pickle.load(open(inputfile, 'rb'))
+    return pickle.load(open(inputfile, 'rb'))
 
 
 def load_model(log_dir):
