@@ -51,6 +51,7 @@ def autoencode(count_matrix,
             net['pi'] = net['extra_models']['pi'].predict(count_matrix)
 
         if output_folder:
+            os.makedirs(output_folder, exist_ok=True)
             save_matrix(net['reduced'], os.path.join(output_folder,
                                                      'reduced.tsv'))
             save_matrix(net['reduced_linear'], os.path.join(output_folder,
