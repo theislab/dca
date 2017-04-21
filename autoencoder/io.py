@@ -46,11 +46,11 @@ def read_text(inputfile, type=np.float, header=None):
 
 
 def save_matrix(matrix, filename):
-    np.savetxt(filename, matrix, delimiter="\t")
+    np.savetxt(filename, matrix, fmt="%.6e", delimiter="\t")
 
 
 def read_from_file(inputfile):
-    return pickle.load(open(inputfile, 'rb'))
+    return pickle.load(open(inputfile, "rb"))
 
 
 def load_model(log_dir):
