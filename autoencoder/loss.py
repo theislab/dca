@@ -1,5 +1,8 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+from keras.layers import Dense
+from keras.engine.topology import Layer
+from keras import backend as K
 
 
 def _nan2zero(x):
@@ -55,9 +58,8 @@ def poisson_loss(y_true, y_pred):
 # calculation of the loss to balance the
 # learning rates of theta and network weights
 class NB(object):
-    def __init__(self, theta=None, theta_init=[0.0], masking=False,
-                 scale_factor=1.0, scope='nbinom_loss/',
-                 debug=False, **theta_kwargs):
+    def __init__(self, theta=None, masking=False, scope='nbinom_loss/',
+                 scale_factor=1.0, debug=False):
 
         # for numerical stability
         self.eps = 1e-10
@@ -65,19 +67,7 @@ class NB(object):
         self.debug = debug
         self.scope = scope
         self.masking = masking
-
-        with tf.name_scope(self.scope):
-            # a variable may be given by user or it can be created here
-            if theta is None:
-                theta = tf.Variable(theta_init, dtype=tf.float32,
-                                    name='theta', **theta_kwargs)
-
-            # keep a reference to the variable itself
-            self.theta_variable = theta
-
-            # to keep dispersion always non-negative
-            #self.theta = tf.nn.softplus(theta)
-            self.theta = tf.exp(theta)
+        self.theta = theta
 
     def loss(self, y_true, y_pred, reduce=True):
         scale_factor = self.scale_factor
@@ -91,8 +81,7 @@ class NB(object):
                 nelem = _nelem(y_true)
                 y_true = _nan2zero(y_true)
 
-            theta = 1.0/(self.theta+eps)
-
+            theta = self.theta
             t1 = -tf.lgamma(y_true+theta+eps)
             t2 = tf.lgamma(theta+eps)
             t3 = tf.lgamma(y_true+1.0)
@@ -131,6 +120,28 @@ class NB(object):
 
 
         return final
+
+
+class ConstantDispersionLayer(Layer):
+    '''
+        An identity layer which allows us to inject extra parameters
+        such as dispersion to Keras models
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.theta = self.add_weight(shape=(1, input_shape[1]),
+                                     initializer='zeros',
+                                     trainable=True)
+        self.theta_exp = 1.0/(K.exp(self.theta)+1e-10)
+        super().build(input_shape)
+
+    def call(self, x):
+        return tf.identity(x)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
 class ZINB(NB):
