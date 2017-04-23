@@ -47,6 +47,8 @@ def parse_args():
             help="Mask file with binary values to calculate loss only on specific values")
     parser_preprocess.add_argument('--masktranspose', dest='masktranspose',
             action='store_true', help="Transpose maskfile")
+    parser_preprocess.add_argument('--testsplit', dest='testsplit',
+            action='store_true', help="Use one fold as a test set")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 
