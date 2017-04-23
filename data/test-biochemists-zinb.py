@@ -15,4 +15,4 @@ model.summary()
 model.compile(loss=net['loss'], optimizer='Adam')
 model.fit(x, y, epochs=700, batch_size=32, callbacks=[tb])
 
-print('Theta: %f' % (1/np.exp(model.get_weights()[2][0][0])))
+print('Theta: %f' % net['extra_models']['dispersion']())
