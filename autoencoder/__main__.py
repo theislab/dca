@@ -49,6 +49,8 @@ def parse_args():
             action='store_true', help="Transpose maskfile")
     parser_preprocess.add_argument('--testsplit', dest='testsplit',
             action='store_true', help="Use one fold as a test set")
+    parser_preprocess.add_argument('--header', dest='header',
+            action='store_true', help="Whether there is a header in input file")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 

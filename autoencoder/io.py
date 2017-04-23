@@ -128,7 +128,7 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
 
 
 def preprocess_with_args(args):
-    matrix = read_text(args.input)
+    matrix = read_text(args.input, header=('infer' if args.header else None))
     if args.transpose:
         matrix = matrix.transpose()
 
@@ -139,6 +139,8 @@ def preprocess_with_args(args):
 
         assert mask.shape == matrix.shape, 'Input size of maskfile does not ' \
                                            'match that of the input file'
+    else:
+        mask = None
 
     result = preprocess(matrix, kfold=args.kfold,
                         output_file=args.output, mask=mask,
