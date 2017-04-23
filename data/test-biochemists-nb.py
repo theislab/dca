@@ -13,7 +13,7 @@ tb = TensorBoard(log_dir='./logs', histogram_freq=1)
 
 model.summary()
 model.compile(loss=net['loss'], optimizer='Adam')
-model.fit(x, y, epochs=100, batch_size=32, callbacks=[tb])
+model.fit(x, y, epochs=700, batch_size=32, callbacks=[tb])
 
 
 print('Theta: %f' % net['extra_models']['dispersion']())

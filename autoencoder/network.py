@@ -14,14 +14,15 @@
 # ==============================================================================
 
 import numpy as np
-from keras.layers import Input, Dense, Lambda, Dropout, Activation
+from keras.layers import Input, Dense, Dropout, Activation
 from keras.models import Model
 from keras.regularizers import l2
 from keras.objectives import mean_squared_error
 from keras import backend as K
 import tensorflow as tf
 
-from .loss import poisson_loss, NB, ZINB, ConstantDispersionLayer
+from .loss import poisson_loss, NB, ZINB
+from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer
 
 def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         hidden_dropout=0.1, activation='relu', init='glorot_uniform',
@@ -61,7 +62,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
 
     inp = Input(shape=(input_size,))
     if masking:
-        nan = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))(inp)
+        nan = nan2zeroLayer(inp)
         last_hidden = nan
     else:
         last_hidden = inp
@@ -102,10 +103,17 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         pi = pi_layer(last_hidden)
         output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-        zinb = ZINB(pi, theta_init=tf.zeros([1, output_size]), masking=masking)
+        # NB dispersion layer
+        disp = ConstantDispersionLayer(name='ConstantDispersion')
+        output = disp(output)
+
+        # Inject pi layer via slicing
+        output = SliceLayer(index=0)([output, pi])
+
+        zinb = ZINB(pi, theta=disp.theta_exp, masking=masking)
         loss = zinb.loss
         extra_models['pi'] = Model(inputs=inp, outputs=pi)
-        extra_models['dispersion'] = lambda :K.function([], [1/zinb.theta])([])[0].squeeze()
+        extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
     elif loss_type == 'zinb-meanmix':
         #TODO: Add another output module and make pi a function of mean
         raise NotImplemented
@@ -117,9 +125,6 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         ret['encoder'] = get_encoder(ret['model'], activation = True)
         ret['decoder'] = None #get_decoder(ret['model'])
 
-    if loss_type == 'zinb':
-        ret['model'].layers[-1].trainable_weights.extend([zinb.theta_variable,
-                                                         *pi_layer.trainable_weights])
     ret['extra_models'] = extra_models
     ret['loss'] = loss
 
