@@ -92,7 +92,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
     elif loss_type == 'nb':
         output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-        disp = ConstantDispersionLayer(name='ConstantDispersion')
+        disp = ConstantDispersionLayer(name='dispersion')
         output = disp(output)
         nb = NB(disp.theta_exp, masking=masking)
         loss = nb.loss
@@ -104,11 +104,11 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         # NB dispersion layer
-        disp = ConstantDispersionLayer(name='ConstantDispersion')
+        disp = ConstantDispersionLayer(name='dispersion')
         output = disp(output)
 
         # Inject pi layer via slicing
-        output = SliceLayer(index=0)([output, pi])
+        output = SliceLayer(index=0, name='slice')([output, pi])
 
         zinb = ZINB(pi, theta=disp.theta_exp, masking=masking)
         loss = zinb.loss
