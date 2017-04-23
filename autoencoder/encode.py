@@ -1,7 +1,7 @@
 import numpy as np
 
 from .network import mlp, get_encoder
-from .io import read_text, load_model
+from .io import read_text
 
 
 def encode(data, model, output_file=None, reduced=False):
