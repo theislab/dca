@@ -134,7 +134,7 @@ class ZINB(NB):
 
             y_true = tf.cast(y_true, tf.float32)
             y_pred = tf.cast(y_pred, tf.float32) * scale_factor
-            theta = 1.0/(self.theta+eps)
+            theta = self.theta
 
             zero_nb = tf.pow(theta/(theta+y_pred+eps), theta)
             zero_case = -tf.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
