@@ -22,24 +22,27 @@ import os, json
 from . import io
 
 import numpy as np
-from keras.optimizers import SGD
+import keras.optimizers as opt
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras import backend as K
 
 
-def train(X, model, loss, optimizer=None, learning_rate=0.01, train_on_full=False,
+def train(X, model, loss, optimizer='Adam', learning_rate=None, train_on_full=False,
           log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
           early_stopping_epoch=25, batch_size=32,
           hyperpar=None, **kwargs):
 
-    if optimizer is None:
-        optimizer = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
+    if learning_rate is None:
+        optimizer = opt.__dict__[optimizer]()
+    else:
+        optimizer = opt.__dict__[optimizer](learning_rate=learning_rate)
 
     model.compile(loss=loss, optimizer=optimizer)
 
     # Callbacks
     checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}-{val_loss:.4f}.hdf5" % log_dir,
                                    verbose=1,
+                                   save_weights_only=True,
                                    save_best_only=True)
     es_cb = EarlyStopping(monitor='val_loss', patience=early_stopping_epoch)
     es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stopping_epoch)
