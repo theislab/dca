@@ -53,12 +53,8 @@ def read_from_file(inputfile):
     return pickle.load(open(inputfile, "rb"))
 
 
-def load_model(log_dir):
-    return keras_load_model("%s/weights.hdf5" % log_dir)
-
-
-def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
-        mask=None, testset=True):
+def preprocess(matrix, kfold=None, transpose=False, output_file=None,
+               mask=None, test_split=True):
     '''Accepts the AE input matrix and splits it into k-folds. One fold is
     reserved for val and test set and the rest is for the training. For
     example 10-fold results in a list of 10 folds, 8 for training, 1 for val
@@ -68,11 +64,11 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
         matrix: Input matrix for autoencoder.
         kfold: Number of folds to be used in k-fold CV.
         transpose: Use transposed input matrix.
-        outputfile: Name of the output file in pickle format.
+        output_file: Name of the output file in pickle format.
         mask: Binary mask matrix of same shape as input denoting the positions
             in the input that will not be used in loss calculations. Elements
             to be masked in the loss is set to NaNs in the input matrix.
-        testset: Use one fold as test set.
+        test_split: Use one fold as test set.
 
     Returns:
         A dictionary with 'shape', 'k', folds' keys.
@@ -82,7 +78,7 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
         'k' denotes the number of folds.
 
         'folds' is a list of dicts of length 'k'. Each dict has 'train',
-            'val' and 'test' keys (if testset is True).
+            'val' and 'test' keys (if test_split is True).
 
     '''
     if matrix.dtype != np.float:
@@ -104,7 +100,7 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
     # For example 10-fold generates 8-1-1 equally sized folds for
     # train/val/test tests
     for cv_train, cv_val in KFold(kfold if kfold else 10, True, 42).split(range(nsample)):
-        if testset:
+        if test_split:
             cv_train, cv_test = train_test_split(cv_train,
                                                  test_size=1/((kfold if kfold else 10) - 1),
                                                  random_state=42)
@@ -118,14 +114,14 @@ def preprocess(matrix, kfold=None, transpose=False, outputfile=None,
         if not kfold: break #if kfold is not give just split it 8-1-1 once
 
 
-    if outputfile:
+    if output_file:
         # add file extension if missing
-        outfile, outfile_ext = os.path.splitext(outputfile)
+        outfile, outfile_ext = os.path.splitext(output_file)
         if not outfile_ext:
             ext = 'ae'
             outputfile = '.'.join([outfile, ext])
 
-        with open(outputfile, 'wb') as out:
+        with open(output_file, 'wb') as out:
             pickle.dump(X, out)
 
     return X
@@ -145,4 +141,5 @@ def preprocess_with_args(args):
                                            'match that of the input file'
 
     result = preprocess(matrix, kfold=args.kfold,
-             outputfile=args.output, mask=mask)
+                        output_file=args.output, mask=mask,
+                        test_split=args.testsplit)
