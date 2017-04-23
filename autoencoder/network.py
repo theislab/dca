@@ -21,7 +21,7 @@ from keras.objectives import mean_squared_error
 from keras import backend as K
 import tensorflow as tf
 
-from .loss import poisson_loss, NB, ZINB
+from .loss import poisson_loss, NB, ZINB, ConstantDispersionLayer
 
 def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         hidden_dropout=0.1, activation='relu', init='glorot_uniform',
@@ -89,11 +89,13 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
         loss = poisson_loss
     elif loss_type == 'nb':
-        nb = NB(theta_init=tf.zeros([1, output_size]), masking=masking)
         output = Dense(output_size, activation=K.exp, kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
+        disp = ConstantDispersionLayer(name='ConstantDispersion')
+        output = disp(output)
+        nb = NB(disp.theta_exp, masking=masking)
         loss = nb.loss
-        extra_models['dispersion'] = lambda :K.function([], [1/nb.theta])([])[0].squeeze()
+        extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
     elif loss_type == 'zinb':
         pi_layer = Dense(output_size, activation='sigmoid', kernel_initializer=init,
                        kernel_regularizer=l2(l2_coef), name='pi')
@@ -115,12 +117,7 @@ def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
         ret['encoder'] = get_encoder(ret['model'], activation = True)
         ret['decoder'] = None #get_decoder(ret['model'])
 
-    #Ugly hack to inject NB dispersion parameters
-    if loss_type == 'nb':
-        # add theta as a trainable variable to Keras model
-        # otherwise, keras optimizers will not update it
-        ret['model'].layers[-1].trainable_weights.append(nb.theta_variable)
-    elif loss_type == 'zinb':
+    if loss_type == 'zinb':
         ret['model'].layers[-1].trainable_weights.extend([zinb.theta_variable,
                                                          *pi_layer.trainable_weights])
     ret['extra_models'] = extra_models
