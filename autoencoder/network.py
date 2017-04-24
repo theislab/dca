@@ -152,13 +152,14 @@ class MLP(object):
 
             disp_layer = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
                                kernel_regularizer=l2(self.l2_coef), name='dispersion')
+            disp = disp_layer(last_hidden)
 
             # Inject pi layer via slicing
-            output = SliceLayer(index=0, name='slice')([output, pi, disp_layer])
-            zinb = ZINB(pi, theta=disp_layer.output, masking=self.masking)
+            output = SliceLayer(index=0, name='slice')([output, pi, disp])
+            zinb = ZINB(pi, theta=disp, masking=self.masking)
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
-            self.extra_models['dispersion'] = Model(inputs=inp, outputs=disp_layer)
+            self.extra_models['dispersion'] = Model(inputs=inp, outputs=disp)
 
         self.model = Model(inputs=inp, outputs=output)
 
