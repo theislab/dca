@@ -20,6 +20,7 @@ from __future__ import print_function
 import os, json
 
 from . import io
+from .network import MLP
 
 import numpy as np
 import keras.optimizers as opt
@@ -27,8 +28,8 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceL
 from keras import backend as K
 
 
-def train(X, network, optimizer='Adam', learning_rate=None, train_on_full=False,
-          output_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
+def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
+          aetype=None, epochs=200, reduce_lr_epoch=20,
           early_stopping_epoch=25, batch_size=32,
           **kwargs):
 
@@ -43,7 +44,7 @@ def train(X, network, optimizer='Adam', learning_rate=None, train_on_full=False,
     model.compile(loss=loss, optimizer=optimizer)
 
     # Callbacks
-    checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}-{val_loss:.4f}.hdf5" % output_dir,
+    checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % output_dir,
                                    verbose=1,
                                    save_weights_only=True,
                                    save_best_only=True)
@@ -109,13 +110,29 @@ def train(X, network, optimizer='Adam', learning_rate=None, train_on_full=False,
 
 
 def train_with_args(args):
-    X = io.read_from_file(args.trainingset)
-
     if args.hyperpar:
         raise NotImplemented
 
-    train(X=X, hidden_size=args.hiddensize,
-          learning_rate=args.learningrate,
-          output_dir=args.outputdir,
-          aetype=args.type,
-          epochs=args.epochs)
+    x = io.read_from_file(args.trainingset)
+
+    hidden_size = [int(x) for x in args.hiddensize.split(',')]
+    hidden_dropout = args.dropoutrate.split(',')
+    if len(hidden_dropout == 1): hidden_dropout = hidden_dropout[0]
+
+    net = MLP(x['shape'][1],
+              hidden_size=hidden_size,
+              l2_coef=args.l2,
+              hidden_dropout=hidden_dropout,
+              activation=args.activation,
+              init=args.init,
+              masking=(x['mask'] is not None),
+              loss_type=args.type)
+    net.build()
+
+    losses = train(x, net,
+                   learning_rate=args.learning_rate,
+                   epochs=args.epochs, batch_size=args.batchsize,
+                   optimizer=args.optimizer)
+
+    net.predict(x['full'], dimreduce=True,
+                reconstruct=True, output_folder=args.outputdir)
