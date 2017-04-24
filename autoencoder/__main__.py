@@ -90,7 +90,7 @@ def parse_args():
     parser_train.add_argument('-r', '--learningrate', type=float, default=None,
             help="Learning rate (default: Keras defaults)")
     parser_train.add_argument('--reconstruct', dest='reconstruct',
-            action='store_true', help="Save mean parameter (default: False)")
+            action='store_true', help="Save mean parameter (default: True)")
     parser_train.add_argument('--no-reconstruct', dest='reconstruct',
             action='store_false', help="Do not save mean parameter")
     parser_train.add_argument('--reduce', dest='dimreduce',
@@ -100,7 +100,7 @@ def parse_args():
 
     parser_train.set_defaults(func=train.train_with_args,
                               dimreduce=True,
-                              reconstruct=False)
+                              reconstruct=True)
 
     # test subparser
     #parser_test = subparsers.add_parser('test', help='Test autoencoder')
