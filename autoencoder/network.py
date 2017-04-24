@@ -175,8 +175,7 @@ class MLP(object):
                          outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, count_matrix, dimreduce=True, reconstruct=True,
-                output_folder=None):
+    def predict(self, count_matrix, dimreduce=True, reconstruct=True):
         res = {}
 
         if dimreduce:
@@ -187,23 +186,23 @@ class MLP(object):
             if 'pi' in self.extra_models:
                 res['pi'] = self.extra_models['pi'].predict(count_matrix)
 
-            if output_folder:
-                os.makedirs(output_folder, exist_ok=True)
-                save_matrix(res['reduced'], os.path.join(output_folder,
+            if self.file_path:
+                os.makedirs(self.file_path, exist_ok=True)
+                save_matrix(res['reduced'], os.path.join(self.file_path,
                                                          'reduced.tsv'))
-                save_matrix(res['reduced_linear'], os.path.join(output_folder,
+                save_matrix(res['reduced_linear'], os.path.join(self.file_path,
                                                          'reduced_linear.tsv'))
                 if 'dispersion' in res:
-                    save_matrix(res['dispersion'], os.path.join(output_folder,
+                    save_matrix(res['dispersion'], os.path.join(self.file_path,
                                                                 'dispersion.tsv'))
                 if 'pi' in res:
-                    save_matrix(res['pi'], os.path.join(output_folder,
+                    save_matrix(res['pi'], os.path.join(self.file_path,
                                                         'pi.tsv'))
 
         if reconstruct:
             res['mean'] = self.predict(count_matrix)
-            if output_folder:
-                save_matrix(res['mean'], os.path.join(output_folder, 'mean.tsv'))
+            if self.file_path:
+                save_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
 
         return res
 
