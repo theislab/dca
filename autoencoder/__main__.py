@@ -113,10 +113,7 @@ def parse_args():
             help="File path of the input set. It must be preprocessed using "
                  "preprocess subcommand")
     parser_predict.add_argument('modeldir', type=str,
-            help="Path of the folder where model weights and arch are saved",
-            required=True)
-    parser_predict.add_argument('-t', '--transpose', dest='transpose',
-            action='store_true', help='Transpose input matrix')
+            help="Path of the folder where model weights and arch are saved")
     parser_predict.add_argument('-o', '--outputdir', type=str,
             help="Path of the output", required=True)
     parser_predict.add_argument('-r', '--reduced', dest='reduced',

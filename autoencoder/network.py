@@ -223,6 +223,7 @@ class MLP(object):
                                                         'pi.tsv'))
 
         if reconstruct:
+            os.makedirs(self.file_path, exist_ok=True)
             res['mean'] = self.model.predict(count_matrix)
             if self.file_path:
                 save_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
