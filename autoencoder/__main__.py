@@ -89,8 +89,18 @@ def parse_args():
             help="Size of hidden layers (default: 256,64,256)")
     parser_train.add_argument('-r', '--learningrate', type=float, default=None,
             help="Learning rate (default: Keras defaults)")
+    parser_train.add_argument('--reconstruct', dest='reconstruct',
+            action='store_true', help="Save mean parameter (default: False)")
+    parser_train.add_argument('--no-reconstruct', dest='reconstruct',
+            action='store_false', help="Do not save mean parameter")
+    parser_train.add_argument('--reduce', dest='dimreduce',
+            action='store_true', help="Save dim reduced matrix (default: True)")
+    parser_train.add_argument('--no-reduce', dest='dimreduce',
+            action='store_false', help="Do not save dim reduced matrix")
 
-    parser_train.set_defaults(func=train.train_with_args)
+    parser_train.set_defaults(func=train.train_with_args,
+                              dimreduce=True,
+                              reconstruct=False)
 
     # test subparser
     #parser_test = subparsers.add_parser('test', help='Test autoencoder')
