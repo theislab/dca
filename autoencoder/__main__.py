@@ -59,8 +59,8 @@ def parse_args():
             help='Train an autoencoder using given training set.')
     parser_train.add_argument('trainingset', type=str,
             help="File path of the training set ")
-    parser_train.add_argument('-l', '--logdir', type=str, default='logs',
-            help="The directory where training logs will be saved (default=logs)")
+    parser_train.add_argument('-o', '--outputdir', type=str,
+            help="The directory where everything will be will be saved")
     parser_train.add_argument('-t', '--type', type=str, default='normal',
             help="Type of autoencoder. Possible values: normal(default), poisson, nb, zinb")
     parser_train.add_argument('-b', '--batchsize', type=int, default=128,
@@ -82,9 +82,8 @@ def parse_args():
     parser_train.set_defaults(func=train.train_with_args)
 
     # test subparser
-    parser_test = subparsers.add_parser('test',
-            help='Test autoencoder on mnist')
-    parser_test.set_defaults(func=test.test)
+    #parser_test = subparsers.add_parser('test', help='Test autoencoder')
+    #parser_test.set_defaults(func=test.test)
 
     # encode subparser
     parser_encode = subparsers.add_parser('encode',
