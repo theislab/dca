@@ -134,4 +134,4 @@ def train_with_args(args):
                    reduce_lr=args.reducelr,
                    optimizer=args.optimizer)
 
-    net.predict(x['full'], dimreduce=True, reconstruct=True)
+    net.predict(x['full'], dimreduce=args.dimreduce, reconstruct=args.reconstruct)
