@@ -13,7 +13,7 @@ def predict_with_args(args):
     # load serialized model
     net = pickle.load(open(modelfile, 'rb'))
     net.build()
-    net.model.load_weights(weightfile)
+    net.load_weights(weightfile)
     net.file_path = args.modeldir
     net.predict(x['full'], dimreduce=args.dimreduce,
                 reconstruct=args.reconstruct)
