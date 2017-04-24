@@ -23,7 +23,7 @@ import six
 import tensorflow as tf
 slim = tf.contrib.slim
 
-from . import io, train, test, encode
+from . import io, train, test, predict
 
 
 def parse_args():
@@ -106,20 +106,33 @@ def parse_args():
     #parser_test = subparsers.add_parser('test', help='Test autoencoder')
     #parser_test.set_defaults(func=test.test)
 
-    # encode subparser
-    parser_encode = subparsers.add_parser('encode',
-            help='Encode a given dataset using a pre-trained model.')
-    parser_encode.add_argument('dataset', type=str,
-            help="File path of the input set in CSV/TSV format")
-    parser_encode.add_argument('-t', '--transpose', dest='transpose',
+    # predict subparser
+    parser_predict = subparsers.add_parser('predict',
+            help='make predictions on a given dataset using a pre-trained model.')
+    parser_predict.add_argument('dataset', type=str,
+            help="File path of the input set. It must be preprocessed using "
+                 "preprocess subcommand")
+    parser_predict.add_argument('modeldir', type=str,
+            help="Path of the folder where model weights and arch are saved",
+            required=True)
+    parser_predict.add_argument('-t', '--transpose', dest='transpose',
             action='store_true', help='Transpose input matrix')
-    parser_encode.add_argument('-o', '--outputfile', type=str,
-            help="File path of the output in CSV/TSV format", required=True)
-    parser_encode.add_argument('-l', '--logdir', type=str,
-            help="File path of the model pre-trained model", required=True)
-    parser_encode.add_argument('-r', '--reduced', dest='reduced',
-            action='store_true', help="Encode input to the hidden size")
-    parser_encode.set_defaults(func=encode.encode_with_args)
+    parser_predict.add_argument('-o', '--outputdir', type=str,
+            help="Path of the output", required=True)
+    parser_predict.add_argument('-r', '--reduced', dest='reduced',
+            action='store_true', help="predict input to the hidden size")
+    parser_predict.add_argument('--reconstruct', dest='reconstruct',
+            action='store_true', help="Save mean parameter (default: True)")
+    parser_predict.add_argument('--no-reconstruct', dest='reconstruct',
+            action='store_false', help="Do not save mean parameter")
+    parser_predict.add_argument('--reduce', dest='dimreduce',
+            action='store_true', help="Save dim reduced matrix (default: True)")
+    parser_predict.add_argument('--no-reduce', dest='dimreduce',
+            action='store_false', help="Do not save dim reduced matrix")
+
+    parser_predict.set_defaults(func=predict.predict_with_args,
+                                dimreduce=True,
+                                reconstruct=True)
 
     return parser.parse_args()
 
