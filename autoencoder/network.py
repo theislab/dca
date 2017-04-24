@@ -59,7 +59,7 @@ class MLP(object):
                 models. Extra models keep mixture coefficients (i.e. pi) for ZINB.
         '''
 
-        assert loss_type in ['normal', 'poisson', 'nb', 'zinb', 'zinb-meanmix'], \
+        assert loss_type in ['normal', 'poisson', 'nb', 'zinb', 'zinb-conddisp'], \
                              'loss type not supported'
 
         self.input_size = input_size
@@ -141,9 +141,24 @@ class MLP(object):
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
-        elif self.loss_type == 'zinb-meanmix':
-            #TODO: Add another output module and make pi a function of mean
-            raise NotImplemented
+
+        # ZINB with gene-wise dispersion
+        elif self.loss_type == 'zinb-conddisp':
+            pi_layer = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='pi')
+            pi = pi_layer(last_hidden)
+            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+
+            disp_layer = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                               kernel_regularizer=l2(self.l2_coef), name='dispersion')
+
+            # Inject pi layer via slicing
+            output = SliceLayer(index=0, name='slice')([output, pi, disp_layer])
+            zinb = ZINB(pi, theta=disp_layer.output, masking=self.masking)
+            self.loss = zinb.loss
+            self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
+            self.extra_models['dispersion'] = Model(inputs=inp, outputs=disp_layer)
 
         self.model = Model(inputs=inp, outputs=output)
 
