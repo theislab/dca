@@ -91,6 +91,7 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
     X['folds'] = list()
     X['mask'] = mask
     X['full'] = matrix
+    X['size_factors'] = estimateSizeFactors(matrix)
 
     if mask is not None:
         matrix = matrix.copy()
@@ -127,6 +128,11 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
             pickle.dump(X, out)
 
     return X
+
+
+def estimateSizeFactors(x):
+    loggeommeans = np.mean(np.log1p(x), 0)
+    return np.exp(np.median(np.log1p(x) - loggeommeans, 1))
 
 
 def preprocess_with_args(args):
