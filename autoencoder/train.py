@@ -30,15 +30,15 @@ from keras import backend as K
 
 def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
           aetype=None, epochs=200, reduce_lr=20, early_stop=25, batch_size=32,
-          **kwargs):
+          clipvalue=5., **kwargs):
 
     model = network.model
     loss = network.loss
 
     if learning_rate is None:
-        optimizer = opt.__dict__[optimizer]()
+        optimizer = opt.__dict__[optimizer](clipvalue=clipvalue)
     else:
-        optimizer = opt.__dict__[optimizer](lr=learning_rate)
+        optimizer = opt.__dict__[optimizer](lr=learning_rate, clipvalue=clipvalue)
 
     model.compile(loss=loss, optimizer=optimizer)
 
@@ -132,6 +132,7 @@ def train_with_args(args):
                    epochs=args.epochs, batch_size=args.batchsize,
                    early_stop=args.earlystop,
                    reduce_lr=args.reducelr,
-                   optimizer=args.optimizer)
+                   optimizer=args.optimizer,
+                   clipvalue=args.gradclip)
 
     net.predict(x['full'], dimreduce=args.dimreduce, reconstruct=args.reconstruct)
