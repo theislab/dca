@@ -24,126 +24,176 @@ import tensorflow as tf
 from .loss import poisson_loss, NB, ZINB
 from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer
 
-def mlp(input_size, output_size=None, hidden_size=(256,), l2_coef=0.,
-        hidden_dropout=0.1, activation='relu', init='glorot_uniform',
-        masking=False, loss_type='normal'):
-    '''Construct an MLP (or autoencoder if output_size is not given)
-    in Keras and return model (also encoder and decoderin case of AE).
+class MLP(object):
+    def __init__(self,
+                 input_size,
+                 output_size=None,
+                 hidden_size=(256,),
+                 l2_coef=0.,
+                 hidden_dropout=0.,
+                 activation='relu',
+                 init='glorot_uniform',
+                 masking=False,
+                 loss_type='zinb'):
+        '''Construct an MLP (or autoencoder if output_size is not given)
+        in Keras and return model (also encoder and decoderin case of AE).
 
-    Args:
-        input_size: Size of the input (i.e. number of features)
-        output_size: Size of the output layer (AE if not specified)
-        hidden_size: Tuple of sizes for each hidden layer.
-        l2_coef: L2 regularization coefficient.
-        activation: Activation function of hidden layers. relu is default.
-        masking: Whether masking will be supported in the model.
-        loss_type: Type of loss function. Available values are 'normal', 'poisson',
-            'nb', 'zinb' and 'zinb-meanmix'. 'zinb' refers to zero-inflated
-            negative binomial with constant mixture params. 'zinb-meanmix'
-            formulates mixture parameters as a function of NB mean.
+        Args:
+            input_size: Size of the input (i.e. number of features)
+            output_size: Size of the output layer (AE if not specified)
+            hidden_size: Tuple of sizes for each hidden layer.
+            l2_coef: L2 regularization coefficient.
+            activation: Activation function of hidden layers. relu is default.
+            masking: Whether masking will be supported in the model.
+            loss_type: Type of loss function. Available values are 'normal', 'poisson',
+                'nb', 'zinb' and 'zinb-meanmix'. 'zinb' refers to zero-inflated
+                negative binomial with constant mixture params. 'zinb-meanmix'
+                formulates mixture parameters as a function of NB mean.
 
-    Returns:
-        A dict of Keras model, encoder, decoder, loss function and extra
-            models. Extra models keep mixture coefficients (i.e. pi) for ZINB.
-    '''
+        Returns:
+            A dict of Keras model, encoder, decoder, loss function and extra
+                models. Extra models keep mixture coefficients (i.e. pi) for ZINB.
+        '''
 
-    assert loss_type in ['normal', 'poisson', 'nb', 'zinb', 'zinb-meanmix'], \
-                         'loss type not supported'
+        assert loss_type in ['normal', 'poisson', 'nb', 'zinb', 'zinb-meanmix'], \
+                             'loss type not supported'
 
-    ae = True if output_size is None else False
-    extra_models  = {}
-    if output_size is None:
-        output_size = input_size
+        self.input_size = input_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+        self.l2_coef = l2_coef
+        self.hidden_dropout = hidden_dropout
+        self.activation = activation
+        self.init = init
+        self.masking = masking
+        self.loss_type = loss_type
 
-    if isinstance(hidden_dropout, list):
-        assert len(hidden_dropout) == len(hidden_size)
-    else:
-        hidden_dropout = [hidden_dropout]*len(hidden_size)
+        self.ae = True if self.output_size is None else False
+        self.extra_models  = {}
+        if self.output_size is None:
+            self.output_size = input_size
 
-    inp = Input(shape=(input_size,))
-    if masking:
-        nan = nan2zeroLayer(inp)
-        last_hidden = nan
-    else:
-        last_hidden = inp
-
-    for i, (hid_size, hid_drop) in enumerate(zip(hidden_size, hidden_dropout)):
-        if i == int(np.floor(len(hidden_size) / 2.0)):
-            layer_name = 'center'
+        if isinstance(self.hidden_dropout, list):
+            assert len(self.hidden_dropout) == len(self.hidden_size)
         else:
-            layer_name = 'hidden_%s' % i
+            self.hidden_dropout = [self.hidden_dropout]*len(self.hidden_size)
 
-        last_hidden = Dense(hid_size, activation=None, kernel_initializer=init,
-                      kernel_regularizer=l2(l2_coef), name=layer_name)(last_hidden)
 
-        # Use separate act. layers to give user the option to get pre-activations
-        # of layers when requested
-        last_hidden = Activation(activation, name='%s_act'%layer_name)(last_hidden)
-        last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
+    def build(self):
 
-    if loss_type == 'normal':
-        loss = mean_squared_error
-        output = Dense(output_size, activation=None, kernel_initializer=init,
-                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-    elif loss_type == 'poisson':
-        output = Dense(output_size, activation=K.exp, kernel_initializer=init,
-                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-        loss = poisson_loss
-    elif loss_type == 'nb':
-        output = Dense(output_size, activation=K.exp, kernel_initializer=init,
-                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-        disp = ConstantDispersionLayer(name='dispersion')
-        output = disp(output)
-        nb = NB(disp.theta_exp, masking=masking)
-        loss = nb.loss
-        extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
-    elif loss_type == 'zinb':
-        pi_layer = Dense(output_size, activation='sigmoid', kernel_initializer=init,
-                       kernel_regularizer=l2(l2_coef), name='pi')
-        pi = pi_layer(last_hidden)
-        output = Dense(output_size, activation=K.exp, kernel_initializer=init,
-                       kernel_regularizer=l2(l2_coef), name='output')(last_hidden)
-        # NB dispersion layer
-        disp = ConstantDispersionLayer(name='dispersion')
-        output = disp(output)
+        inp = Input(shape=(self.input_size,))
+        if self.masking:
+            nan = nan2zeroLayer(inp)
+            last_hidden = nan
+        else:
+            last_hidden = inp
 
-        # Inject pi layer via slicing
-        output = SliceLayer(index=0, name='slice')([output, pi])
+        for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
+            if i == int(np.floor(len(self.hidden_size) / 2.0)):
+                layer_name = 'center'
+            else:
+                layer_name = 'hidden_%s' % i
 
-        zinb = ZINB(pi, theta=disp.theta_exp, masking=masking)
-        loss = zinb.loss
-        extra_models['pi'] = Model(inputs=inp, outputs=pi)
-        extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
-    elif loss_type == 'zinb-meanmix':
-        #TODO: Add another output module and make pi a function of mean
-        raise NotImplemented
+            last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
+                          kernel_regularizer=l2(self.l2_coef), name=layer_name)(last_hidden)
 
-    ret  = {'model': Model(inputs=inp, outputs=output)}
+            # Use separate act. layers to give user the option to get pre-activations
+            # of layers when requested
+            last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
+            last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
 
-    if ae:
-        ret['encoder_linear'] = get_encoder(ret['model'], activation = False)
-        ret['encoder'] = get_encoder(ret['model'], activation = True)
-        ret['decoder'] = None #get_decoder(ret['model'])
+        if self.loss_type == 'normal':
+            self.loss = mean_squared_error
+            output = Dense(self.output_size, activation=None, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+        elif self.loss_type == 'poisson':
+            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+            self.loss = poisson_loss
+        elif self.loss_type == 'nb':
+            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+            disp = ConstantDispersionLayer(name='dispersion')
+            output = disp(output)
+            nb = NB(disp.theta_exp, masking=self.masking)
+            self.loss = nb.loss
+            self.extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
+        elif self.loss_type == 'zinb':
+            pi_layer = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='pi')
+            pi = pi_layer(last_hidden)
+            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+            # NB dispersion layer
+            disp = ConstantDispersionLayer(name='dispersion')
+            output = disp(output)
 
-    ret['extra_models'] = extra_models
-    ret['loss'] = loss
+            # Inject pi layer via slicing
+            output = SliceLayer(index=0, name='slice')([output, pi])
 
-    return ret
+            zinb = ZINB(pi, theta=disp.theta_exp, masking=self.masking)
+            self.loss = zinb.loss
+            extra_models['pi'] = Model(inputs=inp, outputs=pi)
+            extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
+        elif self.loss_type == 'zinb-meanmix':
+            #TODO: Add another output module and make pi a function of mean
+            raise NotImplemented
 
-def get_decoder(model):
-    i = 0
-    for l in model.layers:
-        if l.name == 'center_drop': break
-        i += 1
+        self.model = Model(inputs=inp, outputs=output)
 
-    return Model(inputs=model.get_layer(index=i+1).input,
-                 outputs=model.output)
+        if self.ae:
+            self.encoder_linear = self.get_encoder(activation = False)
+            self.encoder = self.get_encoder(activation = True)
+            self.decoder = None #get_decoder()
 
-def get_encoder(model, activation=True):
-    if activation:
-        ret =  Model(inputs=model.input,
-                     outputs=model.get_layer('center_act').output)
-    else:
-        ret =  Model(inputs=model.input,
-                     outputs=model.get_layer('center').output)
-    return ret
+
+    def get_decoder(self):
+        i = 0
+        for l in self.model.layers:
+            if l.name == 'center_drop': break
+            i += 1
+
+        return Model(inputs=self.model.get_layer(index=i+1).input,
+                     outputs=selfodel.output)
+
+    def get_encoder(self, activation=True):
+        if activation:
+            ret =  Model(inputs=self.model.input,
+                         outputs=self.model.get_layer('center_act').output)
+        else:
+            ret =  Model(inputs=self.model.input,
+                         outputs=self.model.get_layer('center').output)
+        return ret
+
+    def predict(self, count_matrix, dimreduce=True, reconstruct=True,
+                output_folder=None):
+        res = {}
+
+        if dimreduce:
+            res['reduced'] = self.encoder.predict(count_matrix)
+            res['reduced_linear'] = self.encoder_linear.predict(count_matrix)
+            if 'dispersion' in self.extra_models:
+                res['dispersion'] = self.extra_models['dispersion']()
+            if 'pi' in self.extra_models:
+                res['pi'] = self.extra_models['pi'].predict(count_matrix)
+
+            if output_folder:
+                os.makedirs(output_folder, exist_ok=True)
+                save_matrix(res['reduced'], os.path.join(output_folder,
+                                                         'reduced.tsv'))
+                save_matrix(res['reduced_linear'], os.path.join(output_folder,
+                                                         'reduced_linear.tsv'))
+                if 'dispersion' in res:
+                    save_matrix(res['dispersion'], os.path.join(output_folder,
+                                                                'dispersion.tsv'))
+                if 'pi' in res:
+                    save_matrix(res['pi'], os.path.join(output_folder,
+                                                        'pi.tsv'))
+
+        if reconstruct:
+            res['mean'] = self.predict(count_matrix)
+            if output_folder:
+                save_matrix(res['mean'], os.path.join(output_folder, 'mean.tsv'))
+
+        return res
+

@@ -27,10 +27,13 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceL
 from keras import backend as K
 
 
-def train(X, model, loss, optimizer='Adam', learning_rate=None, train_on_full=False,
-          log_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
+def train(X, network, optimizer='Adam', learning_rate=None, train_on_full=False,
+          output_dir='logs', aetype=None, epochs=200, reduce_lr_epoch=20,
           early_stopping_epoch=25, batch_size=32,
-          hyperpar=None, **kwargs):
+          **kwargs):
+
+    model = network.model
+    loss = network.loss
 
     if learning_rate is None:
         optimizer = opt.__dict__[optimizer]()
@@ -40,7 +43,7 @@ def train(X, model, loss, optimizer='Adam', learning_rate=None, train_on_full=Fa
     model.compile(loss=loss, optimizer=optimizer)
 
     # Callbacks
-    checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}-{val_loss:.4f}.hdf5" % log_dir,
+    checkpointer = ModelCheckpoint(filepath="%s/weights.{epoch:02d}-{val_loss:.4f}.hdf5" % output_dir,
                                    verbose=1,
                                    save_weights_only=True,
                                    save_best_only=True)
@@ -60,17 +63,12 @@ def train(X, model, loss, optimizer='Adam', learning_rate=None, train_on_full=Fa
         callbacks.append(es_cb)
         callbacks_train.append(es_cb_train)
 
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-
-    with open('%s/arch.json' % log_dir, 'w') as f:
-        json.dump(model.to_json(), f)
-
+    os.makedirs(output_dir, exist_ok=True)
     print(model.summary())
 
     fold_losses = list()
     for i, data in enumerate(X['folds']):
-        tb_log_dir = os.path.join(log_dir, 'fold%0i' % i)
+        tb_log_dir = os.path.join(output_dir, 'tb', 'fold%0i' % i)
         tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
         loss = model.fit(data['train'], data['train'],
@@ -93,7 +91,7 @@ def train(X, model, loss, optimizer='Adam', learning_rate=None, train_on_full=Fa
         if 'test' in X['folds'][0]:
             full_data = np.concatenate((full_data, X['folds'][0]['test']))
 
-        tb_log_dir = os.path.join(log_dir, 'full')
+        tb_log_dir = os.path.join(output_dir, 'tb', 'full')
         tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
         loss = model.fit(full_data, full_data,
@@ -113,9 +111,11 @@ def train(X, model, loss, optimizer='Adam', learning_rate=None, train_on_full=Fa
 def train_with_args(args):
     X = io.read_from_file(args.trainingset)
 
+    if args.hyperpar:
+        raise NotImplemented
+
     train(X=X, hidden_size=args.hiddensize,
           learning_rate=args.learningrate,
-          log_dir=args.logdir,
+          output_dir=args.outputdir,
           aetype=args.type,
-          epochs=args.epochs,
-          hyperpar=args.hyperpar)
+          epochs=args.epochs)
