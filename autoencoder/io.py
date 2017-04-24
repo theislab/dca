@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import pickle, os
+import pickle, os, numbers
 
 import numpy as np
 import pandas as pd
@@ -46,7 +46,12 @@ def read_text(inputfile, type=np.float, header=None):
 
 
 def save_matrix(matrix, filename):
-    np.savetxt(filename, matrix, fmt="%.6e", delimiter="\t")
+    if issubclass(matrix.dtype.type, np.floating):
+        np.savetxt(filename, matrix, fmt="%.6e", delimiter="\t")
+    elif issubclass(matrix.dtype.type, np.integer):
+        np.savetxt(filename, matrix, fmt="%i", delimiter="\t")
+    else:
+        raise TypeError
 
 
 def read_from_file(inputfile):

@@ -202,34 +202,42 @@ class MLP(object):
     def predict(self, count_matrix, dimreduce=True, reconstruct=True):
         res = {}
 
+        if 'dispersion' in self.extra_models:
+            res['dispersion'] = self.extra_models['dispersion']()
+        if 'pi' in self.extra_models:
+            res['pi'] = self.extra_models['pi'].predict(count_matrix)
+        if 'conddispersion' in self.extra_models:
+            res['dispersion'] = self.extra_models['conddispersion'].predict(count_matrix)
+
         if dimreduce:
+            print('Calculating low dimensional representations...')
             res['reduced'] = self.encoder.predict(count_matrix)
             res['reduced_linear'] = self.encoder_linear.predict(count_matrix)
-            if 'dispersion' in self.extra_models:
-                res['dispersion'] = self.extra_models['dispersion']()
-            if 'pi' in self.extra_models:
-                res['pi'] = self.extra_models['pi'].predict(count_matrix)
-            if 'conddispersion' in self.extra_models:
-                res['dispersion'] = self.extra_models['conddispersion'].predict(count_matrix)
 
-            if self.file_path:
-                os.makedirs(self.file_path, exist_ok=True)
+        if reconstruct:
+            print('Calculating reconstructions...')
+            res['mean'] = self.model.predict(count_matrix)
+            m, d = res['mean'], res['dispersion']
+            res['mode'] = np.floor((m/(m+d))*((d-1)/d)).astype(np.int)
+            res['mode'][res['mode'] < 0] = 0
+
+        if self.file_path:
+            print('Saving files...')
+            os.makedirs(self.file_path, exist_ok=True)
+            if 'reduced' in res:
                 save_matrix(res['reduced'], os.path.join(self.file_path,
                                                          'reduced.tsv'))
                 save_matrix(res['reduced_linear'], os.path.join(self.file_path,
                                                          'reduced_linear.tsv'))
-                if 'dispersion' in res:
-                    save_matrix(res['dispersion'], os.path.join(self.file_path,
-                                                                'dispersion.tsv'))
-                if 'pi' in res:
-                    save_matrix(res['pi'], os.path.join(self.file_path,
-                                                        'pi.tsv'))
-
-        if reconstruct:
-            os.makedirs(self.file_path, exist_ok=True)
-            res['mean'] = self.model.predict(count_matrix)
-            if self.file_path:
+            if 'dispersion' in res:
+                save_matrix(res['dispersion'], os.path.join(self.file_path,
+                                                            'dispersion.tsv'))
+            if 'pi' in res:
+                save_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
+            if 'mean' in res:
                 save_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
+            if 'mode' in res:
+                save_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
 
         return res
 
