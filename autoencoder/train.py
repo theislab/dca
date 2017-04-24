@@ -38,7 +38,7 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
     if learning_rate is None:
         optimizer = opt.__dict__[optimizer]()
     else:
-        optimizer = opt.__dict__[optimizer](learning_rate=learning_rate)
+        optimizer = opt.__dict__[optimizer](lr=learning_rate)
 
     model.compile(loss=loss, optimizer=optimizer)
 
