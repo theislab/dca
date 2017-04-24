@@ -89,6 +89,8 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
 
     X['k'] = kfold if kfold else -1
     X['folds'] = list()
+    X['mask'] = mask
+    X['full'] = matrix
 
     if mask is not None:
         matrix = matrix.copy()

@@ -61,20 +61,26 @@ def parse_args():
             help="File path of the training set ")
     parser_train.add_argument('-o', '--outputdir', type=str,
             help="The directory where everything will be will be saved")
-    parser_train.add_argument('-t', '--type', type=str, default='normal',
-            help="Type of autoencoder. Possible values: normal(default), poisson, nb, zinb")
-    parser_train.add_argument('-b', '--batchsize', type=int, default=128,
-            help="Batch size")
+    parser_train.add_argument('-t', '--type', type=str, default='zinb',
+            help="Type of autoencoder. Possible values: normal, poisson, nb, zinb(default)")
+    parser_train.add_argument('-b', '--batchsize', type=int, default=32,
+            help="Batch size (default:32)")
     parser_train.add_argument('--dropoutrate', type=float, default=0.0,
-            help="Dropout rate")
-    parser_train.add_argument('-e', '--epochs', type=int, default=10,
+            help="Dropout rate (default: 0)")
+    parser_train.add_argument('--l2', type=float, default=0.0,
+            help="L2 regularization coefficient (default: 0.0)")
+    parser_train.add_argument('--activation', type=str, default='relu',
+            help="Activation function of hidden units (default: relu)")
+    parser_train.add_argument('--optimizer', type=str, default='Adam',
+            help="Optimization method (default: Adam)")
+    parser_train.add_argument('--init', type=str, default='glorot_uniform',
+            help="Initialization method for weights (default: glorot_uniform)")
+    parser_train.add_argument('-e', '--epochs', type=int, default=200,
             help="Max number of epochs to continue training in case of no "
                  "improvement on validation loss")
-    parser_train.add_argument('--checkpoint_every', type=int, default=100,
-            help="How many batches to save checkpoints after")
-    parser_train.add_argument('-s', '--hiddensize', type=int, default=10,
-            help="Size of hidden layers")
-    parser_train.add_argument('-r', '--learningrate', type=float, default=1e-4,
+    parser_train.add_argument('-s', '--hiddensize', type=str, default='256,64,256',
+            help="Size of hidden layers (default: 256,64,256)")
+    parser_train.add_argument('-r', '--learningrate', type=float, default=None,
             help="Learning rate")
     parser_train.add_argument('-a', '--hyperpar', dest='hyperpar',
             action='store_true', help="Perform hyperparameter search")

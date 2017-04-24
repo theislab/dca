@@ -6,6 +6,7 @@ from .network import MLP
 
 
 def autoencode(count_matrix,
+               output_dir,
                kfold=None,
                dimreduce=True,
                reconstruct=True,
@@ -21,7 +22,6 @@ def autoencode(count_matrix,
                epochs=200,
                batch_size=32,
                init='glorot_uniform',
-               output_folder=None,
                **kwargs):
 
     x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
@@ -36,10 +36,11 @@ def autoencode(count_matrix,
               loss_type=type)
     net.build()
 
-    losses = train(x, net,
+    losses = train(x, net, output_dir=output_dir,
                    learning_rate=learning_rate,
                    epochs=epochs, batch_size=batch_size,
                    optimizer=optimizer, **kwargs)
+
     res = net.predict(count_matrix, dimreduce=dimreduce,
                       reconstruct=reconstruct, output_folder=output_folder)
 
