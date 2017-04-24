@@ -173,6 +173,13 @@ class MLP(object):
         with open(os.path.join(self.file_path, 'model.pickle'), 'wb') as f:
             pickle.dump(self, f)
 
+    def load_weights(self, filename):
+        self.model.load_weights(filename)
+        if self.ae:
+            self.encoder_linear = self.get_encoder(activation = False)
+            self.encoder = self.get_encoder(activation = True)
+            self.decoder = None #get_decoder()
+
     def get_decoder(self):
         i = 0
         for l in self.model.layers:
