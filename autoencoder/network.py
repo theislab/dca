@@ -25,6 +25,7 @@ import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
 from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer
+from .io import save_matrix
 
 class MLP(object):
     def __init__(self,
