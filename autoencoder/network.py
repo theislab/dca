@@ -150,7 +150,8 @@ class MLP(object):
             output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
                            kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
 
-            disp_layer = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+            disp_layer = Dense(self.output_size, activation=lambda x:1/(K.exp(x)+1e-10),
+                               kernel_initializer=self.init,
                                kernel_regularizer=l2(self.l2_coef), name='dispersion')
             disp = disp_layer(last_hidden)
 
@@ -159,7 +160,7 @@ class MLP(object):
             zinb = ZINB(pi, theta=disp, masking=self.masking)
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
-            self.extra_models['dispersion'] = Model(inputs=inp, outputs=disp)
+            self.extra_models['conddispersion'] = Model(inputs=inp, outputs=disp)
 
         self.model = Model(inputs=inp, outputs=output)
 
@@ -208,6 +209,8 @@ class MLP(object):
                 res['dispersion'] = self.extra_models['dispersion']()
             if 'pi' in self.extra_models:
                 res['pi'] = self.extra_models['pi'].predict(count_matrix)
+            if 'conddispersion' in self.extra_models:
+                res['dispersion'] = self.extra_models['conddispersion'].predict(count_matrix)
 
             if self.file_path:
                 os.makedirs(self.file_path, exist_ok=True)
