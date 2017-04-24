@@ -5,7 +5,7 @@ from .io import read_from_file
 
 def predict_with_args(args):
 
-    x = read_from_file(args.trainingset)
+    x = read_from_file(args.dataset)
 
     modelfile = os.path.join(args.modeldir, 'model.pickle')
     weightfile = os.path.join(args.modeldir, 'weights.hdf5')
@@ -14,6 +14,6 @@ def predict_with_args(args):
     net = pickle.load(open(modelfile, 'rb'))
     net.build()
     net.load_weights(weightfile)
-    net.file_path = args.modeldir
+    net.file_path = args.outputdir
     net.predict(x['full'], dimreduce=args.dimreduce,
                 reconstruct=args.reconstruct)
