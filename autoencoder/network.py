@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
+import os, pickle
+
 import numpy as np
 from keras.layers import Input, Dense, Dropout, Activation
 from keras.models import Model
@@ -34,7 +36,8 @@ class MLP(object):
                  activation='relu',
                  init='glorot_uniform',
                  masking=False,
-                 loss_type='zinb'):
+                 loss_type='zinb',
+                 file_path=None):
         '''Construct an MLP (or autoencoder if output_size is not given)
         in Keras and return model (also encoder and decoderin case of AE).
 
@@ -67,9 +70,9 @@ class MLP(object):
         self.init = init
         self.masking = masking
         self.loss_type = loss_type
+        self.file_path = file_path
 
         self.ae = True if self.output_size is None else False
-        self.extra_models  = {}
         if self.output_size is None:
             self.output_size = input_size
 
@@ -102,6 +105,8 @@ class MLP(object):
             last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
             last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
 
+        self.extra_models  = {}
+
         if self.loss_type == 'normal':
             self.loss = mean_squared_error
             output = Dense(self.output_size, activation=None, kernel_initializer=self.init,
@@ -133,8 +138,8 @@ class MLP(object):
 
             zinb = ZINB(pi, theta=disp.theta_exp, masking=self.masking)
             self.loss = zinb.loss
-            extra_models['pi'] = Model(inputs=inp, outputs=pi)
-            extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
+            self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
+            self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
         elif self.loss_type == 'zinb-meanmix':
             #TODO: Add another output module and make pi a function of mean
             raise NotImplemented
@@ -146,6 +151,10 @@ class MLP(object):
             self.encoder = self.get_encoder(activation = True)
             self.decoder = None #get_decoder()
 
+    def save(self):
+        os.makedirs(self.file_path, exist_ok=True)
+        with open(os.path.join(self.file_path, 'model.pickle'), 'wb') as f:
+            pickle.dump(self, f)
 
     def get_decoder(self):
         i = 0

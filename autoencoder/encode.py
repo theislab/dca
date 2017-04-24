@@ -1,6 +1,6 @@
 import numpy as np
 
-from .network import mlp, get_encoder
+from .network import MLP
 from .io import read_text
 
 

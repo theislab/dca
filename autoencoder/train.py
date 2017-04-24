@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os, json
+import os
 
 from . import io
 from .network import MLP
@@ -29,8 +29,7 @@ from keras import backend as K
 
 
 def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
-          aetype=None, epochs=200, reduce_lr_epoch=20,
-          early_stopping_epoch=25, batch_size=32,
+          aetype=None, epochs=200, reduce_lr=20, early_stop=25, batch_size=32,
           **kwargs):
 
     model = network.model
@@ -48,19 +47,19 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
                                    verbose=1,
                                    save_weights_only=True,
                                    save_best_only=True)
-    es_cb = EarlyStopping(monitor='val_loss', patience=early_stopping_epoch)
-    es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stopping_epoch)
+    es_cb = EarlyStopping(monitor='val_loss', patience=early_stop)
+    es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stop)
 
-    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr_epoch)
-    lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr_epoch)
+    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr)
+    lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr)
 
     callbacks = [checkpointer]
     callbacks_train = [checkpointer]
 
-    if reduce_lr_epoch:
+    if reduce_lr:
         callbacks.append(lr_cb)
         callbacks_train.append(lr_cb_train)
-    if early_stopping_epoch:
+    if early_stop:
         callbacks.append(es_cb)
         callbacks_train.append(es_cb_train)
 
@@ -110,16 +109,14 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
 
 
 def train_with_args(args):
-    if args.hyperpar:
-        raise NotImplemented
-
     x = io.read_from_file(args.trainingset)
 
     hidden_size = [int(x) for x in args.hiddensize.split(',')]
-    hidden_dropout = args.dropoutrate.split(',')
-    if len(hidden_dropout == 1): hidden_dropout = hidden_dropout[0]
+    hidden_dropout = [float(x) for x in args.dropoutrate.split(',')]
+    if len(hidden_dropout) == 1: hidden_dropout = hidden_dropout[0]
 
     net = MLP(x['shape'][1],
+              file_path = args.outputdir,
               hidden_size=hidden_size,
               l2_coef=args.l2,
               hidden_dropout=hidden_dropout,
@@ -127,11 +124,14 @@ def train_with_args(args):
               init=args.init,
               masking=(x['mask'] is not None),
               loss_type=args.type)
+    net.save()
     net.build()
 
-    losses = train(x, net,
-                   learning_rate=args.learning_rate,
+    losses = train(x, net, output_dir=args.outputdir,
+                   learning_rate=args.learningrate,
                    epochs=args.epochs, batch_size=args.batchsize,
+                   early_stop=args.earlystop,
+                   reduce_lr=args.reducelr,
                    optimizer=args.optimizer)
 
     net.predict(x['full'], dimreduce=True,
