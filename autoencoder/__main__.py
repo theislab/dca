@@ -40,17 +40,18 @@ def parse_args():
     parser_preprocess.add_argument('-o', '--output', type=str,
             help='Output file path', required=True)
     parser_preprocess.add_argument('-k', '--kfold', type=int,
-            help='k-fold CV')
+            help='k-fold CV (default: 10 folds, 9-1 for training and validation, no CV)')
     parser_preprocess.add_argument('-t', '--transpose', dest='transpose',
-            action='store_true', help='Transpose input matrix')
+            action='store_true', help='Transpose input matrix (default: False)')
     parser_preprocess.add_argument('-m', '--maskfile', type=str,
             help="Mask file with binary values to calculate loss only on specific values")
     parser_preprocess.add_argument('--masktranspose', dest='masktranspose',
-            action='store_true', help="Transpose maskfile")
+            action='store_true', help="Transpose maskfile (default: False)")
     parser_preprocess.add_argument('--testsplit', dest='testsplit',
-            action='store_true', help="Use one fold as a test set")
+            action='store_true', help="Use one fold as a test set (default: False)")
     parser_preprocess.add_argument('--header', dest='header',
-            action='store_true', help="Whether there is a header in input file")
+            action='store_true', help="Whether there is a header in input file"
+            " (default: False)")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 
@@ -65,7 +66,7 @@ def parse_args():
             help="Type of autoencoder. Possible values: normal, poisson, nb, zinb(default)")
     parser_train.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
-    parser_train.add_argument('--dropoutrate', type=float, default=0.0,
+    parser_train.add_argument('--dropoutrate', type=str, default='0.0',
             help="Dropout rate (default: 0)")
     parser_train.add_argument('--l2', type=float, default=0.0,
             help="L2 regularization coefficient (default: 0.0)")
@@ -77,13 +78,17 @@ def parse_args():
             help="Initialization method for weights (default: glorot_uniform)")
     parser_train.add_argument('-e', '--epochs', type=int, default=200,
             help="Max number of epochs to continue training in case of no "
-                 "improvement on validation loss")
+                 "improvement on validation loss (default: 200)")
+    parser_train.add_argument('--earlystop', type=int, default=25,
+            help="Number of epochs to stop training if no improvement in loss "
+                 "occurs (default: 25)")
+    parser_train.add_argument('--reducelr', type=int, default=20,
+            help="Number of epochs to reduce learning rate if no improvement "
+            "in loss occurs (defaul: 20)")
     parser_train.add_argument('-s', '--hiddensize', type=str, default='256,64,256',
             help="Size of hidden layers (default: 256,64,256)")
     parser_train.add_argument('-r', '--learningrate', type=float, default=None,
-            help="Learning rate")
-    parser_train.add_argument('-a', '--hyperpar', dest='hyperpar',
-            action='store_true', help="Perform hyperparameter search")
+            help="Learning rate (default: Keras defaults)")
 
     parser_train.set_defaults(func=train.train_with_args)
 
