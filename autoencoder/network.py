@@ -150,7 +150,7 @@ class MLP(object):
             output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
                            kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
 
-            disp_layer = Dense(self.output_size, activation=lambda x:1/(K.exp(x)+1e-10),
+            disp_layer = Dense(self.output_size, activation=lambda x:1.0/(K.exp(x)+1e-10),
                                kernel_initializer=self.init,
                                kernel_regularizer=l2(self.l2_coef), name='dispersion')
             disp = disp_layer(last_hidden)
