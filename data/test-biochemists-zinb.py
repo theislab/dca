@@ -7,7 +7,8 @@ count = read_text('biochemists.tsv', header='infer')
 y = count[:, 0].astype(int)
 x = count[:, 1:]
 
-net = mlp(x.shape[1], output_size=1, hidden_size=(), masking=False, loss_type='zinb')
+net = MLP(x.shape[1], output_size=1, hidden_size=(), masking=False, loss_type='zinb')
+net.build()
 model = net.model
 tb = TensorBoard(log_dir='./logs', histogram_freq=1)
 
