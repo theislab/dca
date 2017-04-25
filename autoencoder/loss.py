@@ -79,7 +79,9 @@ class NB(object):
                 nelem = _nelem(y_true)
                 y_true = _nan2zero(y_true)
 
-            theta = self.theta
+            # Clip theta
+            theta = tf.minimum(self.theta, 1e6)
+
             t1 = -tf.lgamma(y_true+theta+eps)
             t2 = tf.lgamma(theta+eps)
             t3 = tf.lgamma(y_true+1.0)
@@ -134,7 +136,7 @@ class ZINB(NB):
 
             y_true = tf.cast(y_true, tf.float32)
             y_pred = tf.cast(y_pred, tf.float32) * scale_factor
-            theta = self.theta
+            theta = tf.minimum(self.theta, 1e6)
 
             zero_nb = tf.pow(theta/(theta+y_pred+eps), theta)
             zero_case = -tf.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
