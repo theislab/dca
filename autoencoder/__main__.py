@@ -91,7 +91,7 @@ def parse_args():
     parser_train.add_argument('-s', '--hiddensize', type=str, default='256,64,256',
             help="Size of hidden layers (default: 256,64,256)")
     parser_train.add_argument('-r', '--learningrate', type=float, default=None,
-            help="Learning rate (default: Keras defaults)")
+            help="Learning rate (default: 0.001)")
     parser_train.add_argument('--reconstruct', dest='reconstruct',
             action='store_true', help="Save mean parameter (default: True)")
     parser_train.add_argument('--no-reconstruct', dest='reconstruct',
