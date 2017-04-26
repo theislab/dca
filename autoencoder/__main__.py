@@ -60,13 +60,13 @@ def parse_args():
             help='Train an autoencoder using given training set.')
     parser_train.add_argument('trainingset', type=str,
             help="File path of the training set ")
-    parser_train.add_argument('-o', '--outputdir', type=str,
+    parser_train.add_argument('-o', '--outputdir', type=str, required=True,
             help="The directory where everything will be will be saved")
     parser_train.add_argument('-t', '--type', type=str, default='zinb',
             help="Type of autoencoder. Possible values: normal, poisson, nb, zinb(default), zinb-conddisp")
     parser_train.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
-    parser_train.add_argument('--dropoutrate', type=str, default='0.0',
+    parser_train.add_argument('-d', '--dropoutrate', type=str, default='0.0',
             help="Dropout rate (default: 0)")
     parser_train.add_argument('--l2', type=float, default=0.0,
             help="L2 regularization coefficient (default: 0.0)")
