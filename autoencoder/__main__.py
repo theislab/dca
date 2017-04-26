@@ -62,7 +62,7 @@ def parse_args():
             help="File path of the training set ")
     parser_train.add_argument('-o', '--outputdir', type=str, required=True,
             help="The directory where everything will be will be saved")
-    parser_train.add_argument('-t', '--type', type=str, default='zinb',
+    parser_train.add_argument('-t', '--type', type=str, default='zinb-conddisp',
             help="Type of autoencoder. Possible values: normal, poisson, nb, "
                  "zinb, zinb-conddisp(default)")
     parser_train.add_argument('-b', '--batchsize', type=int, default=32,
