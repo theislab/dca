@@ -217,9 +217,10 @@ class MLP(object):
         if reconstruct:
             print('Calculating reconstructions...')
             res['mean'] = self.model.predict(count_matrix)
-            m, d = res['mean'], res['dispersion']
-            res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-            res['mode'][res['mode'] < 0] = 0
+            if 'dispersion' in res:
+                m, d = res['mean'], res['dispersion']
+                res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
+                res['mode'][res['mode'] < 0] = 0
 
         if self.file_path:
             print('Saving files...')
