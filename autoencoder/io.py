@@ -59,7 +59,7 @@ def read_from_file(inputfile):
 
 
 def preprocess(matrix, kfold=None, transpose=False, output_file=None,
-               mask=None, test_split=True):
+               mask=None, test_split=True, size_factors='zheng'):
     '''Accepts the AE input matrix and splits it into k-folds. One fold is
     reserved for val and test set and the rest is for the training. For
     example 10-fold results in a list of 10 folds, 8 for training, 1 for val
@@ -96,7 +96,8 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
     X['folds'] = list()
     X['mask'] = mask
     X['full'] = matrix
-    X['size_factors'] = estimateSizeFactors(matrix)
+    size_factors = estimate_size_factors(matrix, normtype=size_factors)
+    X['size_factors'] = size_factors
 
     if mask is not None:
         matrix = matrix.copy()
@@ -112,12 +113,23 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
             cv_train, cv_test = train_test_split(cv_train,
                                                  test_size=1/((kfold if kfold else 10) - 1),
                                                  random_state=42)
-            X['folds'].append({'train': matrix[cv_train, :],
-                               'val':   matrix[cv_val,   :],
-                               'test':  matrix[cv_test,  :]})
+
+            X['folds'].append({'train': {'matrix': matrix[cv_train, :],
+                                         'mask'  : mask[cv_train, :] if mask else None,
+                                         'size_factors': size_factors[cv_train]},
+                               'val':   {'matrix': matrix[cv_val,   :],
+                                         'mask'  : mask[cv_val, :] if mask else None,
+                                         'size_factors': size_factors[cv_val]},
+                               'test':  {'matrix': matrix[cv_test,  :],
+                                         'mask'  : mask[cv_test, :] if mask else None,
+                                         'size_factors': size_factors[cv_test]}})
         else:
-            X['folds'].append({'train': matrix[cv_train, :],
-                               'val':   matrix[cv_val,   :]})
+            X['folds'].append({'train': {'matrix': matrix[cv_train, :],
+                                         'mask'  : mask[cv_train, :] if mask else None,
+                                         'size_factors': size_factors[cv_train]},
+                               'val':   {'matrix': matrix[cv_val,   :],
+                                         'mask'  : mask[cv_val, :] if mask else None,
+                                         'size_factors': size_factors[cv_val]}})
 
         if not kfold: break #if kfold is not give just split it 8-1-1 once
 
@@ -135,7 +147,7 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
     return X
 
 
-def estimateSizeFactors(x, normtype='zheng'):
+def estimate_size_factors(x, normtype='zheng'):
     assert normtype in ['deseq', 'zheng']
 
     if normtype == 'deseq':
@@ -166,4 +178,5 @@ def preprocess_with_args(args):
 
     result = preprocess(matrix, kfold=args.kfold,
                         output_file=args.output, mask=mask,
-                        test_split=args.testsplit)
+                        test_split=args.testsplit,
+                        size_factors=args.normtype)

@@ -41,6 +41,9 @@ def parse_args():
             help='Output file path', required=True)
     parser_preprocess.add_argument('-k', '--kfold', type=int,
             help='k-fold CV (default: 10 folds, 9-1 for training and validation, no CV)')
+    parser_preprocess.add_argument('--normtype', type=str, default='zheng',
+            help='Type of size factor estimation. Possible values: deseq, zheng.'
+                 ' (default: zheng)')
     parser_preprocess.add_argument('-t', '--transpose', dest='transpose',
             action='store_true', help='Transpose input matrix (default: False)')
     parser_preprocess.add_argument('-m', '--maskfile', type=str,
@@ -67,6 +70,10 @@ def parse_args():
                  "zinb, zinb-conddisp(default)")
     parser_train.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
+    parser_train.add_argument('--sizefactors', dest='sizefactors',
+            action='store_true', help="Normalize by library size (default: False)")
+    parser_train.add_argument('--nosizefactors', dest='sizefactors',
+            action='store_false', help="Do not normalize by library size")
     parser_train.add_argument('-d', '--dropoutrate', type=str, default='0.0',
             help="Dropout rate (default: 0)")
     parser_train.add_argument('--l2', type=float, default=0.0,
@@ -103,7 +110,8 @@ def parse_args():
 
     parser_train.set_defaults(func=train.train_with_args,
                               dimreduce=True,
-                              reconstruct=True)
+                              reconstruct=True,
+                              sizefactors=False)
 
     # test subparser
     #parser_test = subparsers.add_parser('test', help='Test autoencoder')
