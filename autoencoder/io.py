@@ -135,9 +135,18 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
     return X
 
 
-def estimateSizeFactors(x):
-    loggeommeans = np.mean(np.log1p(x), 0)
-    return np.exp(np.median(np.log1p(x) - loggeommeans, 1))
+def estimateSizeFactors(x, normtype='zheng'):
+    assert normtype in ['deseq', 'zheng']
+
+    if normtype == 'deseq':
+        loggeommeans = np.mean(np.log1p(x), 0)
+        return np.exp(np.median(np.log1p(x) - loggeommeans, 1))
+    elif normtype == 'zheng':
+        x = x[:, np.sum(x, 0)>=1] #filter out all-zero genes
+        s = np.sum(x, 1)
+        return s/np.median(s, 0)
+    else:
+        raise NotImplemented
 
 
 def preprocess_with_args(args):
