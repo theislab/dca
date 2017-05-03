@@ -26,10 +26,11 @@ import numpy as np
 import keras.optimizers as opt
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras import backend as K
+from keras.preprocessing.image import Iterator
 
 
 def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
-          aetype=None, epochs=200, reduce_lr=20, early_stop=25, batch_size=32,
+          aetype=None, epochs=200, reduce_lr=20, size_factors=False, early_stop=25, batch_size=32,
           clipvalue=5., **kwargs):
 
     model = network.model
@@ -71,12 +72,16 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
         tb_log_dir = os.path.join(output_dir, 'tb', 'fold%0i' % i)
         tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
-        loss = model.fit(data['train'], data['train'],
+        loss = model.fit({'count': data['train']['matrix'],
+                          'size_factors': data['train']['size_factors']},
+                         data['train']['matrix'],
                          epochs=epochs,
                          batch_size=batch_size,
                          shuffle=True,
                          callbacks=callbacks+[tb_cb],
-                         validation_data=(data['val'], data['val']),
+                         validation_data=(([data['val']['matrix'],
+                                           data['val']['size_factors']],
+                                           data['val']['matrix'])),
                          **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
         #               verbose=1, sample_weight=None)
@@ -86,15 +91,13 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
 
     if train_on_full:
         # run final training on full dataset
-        full_data = np.concatenate((X['folds'][0]['train'],
-                                    X['folds'][0]['val']))
-        if 'test' in X['folds'][0]:
-            full_data = np.concatenate((full_data, X['folds'][0]['test']))
-
+        full_data = X['full']
         tb_log_dir = os.path.join(output_dir, 'tb', 'full')
         tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
-        loss = model.fit(full_data, full_data,
+        loss = model.fit({'count': full_data,
+                          'size_factors': X['size_factors']},
+                         full_data,
                          epochs=epochs,
                          batch_size=batch_size,
                          shuffle=True,
@@ -132,7 +135,11 @@ def train_with_args(args):
                    epochs=args.epochs, batch_size=args.batchsize,
                    early_stop=args.earlystop,
                    reduce_lr=args.reducelr,
+                   size_factors=args.sizefactors,
                    optimizer=args.optimizer,
                    clipvalue=args.gradclip)
 
-    net.predict(x['full'], dimreduce=args.dimreduce, reconstruct=args.reconstruct)
+    net.predict(x['full'],
+            dimreduce=args.dimreduce,
+            reconstruct=args.reconstruct,
+            size_factors=args.sizefactors)

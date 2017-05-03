@@ -24,8 +24,8 @@ from keras import backend as K
 import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
-from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer
-from .io import save_matrix
+from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
+from .io import save_matrix, estimate_size_factors
 
 class MLP(object):
     def __init__(self,
@@ -85,7 +85,8 @@ class MLP(object):
 
     def build(self):
 
-        inp = Input(shape=(self.input_size,))
+        inp = Input(shape=(self.input_size,), name='count')
+        size_factor_inp = Input(shape=(1,), name='size_factors')
         if self.masking:
             nan = nan2zeroLayer(inp)
             last_hidden = nan
@@ -111,28 +112,36 @@ class MLP(object):
         if self.loss_type == 'normal':
             self.loss = mean_squared_error
             output = Dense(self.output_size, activation=None, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
         elif self.loss_type == 'poisson':
             output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
             self.loss = poisson_loss
         elif self.loss_type == 'nb':
-            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+            # Plug in dispersion parameters via fake dispersion layer
             disp = ConstantDispersionLayer(name='dispersion')
-            output = disp(output)
+            output = disp(last_hidden)
+
+            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='mean')(output)
+            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
+
             nb = NB(disp.theta_exp, masking=self.masking)
             self.loss = nb.loss
             self.extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
         elif self.loss_type == 'zinb':
-            pi_layer = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='pi')
-            pi = pi_layer(last_hidden)
-            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+            pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
+                    kernel_regularizer=l2(self.l2_coef), name='pi')(last_hidden)
+
             # NB dispersion layer
             disp = ConstantDispersionLayer(name='dispersion')
-            output = disp(output)
+            output = disp(last_hidden)
+
+            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='mean')(output)
+            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
 
             # Inject pi layer via slicing
             output = SliceLayer(index=0, name='slice')([output, pi])
@@ -144,25 +153,26 @@ class MLP(object):
 
         # ZINB with gene-wise dispersion
         elif self.loss_type == 'zinb-conddisp':
-            pi_layer = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='pi')
-            pi = pi_layer(last_hidden)
-            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='output')(last_hidden)
+            pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='pi')(last_hidden)
 
-            disp_layer = Dense(self.output_size, activation=lambda x:1.0/(K.exp(x)+1e-10),
+            disp = Dense(self.output_size, activation=lambda x:1.0/(K.exp(x)+1e-10),
                                kernel_initializer=self.init,
-                               kernel_regularizer=l2(self.l2_coef), name='dispersion')
-            disp = disp_layer(last_hidden)
+                               kernel_regularizer=l2(self.l2_coef), name='dispersion')(last_hidden)
 
-            # Inject pi layer via slicing
+            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
+
+            # Inject pi and disp layers via slicing
             output = SliceLayer(index=0, name='slice')([output, pi, disp])
+
             zinb = ZINB(pi, theta=disp, masking=self.masking)
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['conddispersion'] = Model(inputs=inp, outputs=disp)
 
-        self.model = Model(inputs=inp, outputs=output)
+        self.model = Model(inputs=[inp, size_factor_inp], outputs=output)
 
         if self.ae:
             self.encoder_linear = self.get_encoder(activation = False)
@@ -199,8 +209,12 @@ class MLP(object):
                          outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, count_matrix, dimreduce=True, reconstruct=True):
+    def predict(self, count_matrix, size_factors=False, dimreduce=True, reconstruct=True):
         res = {}
+        if size_factors:
+            size_factors = estimate_size_factors(count_matrix)
+        else:
+            size_factors = np.ones((count_matrix.shape[0],))
 
         if 'dispersion' in self.extra_models:
             res['dispersion'] = self.extra_models['dispersion']()
@@ -211,12 +225,15 @@ class MLP(object):
 
         if dimreduce:
             print('Calculating low dimensional representations...')
-            res['reduced'] = self.encoder.predict(count_matrix)
-            res['reduced_linear'] = self.encoder_linear.predict(count_matrix)
+            res['reduced'] = self.encoder.predict({'count': count_matrix,
+                                                   'size_factors': size_factors})
+            res['reduced_linear'] = self.encoder_linear.predict({'count': count_matrix,
+                                                                 'size_factors': size_factors})
 
         if reconstruct:
             print('Calculating reconstructions...')
-            res['mean'] = self.model.predict(count_matrix)
+            res['mean'] = self.model.predict({'count': count_matrix,
+                                              'size_factors': size_factors})
             if 'dispersion' in res:
                 m, d = res['mean'], res['dispersion']
                 res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)

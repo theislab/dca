@@ -46,3 +46,4 @@ class SliceLayer(Layer):
 
 
 nan2zeroLayer = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))
+ColWiseMultLayer = lambda name: Lambda(lambda l: l[0]*(tf.matmul(tf.reshape(l[1], (-1,1)), tf.ones((1,l[0].get_shape()[1]), dtype=l[1].dtype))), name=name)
