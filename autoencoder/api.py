@@ -13,7 +13,7 @@ def autoencode(count_matrix,
                mask=None,
                type='normal',
                activation='relu',
-               testset=False,
+               test_split=False,
                optimizer='Adam',
                learning_rate=None,
                hidden_size=(256,64,256),
@@ -24,7 +24,7 @@ def autoencode(count_matrix,
                init='glorot_uniform',
                **kwargs):
 
-    x = preprocess(count_matrix, kfold=kfold, mask=mask, testset=testset)
+    x = preprocess(count_matrix, kfold=kfold, mask=mask, test_split=test_split)
 
     net = MLP(x['shape'][1],
               hidden_size=hidden_size,
@@ -41,8 +41,7 @@ def autoencode(count_matrix,
                    epochs=epochs, batch_size=batch_size,
                    optimizer=optimizer, **kwargs)
 
-    res = net.predict(count_matrix, dimreduce=dimreduce,
-                      reconstruct=reconstruct, output_folder=output_folder)
+    res = net.predict(count_matrix, dimreduce=dimreduce, reconstruct=reconstruct)
 
     res['losses'] = losses
 
