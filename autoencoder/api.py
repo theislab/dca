@@ -11,6 +11,7 @@ def autoencode(count_matrix,
                dimreduce=True,
                reconstruct=True,
                mask=None,
+               size_factors=False,
                type='normal',
                activation='relu',
                test_split=False,
@@ -39,9 +40,11 @@ def autoencode(count_matrix,
     losses = train(x, net, output_dir=output_dir,
                    learning_rate=learning_rate,
                    epochs=epochs, batch_size=batch_size,
-                   optimizer=optimizer, **kwargs)
+                   optimizer=optimizer, size_factors=size_factors,
+                   **kwargs)
 
-    res = net.predict(count_matrix, dimreduce=dimreduce, reconstruct=reconstruct)
+    res = net.predict(count_matrix, size_factors=size_factors,
+                      dimreduce=dimreduce, reconstruct=reconstruct)
 
     res['losses'] = losses
 
