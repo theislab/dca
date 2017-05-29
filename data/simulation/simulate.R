@@ -24,8 +24,10 @@ save.sim <- function(sim) {
               sep='\t', row.names=F, col.names=F, quote=F)
 
   # save metadata
-  write.table(cellinfo, paste0('info_', id, '_cellinfo.tsv'), sep='\t', quote=F)
-  write.table(geneinfo, paste0('info_', id, '_geneinfo.tsv'), sep='\t', quote=F)
+  write.table(cellinfo, paste0('info_', id, '_cellinfo.tsv'), sep='\t',
+              row.names=F, quote=F)
+  write.table(geneinfo, paste0('info_', id, '_geneinfo.tsv'), sep='\t',
+              row.names=F, quote=F)
 }
 
 #### Estimate parameters from the real dataset
@@ -45,13 +47,13 @@ save.sim(sample_real_group)
 
 #### Simulate data with default params
 sample_sim_single <- splatSimulateSingle(groupCells=2000, nGenes=500,
-                                          dropout.present=T, seed=42,
-                                          dropout.shape=-0.5, dropout.mid=4)
+                                         dropout.present=T, seed=42,
+                                         dropout.shape=-0.5, dropout.mid=4)
 save.sim(sample_sim_single)
 
 # simulate data, two groups
 sample_sim_group <- splatSimulateGroups(groupCells=c(1000, 1000),
-                                         nGenes=500, dropout.present=T,
-                                         dropout.shape=-0.5, dropout.mid=4,
-                                         seed=42)
+                                        nGenes=500, dropout.present=T,
+                                        dropout.shape=-0.5, dropout.mid=4,
+                                        seed=42)
 save.sim(sample_sim_group)
