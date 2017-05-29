@@ -48,4 +48,4 @@ def autoencode(count_matrix,
 
     res['losses'] = losses
 
-    return res
+    return net, res
