@@ -160,12 +160,12 @@ class MLP(object):
                                kernel_initializer=self.init,
                                kernel_regularizer=l2(self.l2_coef), name='dispersion')(last_hidden)
 
-            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
                            kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
-            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
+            mulmean = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
             # Inject pi and disp layers via slicing
-            output = SliceLayer(index=0, name='slice')([output, pi, disp])
+            output = SliceLayer(index=0, name='slice')([mulmean, pi, disp])
 
             zinb = ZINB(pi, theta=disp, masking=self.masking)
             self.loss = zinb.loss

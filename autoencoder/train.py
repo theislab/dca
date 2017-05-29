@@ -72,8 +72,14 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
         tb_log_dir = os.path.join(output_dir, 'tb', 'fold%0i' % i)
         tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
+        if size_factors:
+            sf_mat = data['train']['size_factors']
+        else:
+            sf_mat = np.ones((data['train']['matrix'].shape[0], 1),
+                                   dtype=np.float32)
+
         loss = model.fit({'count': data['train']['matrix'],
-                          'size_factors': data['train']['size_factors']},
+                          'size_factors': sf_mat},
                          data['train']['matrix'],
                          epochs=epochs,
                          batch_size=batch_size,
@@ -95,8 +101,13 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
         tb_log_dir = os.path.join(output_dir, 'tb', 'full')
         tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
+        if size_factors:
+            sf_mat = X['size_factors']
+        else:
+            sf_mat = np.ones((full_data.shape[0], 1), dtype=np.float32)
+
         loss = model.fit({'count': full_data,
-                          'size_factors': X['size_factors']},
+                          'size_factors': sf_mat},
                          full_data,
                          epochs=epochs,
                          batch_size=batch_size,
