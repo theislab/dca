@@ -36,12 +36,15 @@ params <- splatEstimate(sc_example_counts)
 
 # simulate scRNA data with default parameters
 sample_real_single <- splatSimulateSingle(params, groupCells=2000, nGenes=500,
-                                          dropout.present=T, seed=42)
+                                          dropout.present=T, seed=42,
+                                          bcv.common=2) # limit disp to get
+                                                        # fewer zeros
 save.sim(sample_real_single)
 
 # simulate data, two groups
 sample_real_group <- splatSimulateGroups(params, groupCells=c(1000, 1000),
-                                         nGenes=500, dropout.present=T, seed=42)
+                                         nGenes=500, dropout.present=T, seed=42,
+                                         bcv.common=2)
 save.sim(sample_real_group)
 
 
