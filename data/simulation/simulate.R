@@ -11,22 +11,20 @@ save.sim <- function(sim, dir) {
   cellinfo   <- pData(sim)
   geneinfo   <- fData(sim)
 
-  id <- deparse(substitute(sim))
-
   # save count matrices
-  write.table(counts, paste0(dir, '/counts_', id, '.tsv'),
+  write.table(counts, paste0(dir, '/counts.tsv'),
               sep='\t', row.names=F, col.names=F, quote=F)
-  write.table(truecounts, paste0(dir, '/info_', id, '_truecounts.tsv'),
+  write.table(truecounts, paste0(dir, '/info_truecounts.tsv'),
               sep='\t', row.names=F, col.names=F, quote=F)
 
   # save ground truth dropout labels
-  write.table(dropout, paste0(dir, '/info_', id, '_droupout.tsv'),
+  write.table(dropout, paste0(dir, '/info_droupout.tsv'),
               sep='\t', row.names=F, col.names=F, quote=F)
 
   # save metadata
-  write.table(cellinfo, paste0(dir, '/info_', id, '_cellinfo.tsv'), sep='\t',
+  write.table(cellinfo, paste0(dir, '/info_cellinfo.tsv'), sep='\t',
               row.names=F, quote=F)
-  write.table(geneinfo, paste0(dir, '/info_', id, '_geneinfo.tsv'), sep='\t',
+  write.table(geneinfo, paste0(dir, '/info_geneinfo.tsv'), sep='\t',
               row.names=F, quote=F)
 }
 
@@ -40,28 +38,25 @@ data(sc_example_counts)
 params <- splatEstimate(sc_example_counts)
 
 # simulate scRNA data with default parameters
-sample_real_single <- splatSimulateSingle(params, groupCells=2000, nGenes=500,
-                                          dropout.present=T, seed=42,
-                                          bcv.common=2) # limit disp to get
-                                                        # fewer true zeros
-save.sim(sample_real_single, 'real/single')
+sim <- splatSimulateSingle(params, groupCells=2000, nGenes=500,
+                           dropout.present=T, seed=42,
+                           bcv.common=2) # limit disp to get
+                                         # fewer true zeros
+save.sim(sim, 'real/single')
 
 # simulate data, two groups
-sample_real_group <- splatSimulateGroups(params, groupCells=c(1000, 1000),
-                                         nGenes=500, dropout.present=T, seed=42,
-                                         bcv.common=2)
-save.sim(sample_real_group, 'real/group')
+sim <- splatSimulateGroups(params, groupCells=c(1000, 1000), nGenes=500,
+                           dropout.present=T, seed=42, bcv.common=2)
+save.sim(sim, 'real/group')
 
 
 #### Simulate data with default params
-sample_sim_single <- splatSimulateSingle(groupCells=2000, nGenes=500,
-                                         dropout.present=T, seed=42,
-                                         dropout.shape=-0.5, dropout.mid=4)
-save.sim(sample_sim_single, 'sim/single')
+sim <- splatSimulateSingle(groupCells=2000, nGenes=500, dropout.present=T,
+                           seed=42, dropout.shape=-0.5, dropout.mid=4)
+save.sim(sim, 'sim/single')
 
 # simulate data, two groups
-sample_sim_group <- splatSimulateGroups(groupCells=c(1000, 1000),
-                                        nGenes=500, dropout.present=T,
-                                        dropout.shape=-0.5, dropout.mid=4,
-                                        seed=42)
-save.sim(sample_sim_group, 'sim/group')
+sim <- splatSimulateGroups(groupCells=c(1000, 1000), nGenes=500, seed=42,
+                           dropout.present=T, dropout.shape=-0.5,
+                           dropout.mid=4)
+save.sim(sim, 'sim/group')
