@@ -52,6 +52,8 @@ def parse_args():
             action='store_true', help="Transpose maskfile (default: False)")
     parser_preprocess.add_argument('--testsplit', dest='testsplit',
             action='store_true', help="Use one fold as a test set (default: False)")
+    parser_preprocess.add_argument('--log', dest='log',
+            action='store_true', help="log(x+1) transform (default: False)")
     parser_preprocess.add_argument('--header', dest='header',
             action='store_true', help="Whether there is a header in input file"
             " (default: False)")

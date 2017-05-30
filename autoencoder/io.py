@@ -59,7 +59,7 @@ def read_from_file(inputfile):
 
 
 def preprocess(matrix, kfold=None, transpose=False, output_file=None,
-               mask=None, test_split=True, size_factors='zheng'):
+               mask=None, test_split=True, size_factors='zheng', log=False):
     '''Accepts the AE input matrix and splits it into k-folds. One fold is
     reserved for val and test set and the rest is for the training. For
     example 10-fold results in a list of 10 folds, 8 for training, 1 for val
@@ -88,6 +88,9 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
     '''
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
+
+    if log:
+        matrix = np.log1p(matrix)
 
     X = dict()
     X['shape'] = matrix.shape
@@ -179,4 +182,4 @@ def preprocess_with_args(args):
     result = preprocess(matrix, kfold=args.kfold,
                         output_file=args.output, mask=mask,
                         test_split=args.testsplit,
-                        size_factors=args.normtype)
+                        size_factors=args.normtype, log=args.log)
