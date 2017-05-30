@@ -38,7 +38,7 @@ params <- splatEstimate(sc_example_counts)
 sample_real_single <- splatSimulateSingle(params, groupCells=2000, nGenes=500,
                                           dropout.present=T, seed=42,
                                           bcv.common=2) # limit disp to get
-                                                        # fewer zeros
+                                                        # fewer true zeros
 save.sim(sample_real_single)
 
 # simulate data, two groups
