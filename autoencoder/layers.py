@@ -39,6 +39,7 @@ class SliceLayer(Layer):
         super().build(input_shape)
 
     def call(self, x):
+        assert isinstance(x, list), 'SliceLayer input is not a list'
         return x[self.index]
 
     def compute_output_shape(self, input_shape):
