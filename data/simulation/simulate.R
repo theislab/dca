@@ -6,8 +6,12 @@ library(splatter)
 save.sim <- function(sim, dir) {
   counts     <- counts(sim)
   truecounts <- get_exprs(sim, 'TrueCounts')
-  dropout    <- get_exprs(sim, 'Dropout')
-  mode(dropout) <- 'integer'
+  drp <- 'Dropout' %in% names(assayData(sim))
+  if (drp) {
+    dropout    <- get_exprs(sim, 'Dropout')
+    mode(dropout) <- 'integer'
+  }
+  lognorm <- get_exprs(sim, 'exprs')
   cellinfo   <- pData(sim)
   geneinfo   <- fData(sim)
 
@@ -16,47 +20,58 @@ save.sim <- function(sim, dir) {
               sep='\t', row.names=F, col.names=F, quote=F)
   write.table(truecounts, paste0(dir, '/info_truecounts.tsv'),
               sep='\t', row.names=F, col.names=F, quote=F)
-
-  # save ground truth dropout labels
-  write.table(dropout, paste0(dir, '/info_droupout.tsv'),
+  write.table(format(lognorm, digits=6), paste0(dir, '/counts_lognorm.tsv'),
               sep='\t', row.names=F, col.names=F, quote=F)
+
+  if (drp) {
+    # save ground truth dropout labels
+    write.table(dropout, paste0(dir, '/info_droupout.tsv'),
+                sep='\t', row.names=F, col.names=F, quote=F)
+  }
 
   # save metadata
   write.table(cellinfo, paste0(dir, '/info_cellinfo.tsv'), sep='\t',
               row.names=F, quote=F)
   write.table(geneinfo, paste0(dir, '/info_geneinfo.tsv'), sep='\t',
               row.names=F, quote=F)
+
+  saveRDS(sim, paste0(dir, '/sce.rds'))
 }
 
-if (!dir.exists('real/single')) dir.create('real/single', showWarnings=F, recursive=T)
-if (!dir.exists('real/group')) dir.create('real/group', showWarnings=F, recursive=T)
-if (!dir.exists('sim/single')) dir.create('sim/single', showWarnings=F, recursive=T)
-if (!dir.exists('sim/group')) dir.create('sim/group', showWarnings=F, recursive=T)
+nGenes <- 200
+nCells <- 2000
 
-#### Estimate parameters from the real dataset
-data(sc_example_counts)
-params <- splatEstimate(sc_example_counts)
+for (dropout in c(0, 1, 3, 5)) {
+  for (ngroup in c(1, 2, 3, 6)) {
 
-# simulate scRNA data with default parameters
-sim <- splatSimulateSingle(params, groupCells=2000, nGenes=500,
-                           dropout.present=T, seed=42,
-                           bcv.common=2) # limit disp to get
-                                         # fewer true zeros
-save.sim(sim, 'real/single')
+    groupCells <- rep(round(nCells/ngroup), ngroup)
+    method <- ifelse(ngroup == 1, 'single', 'groups')
 
-# simulate data, two groups
-sim <- splatSimulateGroups(params, groupCells=c(1000, 1000), nGenes=500,
-                           dropout.present=T, seed=42, bcv.common=2)
-save.sim(sim, 'real/group')
+    dirname <- paste0('real/group', ngroup, '/dropout', dropout)
+    if (!dir.exists(dirname))
+      dir.create(dirname, showWarnings=F, recursive=T)
+
+    #### Estimate parameters from the real dataset
+    data(sc_example_counts)
+    params <- splatEstimate(sc_example_counts)
+
+    # simulate scRNA data
+    sim <- splatSimulate(params, groupCells=groupCells, nGenes=nGenes,
+                         dropout.present=(dropout!=0), dropout.shape=-1,
+                         dropout.mid=dropout, seed=42,
+                         bcv.common=1) # limit disp to get
+                                       # fewer true zeros
+    save.sim(sim, dirname)
 
 
-#### Simulate data with default params
-sim <- splatSimulateSingle(groupCells=2000, nGenes=500, dropout.present=T,
-                           seed=42, dropout.shape=-0.5, dropout.mid=4)
-save.sim(sim, 'sim/single')
+    dirname <- paste0('sim/group', ngroup, '/dropout', dropout)
+    if (!dir.exists(dirname))
+      dir.create(dirname, showWarnings=F, recursive=T)
 
-# simulate data, two groups
-sim <- splatSimulateGroups(groupCells=c(1000, 1000), nGenes=500, seed=42,
-                           dropout.present=T, dropout.shape=-0.5,
-                           dropout.mid=4)
-save.sim(sim, 'sim/group')
+    #### Simulate data without using real data
+    sim <- splatSimulate(groupCells=groupCells, nGenes=nGenes,
+                         dropout.present=(dropout!=0), method=method,
+                         seed=42, dropout.shape=-1, dropout.mid=dropout)
+    save.sim(sim, dirname)
+  }
+}

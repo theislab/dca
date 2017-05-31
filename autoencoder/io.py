@@ -58,7 +58,7 @@ def read_from_file(inputfile):
     return pickle.load(open(inputfile, "rb"))
 
 
-def preprocess(matrix, kfold=None, transpose=False, output_file=None,
+def preprocess(matrix, kfold=None, output_file=None,
                mask=None, test_split=True, size_factors='zheng', log=False):
     '''Accepts the AE input matrix and splits it into k-folds. One fold is
     reserved for val and test set and the rest is for the training. For
@@ -68,7 +68,6 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
     Args:
         matrix: Input matrix for autoencoder.
         kfold: Number of folds to be used in k-fold CV.
-        transpose: Use transposed input matrix.
         output_file: Name of the output file in pickle format.
         mask: Binary mask matrix of same shape as input denoting the positions
             in the input that will not be used in loss calculations. Elements
@@ -88,6 +87,9 @@ def preprocess(matrix, kfold=None, transpose=False, output_file=None,
     '''
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
+
+    # filter out all zero features
+    matrix = matrix[:, matrix.sum(0)>0]
 
     if log:
         matrix = np.log1p(matrix)
