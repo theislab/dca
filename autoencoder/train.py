@@ -74,9 +74,12 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
 
         if size_factors:
             sf_mat = data['train']['size_factors']
+            sf_mat_val = data['val']['size_factors']
         else:
             sf_mat = np.ones((data['train']['matrix'].shape[0], 1),
-                                   dtype=np.float32)
+                             dtype=np.float32)
+            sf_mat_val = np.ones((data['val']['matrix'].shape[0], 1),
+                             dtype=np.float32)
 
         loss = model.fit({'count': data['train']['matrix'],
                           'size_factors': sf_mat},
@@ -85,8 +88,7 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
                          batch_size=batch_size,
                          shuffle=True,
                          callbacks=callbacks+[tb_cb],
-                         validation_data=(([data['val']['matrix'],
-                                           data['val']['size_factors']],
+                         validation_data=(([data['val']['matrix'], sf_mat_val],
                                            data['val']['matrix'])),
                          **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
