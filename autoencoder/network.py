@@ -120,12 +120,14 @@ class MLP(object):
             output = ColWiseMultLayer(name='output')([output, size_factor_inp])
             self.loss = poisson_loss
         elif self.loss_type == 'nb':
-            # Plug in dispersion parameters via fake dispersion layer
-            disp = ConstantDispersionLayer(name='dispersion')
-            output = disp(last_hidden)
 
             output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='mean')(output)
+                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+
+            # Plug in dispersion parameters via fake dispersion layer
+            disp = ConstantDispersionLayer(name='dispersion')
+            output = disp(output)
+
             output = ColWiseMultLayer(name='output')([output, size_factor_inp])
 
             nb = NB(disp.theta_exp, masking=self.masking)
