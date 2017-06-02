@@ -82,8 +82,8 @@ def parse_args():
             help="L2 regularization coefficient (default: 0.0)")
     parser_train.add_argument('--gradclip', type=float, default=5.0,
             help="Clip grad values (default: 5.0)")
-    parser_train.add_argument('--activation', type=str, default='relu',
-            help="Activation function of hidden units (default: relu)")
+    parser_train.add_argument('--activation', type=str, default='elu',
+            help="Activation function of hidden units (default: elu)")
     parser_train.add_argument('--optimizer', type=str, default='Adam',
             help="Optimization method (default: Adam)")
     parser_train.add_argument('--init', type=str, default='glorot_uniform',
