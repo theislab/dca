@@ -113,39 +113,47 @@ class MLP(object):
 
         if self.loss_type == 'normal':
             self.loss = mean_squared_error
-            output = Dense(self.output_size, activation=None, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
-            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
+            mean = Dense(self.output_size, activation=None, kernel_initializer=self.init,
+                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+            output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
+
+            # keep unscaled output as an extra model
+            self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
+
         elif self.loss_type == 'poisson':
-            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
-            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
+            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+            output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
             self.loss = poisson_loss
+            self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
+
         elif self.loss_type == 'nb':
 
-            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
 
             # Plug in dispersion parameters via fake dispersion layer
             disp = ConstantDispersionLayer(name='dispersion')
-            output = disp(output)
+            mean = disp(mean)
 
-            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
+            output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
             nb = NB(disp.theta_exp, masking=self.masking)
             self.loss = nb.loss
             self.extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
+            self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
+
         elif self.loss_type == 'zinb':
             pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                    kernel_regularizer=l2(self.l2_coef), name='pi')(last_hidden)
+                       kernel_regularizer=l2(self.l2_coef), name='pi')(last_hidden)
 
             # NB dispersion layer
             disp = ConstantDispersionLayer(name='dispersion')
-            output = disp(last_hidden)
+            last_hidden = disp(last_hidden)
 
-            output = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='mean')(output)
-            output = ColWiseMultLayer(name='output')([output, size_factor_inp])
+            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+            output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
             # Inject pi layer via slicing
             output = SliceLayer(index=0, name='slice')([output, pi])
@@ -154,6 +162,7 @@ class MLP(object):
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
+            self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
 
         # ZINB with gene-wise dispersion
         elif self.loss_type == 'zinb-conddisp':
@@ -175,6 +184,7 @@ class MLP(object):
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['conddispersion'] = Model(inputs=inp, outputs=disp)
+            self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
 
         self.model = Model(inputs=[inp, size_factor_inp], outputs=output)
 
@@ -222,8 +232,10 @@ class MLP(object):
 
         if 'dispersion' in self.extra_models:
             res['dispersion'] = self.extra_models['dispersion']()
+
         if 'pi' in self.extra_models:
             res['pi'] = self.extra_models['pi'].predict(count_matrix)
+
         if 'conddispersion' in self.extra_models:
             res['dispersion'] = self.extra_models['conddispersion'].predict(count_matrix)
 
@@ -238,6 +250,9 @@ class MLP(object):
             print('Calculating reconstructions...')
             res['mean'] = self.model.predict({'count': count_matrix,
                                               'size_factors': size_factors})
+
+            res['mean_norm'] = self.extra_models['mean_norm'].predict(count_matrix)
+
             if 'dispersion' in res:
                 m, d = res['mean'], res['dispersion']
                 res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
@@ -257,9 +272,14 @@ class MLP(object):
             if 'pi' in res:
                 save_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
             if 'mean' in res:
-                save_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
+                save_matrix(res['mean'],
+                            os.path.join(self.file_path, 'mean.tsv'))
+            if 'mean_norm' in res:
+                save_matrix(res['mean_norm'],
+                            os.path.join(self.file_path, 'mean_norm.tsv'))
             if 'mode' in res:
-                save_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
+                save_matrix(res['mode'],
+                            os.path.join(self.file_path, 'mode.tsv'))
 
         return res
 
