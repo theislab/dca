@@ -16,10 +16,11 @@
 import os, pickle
 
 import numpy as np
-from keras.layers import Input, Dense, Dropout, Activation
+from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
 from keras.models import Model
 from keras.regularizers import l2
 from keras.objectives import mean_squared_error
+from keras.initializers import Constant
 from keras import backend as K
 import tensorflow as tf
 
@@ -101,6 +102,7 @@ class MLP(object):
 
             last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
                           kernel_regularizer=l2(self.l2_coef), name=layer_name)(last_hidden)
+            last_hidden = BatchNormalization()(last_hidden)
 
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
