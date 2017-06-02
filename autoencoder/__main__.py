@@ -93,10 +93,10 @@ def parse_args():
                  "improvement on validation loss (default: 200)")
     parser_train.add_argument('--earlystop', type=int, default=15,
             help="Number of epochs to stop training if no improvement in loss "
-                 "occurs (default: 25)")
+                 "occurs (default: 15)")
     parser_train.add_argument('--reducelr', type=int, default=10,
             help="Number of epochs to reduce learning rate if no improvement "
-            "in loss occurs (defaul: 20)")
+            "in loss occurs (default: 10)")
     parser_train.add_argument('-s', '--hiddensize', type=str, default='256,64,256',
             help="Size of hidden layers (default: 256,64,256)")
     parser_train.add_argument('-r', '--learningrate', type=float, default=None,
