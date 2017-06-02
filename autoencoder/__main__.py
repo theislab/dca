@@ -88,13 +88,13 @@ def parse_args():
             help="Optimization method (default: Adam)")
     parser_train.add_argument('--init', type=str, default='glorot_uniform',
             help="Initialization method for weights (default: glorot_uniform)")
-    parser_train.add_argument('-e', '--epochs', type=int, default=200,
+    parser_train.add_argument('-e', '--epochs', type=int, default=500,
             help="Max number of epochs to continue training in case of no "
                  "improvement on validation loss (default: 200)")
-    parser_train.add_argument('--earlystop', type=int, default=25,
+    parser_train.add_argument('--earlystop', type=int, default=15,
             help="Number of epochs to stop training if no improvement in loss "
                  "occurs (default: 25)")
-    parser_train.add_argument('--reducelr', type=int, default=20,
+    parser_train.add_argument('--reducelr', type=int, default=10,
             help="Number of epochs to reduce learning rate if no improvement "
             "in loss occurs (defaul: 20)")
     parser_train.add_argument('-s', '--hiddensize', type=str, default='256,64,256',
