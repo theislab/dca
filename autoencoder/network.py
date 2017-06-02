@@ -98,7 +98,7 @@ class MLP(object):
             if i == int(np.floor(len(self.hidden_size) / 2.0)):
                 layer_name = 'center'
             else:
-                layer_name = 'hidden_%s' % i
+                layer_name = 'hidden%s' % i
 
             last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
                           kernel_regularizer=l2(self.l2_coef), name=layer_name)(last_hidden)
