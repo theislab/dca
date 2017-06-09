@@ -73,9 +73,13 @@ def parse_args():
     parser_train.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
     parser_train.add_argument('--sizefactors', dest='sizefactors',
-            action='store_true', help="Normalize by library size (default: False)")
+            action='store_true', help="Normalize means by library size (default: True)")
     parser_train.add_argument('--nosizefactors', dest='sizefactors',
-            action='store_false', help="Do not normalize by library size")
+            action='store_false', help="Do not normalize means by library size")
+    parser_train.add_argument('--norminput', dest='norminput',
+            action='store_true', help="Normalize input by library size (default: True)")
+    parser_train.add_argument('--nonorminput', dest='norminput',
+            action='store_false', help="Do not input normalize by library size")
     parser_train.add_argument('-d', '--dropoutrate', type=str, default='0.0',
             help="Dropout rate (default: 0)")
     parser_train.add_argument('--l2', type=float, default=0.0,
@@ -113,7 +117,8 @@ def parse_args():
     parser_train.set_defaults(func=train.train_with_args,
                               dimreduce=True,
                               reconstruct=True,
-                              sizefactors=False)
+                              sizefactors=True,
+                              norminput=True)
 
     # test subparser
     #parser_test = subparsers.add_parser('test', help='Test autoencoder')

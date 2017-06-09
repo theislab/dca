@@ -26,7 +26,7 @@ import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
 from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
-from .io import save_matrix, estimate_size_factors
+from .io import save_matrix, estimate_size_factors, lognormalize
 
 class MLP(object):
     def __init__(self,
@@ -223,12 +223,16 @@ class MLP(object):
                          outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, count_matrix, size_factors=False, dimreduce=True, reconstruct=True):
+    def predict(self, count_matrix, size_factors=True, normalize_input=True,
+                dimreduce=True, reconstruct=True):
         res = {}
         if size_factors:
             size_factors = estimate_size_factors(count_matrix)
         else:
             size_factors = np.ones((count_matrix.shape[0],))
+
+        if normalize_input:
+            count_matrix = lognormalize(count_matrix, size_factors)
 
         if 'dispersion' in self.extra_models:
             res['dispersion'] = self.extra_models['dispersion']()

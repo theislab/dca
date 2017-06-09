@@ -23,6 +23,7 @@ import pickle, os, numbers
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold, train_test_split
+from sklearn.preprocessing import scale
 from keras.models import load_model as keras_load_model
 
 
@@ -164,6 +165,13 @@ def estimate_size_factors(x, normtype='zheng'):
         return s/np.median(s, 0)
     else:
         raise NotImplemented
+
+
+def lognormalize(x, sf):
+    assert len(sf.shape) == 1
+    ret = x / (sf[:, None]+1e-8) #colwise div
+    ret = np.log1p(ret)
+    return scale(ret, axis=0, copy=False)
 
 
 def preprocess_with_args(args):
