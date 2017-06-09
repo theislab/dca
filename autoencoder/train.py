@@ -30,8 +30,8 @@ from keras.preprocessing.image import Iterator
 
 
 def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
-          aetype=None, epochs=200, reduce_lr=20, size_factors=False, early_stop=25, batch_size=32,
-          clipvalue=5., **kwargs):
+          aetype=None, epochs=200, reduce_lr=20, size_factors=True, normalize_input=True,
+          early_stop=25, batch_size=32, clipvalue=5., **kwargs):
 
     model = network.model
     loss = network.loss
@@ -42,6 +42,7 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
         optimizer = opt.__dict__[optimizer](lr=learning_rate, clipvalue=clipvalue)
 
     model.compile(loss=loss, optimizer=optimizer)
+    normalize = io.lognormalize if normalize_input else lambda x, sf: x
 
     # Callbacks
     checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % output_dir,
@@ -81,14 +82,15 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
             sf_mat_val = np.ones((data['val']['matrix'].shape[0], 1),
                              dtype=np.float32)
 
-        loss = model.fit({'count': data['train']['matrix'],
+        loss = model.fit({'count': normalize(data['train']['matrix'], sf_mat),
                           'size_factors': sf_mat},
                          data['train']['matrix'],
                          epochs=epochs,
                          batch_size=batch_size,
                          shuffle=True,
                          callbacks=callbacks+[tb_cb],
-                         validation_data=(([data['val']['matrix'], sf_mat_val],
+                         validation_data=(([normalize(data['val']['matrix'], sf_mat_val),
+                                            sf_mat_val],
                                            data['val']['matrix'])),
                          **kwargs)
         #model.evaluate(data['test'], data['test'], batch_size=32,
@@ -108,7 +110,7 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
         else:
             sf_mat = np.ones((full_data.shape[0], 1), dtype=np.float32)
 
-        loss = model.fit({'count': full_data,
+        loss = model.fit({'count': normalize(full_data, sf_mat),
                           'size_factors': sf_mat},
                          full_data,
                          epochs=epochs,
@@ -149,10 +151,12 @@ def train_with_args(args):
                    early_stop=args.earlystop,
                    reduce_lr=args.reducelr,
                    size_factors=args.sizefactors,
+                   normalize_input=args.norminput,
                    optimizer=args.optimizer,
                    clipvalue=args.gradclip)
 
     net.predict(x['full'],
             dimreduce=args.dimreduce,
             reconstruct=args.reconstruct,
-            size_factors=args.sizefactors)
+            size_factors=args.sizefactors,
+            normalize_input=args.norminput)
