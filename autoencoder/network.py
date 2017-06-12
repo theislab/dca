@@ -18,7 +18,7 @@ import os, pickle
 import numpy as np
 from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
 from keras.models import Model
-from keras.regularizers import l2
+from keras.regularizers import l1_l2
 from keras.objectives import mean_squared_error
 from keras.initializers import Constant
 from keras import backend as K
@@ -34,8 +34,11 @@ class MLP(object):
                  output_size=None,
                  hidden_size=(256,),
                  l2_coef=0.,
+                 l1_coef=0.,
+                 l2_enc_coef=0.,
+                 l1_enc_coef=0.,
                  hidden_dropout=0.,
-                 activation='relu',
+                 activation='elu',
                  init='glorot_uniform',
                  masking=False,
                  loss_type='zinb',
@@ -48,6 +51,9 @@ class MLP(object):
             output_size: Size of the output layer (AE if not specified)
             hidden_size: Tuple of sizes for each hidden layer.
             l2_coef: L2 regularization coefficient.
+            l1_coef: L1 regularization coefficient.
+            l2_enc_coef: L2 regularization coefficient for only encoder.
+            l1_enc_coef: L1 regularization coefficient for only encoder.
             activation: Activation function of hidden layers. relu is default.
             masking: Whether masking will be supported in the model.
             loss_type: Type of loss function. Available values are 'normal', 'poisson',
@@ -67,6 +73,9 @@ class MLP(object):
         self.output_size = output_size
         self.hidden_size = hidden_size
         self.l2_coef = l2_coef
+        self.l1_coef = l1_coef
+        self.l2_enc_coef = l2_enc_coef
+        self.l1_enc_coef = l1_enc_coef
         self.hidden_dropout = hidden_dropout
         self.activation = activation
         self.init = init
@@ -95,13 +104,31 @@ class MLP(object):
             last_hidden = inp
 
         for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
-            if i == int(np.floor(len(self.hidden_size) / 2.0)):
+            center_idx = int(np.floor(len(self.hidden_size) / 2.0))
+            if i == center_idx:
                 layer_name = 'center'
+                stage = 'center' #let downstream know where we are
+            elif i < center_idx:
+                layer_name = 'enc%s' % i
+                stage = 'encoder'
             else:
-                layer_name = 'hidden%s' % i
+                layer_name = 'dec%s' % (i-center_idx)
+                stage = 'decoder'
+
+            # use encoder-specific l1/l2 reg coefs if given
+            if self.l1_enc_coef != 0. and stage in ('center', 'encoder'):
+                l1 = self.l1_enc_coef
+            else:
+                l1 = self.l1_coef
+
+            if self.l2_enc_coef != 0. and stage in ('center', 'encoder'):
+                l2 = self.l2_enc_coef
+            else:
+                l2 = self.l2_coef
 
             last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                          kernel_regularizer=l2(self.l2_coef), name=layer_name)(last_hidden)
+                                kernel_regularizer=l1_l2(l1, l2),
+                                name=layer_name)(last_hidden)
             last_hidden = BatchNormalization()(last_hidden)
 
             # Use separate act. layers to give user the option to get pre-activations
@@ -114,7 +141,7 @@ class MLP(object):
         if self.loss_type == 'normal':
             self.loss = mean_squared_error
             mean = Dense(self.output_size, activation=None, kernel_initializer=self.init,
-                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+                         kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
             output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
             # keep unscaled output as an extra model
@@ -122,7 +149,7 @@ class MLP(object):
 
         elif self.loss_type == 'poisson':
             mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+                         kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
             output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
             self.loss = poisson_loss
             self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
@@ -130,7 +157,7 @@ class MLP(object):
         elif self.loss_type == 'nb':
 
             mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+                         kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
 
             # Plug in dispersion parameters via fake dispersion layer
             disp = ConstantDispersionLayer(name='dispersion')
@@ -145,14 +172,14 @@ class MLP(object):
 
         elif self.loss_type == 'zinb':
             pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                       kernel_regularizer=l2(self.l2_coef), name='pi')(last_hidden)
+                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='pi')(last_hidden)
 
             # NB dispersion layer
             disp = ConstantDispersionLayer(name='dispersion')
             last_hidden = disp(last_hidden)
 
             mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                         kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+                         kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
             output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
             # Inject pi layer via slicing
@@ -167,14 +194,14 @@ class MLP(object):
         # ZINB with gene-wise dispersion
         elif self.loss_type == 'zinb-conddisp':
             pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='pi')(last_hidden)
+                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='pi')(last_hidden)
 
             disp = Dense(self.output_size, activation=lambda x:1.0/(K.exp(x)+1e-10),
                                kernel_initializer=self.init,
-                               kernel_regularizer=l2(self.l2_coef), name='dispersion')(last_hidden)
+                               kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='dispersion')(last_hidden)
 
             mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
-                           kernel_regularizer=l2(self.l2_coef), name='mean')(last_hidden)
+                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
             mulmean = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
             # Inject pi and disp layers via slicing

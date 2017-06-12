@@ -84,6 +84,12 @@ def parse_args():
             help="Dropout rate (default: 0)")
     parser_train.add_argument('--l2', type=float, default=0.0,
             help="L2 regularization coefficient (default: 0.0)")
+    parser_train.add_argument('--l1', type=float, default=0.0,
+            help="L1 regularization coefficient (default: 0.0)")
+    parser_train.add_argument('--l2enc', type=float, default=0.0,
+            help="Encoder-specific L2 regularization coefficient (default: 0.0)")
+    parser_train.add_argument('--l1enc', type=float, default=0.0,
+            help="Encoder-specific L1 regularization coefficient (default: 0.0)")
     parser_train.add_argument('--gradclip', type=float, default=5.0,
             help="Clip grad values (default: 5.0)")
     parser_train.add_argument('--activation', type=str, default='elu',
