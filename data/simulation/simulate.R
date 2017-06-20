@@ -44,7 +44,8 @@ nCells <- 2000
 for (dropout in c(0, 1, 3, 5)) {
   for (ngroup in c(1, 2, 3, 6)) {
 
-    groupCells <- rep(round(nCells/ngroup), ngroup)
+    # split nCells into roughly ngroup groups
+    groupCells <- as.vector(table(as.integer(cut(seq_len(nCells), ngroup))))
     method <- ifelse(ngroup == 1, 'single', 'groups')
 
     dirname <- paste0('real/group', ngroup, '/dropout', dropout)
