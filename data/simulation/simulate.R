@@ -43,36 +43,44 @@ nCells <- 2000
 
 for (dropout in c(0, 1, 3, 5)) {
   for (ngroup in c(1, 2, 3, 6)) {
+    for(swap in c(F, T)) {
 
-    # split nCells into roughly ngroup groups
-    groupCells <- ifelse(ngroup==1, nCells, as.vector(table(as.integer(cut(seq_len(nCells), ngroup)))))
-    method <- ifelse(ngroup == 1, 'single', 'groups')
+      if (swap) {
+        tmp <- nGenes
+        nGenes <- nCells
+        nCells <- tmp
+      }
 
-    dirname <- paste0('real/group', ngroup, '/dropout', dropout)
-    if (!dir.exists(dirname))
-      dir.create(dirname, showWarnings=F, recursive=T)
+      # split nCells into roughly ngroup groups
+      groupCells <- ifelse(ngroup==1, nCells, as.vector(table(as.integer(cut(seq_len(nCells), ngroup)))))
+      method <- ifelse(ngroup == 1, 'single', 'groups')
 
-    #### Estimate parameters from the real dataset
-    data(sc_example_counts)
-    params <- splatEstimate(sc_example_counts)
+      dirname <- paste0('real/group', ngroup, '/dropout', dropout, ifelse(swap, '/swap', ''))
+      if (!dir.exists(dirname))
+        dir.create(dirname, showWarnings=F, recursive=T)
 
-    # simulate scRNA data
-    sim <- splatSimulate(params, groupCells=groupCells, nGenes=nGenes,
-                         dropout.present=(dropout!=0), dropout.shape=-1,
-                         dropout.mid=dropout, seed=42, method=method,
-                         bcv.common=1) # limit disp to get
-                                       # fewer true zeros
-    save.sim(sim, dirname)
+      #### Estimate parameters from the real dataset
+      data(sc_example_counts)
+      params <- splatEstimate(sc_example_counts)
+
+      # simulate scRNA data
+      sim <- splatSimulate(params, groupCells=groupCells, nGenes=nGenes,
+                           dropout.present=(dropout!=0), dropout.shape=-1,
+                           dropout.mid=dropout, seed=42, method=method,
+                           bcv.common=1) # limit disp to get
+      # fewer true zeros
+      save.sim(sim, dirname)
 
 
-    dirname <- paste0('sim/group', ngroup, '/dropout', dropout)
-    if (!dir.exists(dirname))
-      dir.create(dirname, showWarnings=F, recursive=T)
+      dirname <- paste0('sim/group', ngroup, '/dropout', dropout, ifelse(swap, '/swap', ''))
+      if (!dir.exists(dirname))
+        dir.create(dirname, showWarnings=F, recursive=T)
 
-    #### Simulate data without using real data
-    sim <- splatSimulate(groupCells=groupCells, nGenes=nGenes,
-                         dropout.present=(dropout!=0), method=method,
-                         seed=42, dropout.shape=-1, dropout.mid=dropout)
-    save.sim(sim, dirname)
+      #### Simulate data without using real data
+      sim <- splatSimulate(groupCells=groupCells, nGenes=nGenes,
+                           dropout.present=(dropout!=0), method=method,
+                           seed=42, dropout.shape=-1, dropout.mid=dropout)
+      save.sim(sim, dirname)
+    }
   }
 }
