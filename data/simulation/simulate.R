@@ -59,7 +59,7 @@ for (dropout in c(0, 1, 3, 5)) {
     # simulate scRNA data
     sim <- splatSimulate(params, groupCells=groupCells, nGenes=nGenes,
                          dropout.present=(dropout!=0), dropout.shape=-1,
-                         dropout.mid=dropout, seed=42,
+                         dropout.mid=dropout, seed=42, method=method,
                          bcv.common=1) # limit disp to get
                                        # fewer true zeros
     save.sim(sim, dirname)
