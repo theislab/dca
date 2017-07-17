@@ -167,11 +167,18 @@ def estimate_size_factors(x, normtype='zheng'):
         raise NotImplemented
 
 
-def lognormalize(x, sf):
-    assert len(sf.shape) == 1
-    ret = x / (sf[:, None]+1e-8) #colwise div
-    ret = np.log1p(ret)
-    return scale(ret, axis=0, copy=False)
+def lognormalize(x, sf, logtrans=True, sfnorm=True, zscore=True):
+    if sfnorm:
+        assert len(sf.shape) == 1
+        x = x / (sf[:, None]+1e-8) #colwise div
+
+    if logtrans:
+        x = np.log1p(x)
+
+    if zscore:
+        x = scale(x, axis=0, copy=False)
+
+    return x
 
 
 def preprocess_with_args(args):
