@@ -26,7 +26,7 @@ import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
 from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
-from .io import save_matrix, estimate_size_factors, lognormalize
+from .io import write_text_matrix, estimate_size_factors, lognormalize
 
 class MLP(object):
     def __init__(self,
@@ -40,7 +40,6 @@ class MLP(object):
                  hidden_dropout=0.,
                  activation='elu',
                  init='glorot_uniform',
-                 masking=False,
                  loss_type='zinb',
                  file_path=None):
         '''Construct an MLP (or autoencoder if output_size is not given)
