@@ -39,21 +39,13 @@ def parse_args():
             help='Input in TSV/CSV format')
     parser_preprocess.add_argument('-o', '--output', type=str,
             help='Output file path', required=True)
-    parser_preprocess.add_argument('-k', '--kfold', type=int,
-            help='k-fold CV (default: 10 folds, 9-1 for training and validation, no CV)')
     parser_preprocess.add_argument('--normtype', type=str, default='zheng',
             help='Type of size factor estimation. Possible values: deseq, zheng.'
                  ' (default: zheng)')
     parser_preprocess.add_argument('-t', '--transpose', dest='transpose',
             action='store_true', help='Transpose input matrix (default: False)')
-    parser_preprocess.add_argument('-m', '--maskfile', type=str,
-            help="Mask file with binary values to calculate loss only on specific values")
-    parser_preprocess.add_argument('--masktranspose', dest='masktranspose',
-            action='store_true', help="Transpose maskfile (default: False)")
     parser_preprocess.add_argument('--testsplit', dest='testsplit',
             action='store_true', help="Use one fold as a test set (default: False)")
-    parser_preprocess.add_argument('--log', dest='log',
-            action='store_true', help="log(x+1) transform (default: False)")
     parser_preprocess.add_argument('--header', dest='header',
             action='store_true', help="Whether there is a header in input file"
             " (default: False)")

@@ -1,6 +1,6 @@
 import os
 
-from .io import preprocess, save_matrix
+from .io import Dataset, write_text_matrix
 from .train import train
 from .network import MLP
 
@@ -25,7 +25,8 @@ def autoencode(count_matrix,
                init='glorot_uniform',
                **kwargs):
 
-    x = preprocess(count_matrix, kfold=kfold, mask=mask, test_split=test_split)
+    x = Dataset()
+    x.import_from_text(count_matrix, test_split=test_split)
 
     net = MLP(x['shape'][1],
               hidden_size=hidden_size,
