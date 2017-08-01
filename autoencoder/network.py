@@ -13,7 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 
-import os, pickle
+import os
+import pickle
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
 from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
@@ -25,10 +27,11 @@ from keras import backend as K
 import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
-from .layers import nan2zeroLayer, ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
+from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
 from .io import write_text_matrix, estimate_size_factors, lognormalize
 
-class MLP(object):
+
+class MLP():
     def __init__(self,
                  input_size,
                  output_size=None,
@@ -42,7 +45,7 @@ class MLP(object):
                  init='glorot_uniform',
                  loss_type='zinb',
                  file_path=None):
-        '''Construct an MLP (or autoencoder if output_size is not given)
+        """Construct an MLP (or autoencoder if output_size is not given)
         in Keras and return model (also encoder and decoderin case of AE).
 
         Args:
@@ -54,7 +57,6 @@ class MLP(object):
             l2_enc_coef: L2 regularization coefficient for only encoder.
             l1_enc_coef: L1 regularization coefficient for only encoder.
             activation: Activation function of hidden layers. relu is default.
-            masking: Whether masking will be supported in the model.
             loss_type: Type of loss function. Available values are 'normal', 'poisson',
                 'nb', 'zinb' and 'zinb-meanmix'. 'zinb' refers to zero-inflated
                 negative binomial with constant mixture params. 'zinb-meanmix'
@@ -63,7 +65,7 @@ class MLP(object):
         Returns:
             A dict of Keras model, encoder, decoder, loss function and extra
                 models. Extra models keep mixture coefficients (i.e. pi) for ZINB.
-        '''
+        """
 
         assert loss_type in ['normal', 'poisson', 'nb', 'zinb', 'zinb-conddisp'], \
                              'loss type not supported'
@@ -78,9 +80,13 @@ class MLP(object):
         self.hidden_dropout = hidden_dropout
         self.activation = activation
         self.init = init
-        self.masking = masking
         self.loss_type = loss_type
+        self.loss = None
         self.file_path = file_path
+        self.extra_models = {}
+        self.model = None
+        self.encoder = None
+        self.decoder = None
 
         self.ae = True if self.output_size is None else False
         if self.output_size is None:
@@ -91,22 +97,17 @@ class MLP(object):
         else:
             self.hidden_dropout = [self.hidden_dropout]*len(self.hidden_size)
 
-
     def build(self):
 
         inp = Input(shape=(self.input_size,), name='count')
         size_factor_inp = Input(shape=(1,), name='size_factors')
-        if self.masking:
-            nan = nan2zeroLayer(inp)
-            last_hidden = nan
-        else:
-            last_hidden = inp
+        last_hidden = inp
 
         for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
             center_idx = int(np.floor(len(self.hidden_size) / 2.0))
             if i == center_idx:
                 layer_name = 'center'
-                stage = 'center' #let downstream know where we are
+                stage = 'center'  # let downstream know where we are
             elif i < center_idx:
                 layer_name = 'enc%s' % i
                 stage = 'encoder'
@@ -135,8 +136,6 @@ class MLP(object):
             last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
             last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
 
-        self.extra_models  = {}
-
         if self.loss_type == 'normal':
             self.loss = mean_squared_error
             mean = Dense(self.output_size, activation=None, kernel_initializer=self.init,
@@ -164,7 +163,7 @@ class MLP(object):
 
             output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
-            nb = NB(disp.theta_exp, masking=self.masking)
+            nb = NB(disp.theta_exp)
             self.loss = nb.loss
             self.extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
             self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
@@ -184,7 +183,7 @@ class MLP(object):
             # Inject pi layer via slicing
             output = SliceLayer(index=0, name='slice')([output, pi])
 
-            zinb = ZINB(pi, theta=disp.theta_exp, masking=self.masking)
+            zinb = ZINB(pi, theta=disp.theta_exp)
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
@@ -206,7 +205,7 @@ class MLP(object):
             # Inject pi and disp layers via slicing
             output = SliceLayer(index=0, name='slice')([mulmean, pi, disp])
 
-            zinb = ZINB(pi, theta=disp, masking=self.masking)
+            zinb = ZINB(pi, theta=disp)
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['conddispersion'] = Model(inputs=inp, outputs=disp)
@@ -215,9 +214,8 @@ class MLP(object):
         self.model = Model(inputs=[inp, size_factor_inp], outputs=output)
 
         if self.ae:
-            self.encoder_linear = self.get_encoder(activation = False)
-            self.encoder = self.get_encoder(activation = True)
-            self.decoder = None #get_decoder()
+            self.encoder = self.get_encoder()
+            self.decoder = None  # get_decoder()
 
     def save(self):
         os.makedirs(self.file_path, exist_ok=True)
@@ -227,26 +225,26 @@ class MLP(object):
     def load_weights(self, filename):
         self.model.load_weights(filename)
         if self.ae:
-            self.encoder_linear = self.get_encoder(activation = False)
-            self.encoder = self.get_encoder(activation = True)
-            self.decoder = None #get_decoder()
+            self.encoder = self.get_encoder()
+            self.decoder = None  # get_decoder()
 
     def get_decoder(self):
         i = 0
         for l in self.model.layers:
-            if l.name == 'center_drop': break
+            if l.name == 'center_drop':
+                break
             i += 1
 
         return Model(inputs=self.model.get_layer(index=i+1).input,
-                     outputs=selfodel.output)
+                     outputs=self.model.output)
 
-    def get_encoder(self, activation=True):
+    def get_encoder(self, activation=False):
         if activation:
-            ret =  Model(inputs=self.model.input,
-                         outputs=self.model.get_layer('center_act').output)
+            ret = Model(inputs=self.model.input,
+                        outputs=self.model.get_layer('center_act').output)
         else:
-            ret =  Model(inputs=self.model.input,
-                         outputs=self.model.get_layer('center').output)
+            ret = Model(inputs=self.model.input,
+                        outputs=self.model.get_layer('center').output)
         return ret
 
     def predict(self, count_matrix, size_factors=True, normalize_input=True,
@@ -273,9 +271,6 @@ class MLP(object):
             print('Calculating low dimensional representations...')
             res['reduced'] = self.encoder.predict({'count': count_matrix,
                                                    'size_factors': size_factors})
-            res['reduced_linear'] = self.encoder_linear.predict({'count': count_matrix,
-                                                                 'size_factors': size_factors})
-
         if reconstruct:
             print('Calculating reconstructions...')
             res['mean'] = self.model.predict({'count': count_matrix,
@@ -292,24 +287,16 @@ class MLP(object):
             print('Saving files...')
             os.makedirs(self.file_path, exist_ok=True)
             if 'reduced' in res:
-                save_matrix(res['reduced'], os.path.join(self.file_path,
-                                                         'reduced.tsv'))
-                save_matrix(res['reduced_linear'], os.path.join(self.file_path,
-                                                         'reduced_linear.tsv'))
+                write_text_matrix(res['reduced'], os.path.join(self.file_path, 'reduced.tsv'))
             if 'dispersion' in res:
-                save_matrix(res['dispersion'], os.path.join(self.file_path,
-                                                            'dispersion.tsv'))
+                write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
             if 'pi' in res:
-                save_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
+                write_text_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
             if 'mean' in res:
-                save_matrix(res['mean'],
-                            os.path.join(self.file_path, 'mean.tsv'))
+                write_text_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
             if 'mean_norm' in res:
-                save_matrix(res['mean_norm'],
-                            os.path.join(self.file_path, 'mean_norm.tsv'))
+                write_text_matrix(res['mean_norm'], os.path.join(self.file_path, 'mean_norm.tsv'))
             if 'mode' in res:
-                save_matrix(res['mode'],
-                            os.path.join(self.file_path, 'mode.tsv'))
+                write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
 
         return res
-
