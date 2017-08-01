@@ -27,15 +27,62 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
 
 
+class Matrix:
+    def __init__(self, grp):
+        self._group = grp
+
+    @property
+    def shape(self):
+        return self._group.shape[:]
+
+    @property
+    def rownames(self):
+        return self._group.rownames[:]
+
+    @property
+    def colnames(self):
+        return self._group.colnames[:]
+
+    @property
+    def size_factors(self):
+        return self._group.size_factors[:]
+
+    @property
+    def matrix(self):
+        return self._group.matrix
+
+    def get_sequence(self, batch_size):
+        return ZarrSequence(self.matrix, self.size_factors, batch_size)
+
+
+class ZarrSequence:
+    def __init__(self, matrix, batch_size, sf=None):
+        self.matrix = matrix
+        if sf is None:
+            self.size_factors = np.ones((self.matrix.shape[0], 1),
+                                        dtype=np.float32)
+        else:
+            self.size_factors = sf
+        self.batch_size = batch_size
+
+    def __len__(self):
+        return len(self.matrix) // self.batch_size
+
+    def __getitem__(self, idx):
+        batch = self.matrix[idx*self.batch_size:(idx+1)*self.batch_size]
+        batch_sf = self.size_factors[idx*self.batch_size:(idx+1)*self.batch_size]
+
+        # return an (X, Y) pair
+        return {'count': batch, 'size_factors': batch_sf}, batch
+
+
 class Dataset:
-
     def __init__(self, filename):
-        self.root = zarr.open_group(filename)
-
-    # get attributes through the root zarr group
-    # e.g. ds=Dataset('x.zarr'); ds.train.matrix[:]
-    def __getattr__(self, item):
-        return self.root.__getattr__(item)
+        self._root = zarr.open_group(filename)
+        self.train = Matrix(self._root.train)
+        self.full = Matrix(self._root.train)
+        if 'test' in self._root:
+            self.test = Matrix(self._root.test)
 
 
 def text_to_zarr(input_file, output_file, transpose=False,
@@ -47,30 +94,41 @@ def text_to_zarr(input_file, output_file, transpose=False,
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
 
-    root['shape'] = matrix.shape
-    root['rownames'] = rownames
-    root['colnames'] = colnames
-    root.create_dataset('matrix', data=matrix, chunks=(1024, None))
-    root.create_dataset('logmatrix', data=np.log1p(matrix), chunks=(1024, None))
-    root['size_factors'] = estimate_size_factors(matrix, normtype=size_factors)
+    logmatrix = np.log1p(matrix)
+    root['full/shape'] = matrix.shape
+    root['full/rownames'] = rownames
+    root['full/colnames'] = colnames
+    root.create_dataset('full/matrix', data=matrix, chunks=(128, None))
+    root.create_dataset('full/logmatrix', data=logmatrix, chunks=(128, None))
+    sf = estimate_size_factors(matrix, normtype=size_factors)
+    root['full/size_factors'] = sf
 
     if not test_split:
         root['train/matrix'] = matrix
-        root['train/size_factors'] = root['size_factors'][:]
-        root['train/rownames'] = root['rownames'][:]
+        root['train/size_factors'] = sf
+        root['train/rownames'] = rownames
+        root['train/colnames'] = colnames
     else:
-        mat_train, mat_test, sf_train, sf_test,\
+        mat_train, mat_test, \
+            logmat_train, logmat_test, \
+            sf_train, sf_test,\
             rownames_train, rownames_test = train_test_split(matrix,
-                                                             root['size_factors'][:],
+                                                             logmatrix,
+                                                             sf,
+                                                             rownames,
                                                              test_size=0.1,
                                                              random_state=42)
 
         root['train/matrix'] = mat_train
         root['test/matrix'] = mat_test
+        root['train/logmatrix'] = logmat_train
+        root['test/logmatrix'] = logmat_test
         root['train/size_factors'] = sf_train
         root['test/size_factors'] = sf_test
         root['train/rownames'] = rownames_train
         root['test/rownames'] = rownames_test
+        root['train/colnames'] = colnames
+        root['test/colnames'] = colnames
 
     return root
 
@@ -88,7 +146,7 @@ def read_text_matrix(inputfile, type=np.float, header=None, transpose=False):
         colnames = np.array(['Gene' + str(x) for x in df.columns])
 
     # check if rownames exist
-    if df.index == 'O':
+    if df.index.dtype == 'O':
         rownames = df.index
     else:
         rownames = np.array(['Cell' + str(x) for x in df.index])
@@ -102,6 +160,9 @@ def read_text_matrix(inputfile, type=np.float, header=None, transpose=False):
 
     matrix = df.as_matrix()
     matrix = matrix.astype(type)
+
+    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(colnames), len(rownames)))
+
     return matrix, list(rownames), list(colnames)
 
 
@@ -147,13 +208,9 @@ def lognormalize(x, sf, logtrans=True, sfnorm=True, zscore=True):
 
 
 def preprocess_with_args(args):
-
-    ds = Dataset()
-    ds.import_from_text(args.input,
-                        output_file=args.output,
-                        transpose=args.transpose,
-                        header=('infer' if args.header else None),
-                        test_split=args.testsplit,
-                        size_factors=args.normtype)
-
-    return ds
+    text_to_zarr(args.input,
+                 output_file=args.output,
+                 transpose=args.transpose,
+                 header=('infer' if args.header else None),
+                 test_split=args.testsplit,
+                 size_factors=args.normtype)

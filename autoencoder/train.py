@@ -29,17 +29,16 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 
 
-def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
+def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
           aetype=None, epochs=200, reduce_lr=20, size_factors=True, normalize_input=True,
-          early_stop=25, batch_size=32, clipvalue=5., **kwargs):
-
+          early_stop=25, batch_size=32, clip_grad=5., **kwargs):
     model = network.model
     loss = network.loss
 
     if learning_rate is None:
-        optimizer = opt.__dict__[optimizer](clipvalue=clipvalue)
+        optimizer = opt.__dict__[optimizer](clipvalue=clip_grad)
     else:
-        optimizer = opt.__dict__[optimizer](lr=learning_rate, clipvalue=clipvalue)
+        optimizer = opt.__dict__[optimizer](lr=learning_rate, clipvalue=clip_grad)
 
     model.compile(loss=loss, optimizer=optimizer)
     normalize = io.lognormalize if normalize_input else lambda x, sf: x
@@ -66,75 +65,41 @@ def train(X, network, output_dir, optimizer='Adam', learning_rate=None, train_on
         callbacks_train.append(es_cb_train)
 
     os.makedirs(output_dir, exist_ok=True)
-    print(model.summary())
+    model.summary()
 
-    fold_losses = list()
-    for i, data in enumerate(X['folds']):
-        tb_log_dir = os.path.join(output_dir, 'tb', 'fold%0i' % i)
-        tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
+    tb_log_dir = os.path.join(output_dir, 'tb')
+    tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
 
-        if size_factors:
-            sf_mat = data['train']['size_factors']
-            sf_mat_val = data['val']['size_factors']
-        else:
-            sf_mat = np.ones((data['train']['matrix'].shape[0], 1),
-                             dtype=np.float32)
-            sf_mat_val = np.ones((data['val']['matrix'].shape[0], 1),
-                             dtype=np.float32)
+    if size_factors:
+        sf_mat = ds.train.size_factors[:]
+    else:
+        sf_mat = np.ones((ds.train.matrix.shape[0], 1),
+                         dtype=np.float32)
 
-        loss = model.fit({'count': normalize(data['train']['matrix'], sf_mat),
-                          'size_factors': sf_mat},
-                         data['train']['matrix'],
-                         epochs=epochs,
-                         batch_size=batch_size,
-                         shuffle=True,
-                         callbacks=callbacks+[tb_cb],
-                         validation_data=(([normalize(data['val']['matrix'], sf_mat_val),
-                                            sf_mat_val],
-                                           data['val']['matrix'])),
-                         **kwargs)
-        #model.evaluate(data['test'], data['test'], batch_size=32,
-        #               verbose=1, sample_weight=None)
-        fold_losses.append(loss.history)
+    loss = model.fit({'count': normalize(ds.train.matrix[:], sf_mat),
+                      'size_factors': sf_mat},
+                     ds.train.matrix[:],
+                     epochs=epochs,
+                     batch_size=batch_size,
+                     shuffle=True,
+                     callbacks=callbacks + [tb_cb],
+                     validation_split=0.1,
+                     **kwargs)
+    # https://github.com/tensorflow/tensorflow/issues/3388
+    # K.clear_session()
 
-    ret =  {'fold': fold_losses}
-
-    if train_on_full:
-        # run final training on full dataset
-        full_data = X['full']
-        tb_log_dir = os.path.join(output_dir, 'tb', 'full')
-        tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
-
-        if size_factors:
-            sf_mat = X['size_factors']
-        else:
-            sf_mat = np.ones((full_data.shape[0], 1), dtype=np.float32)
-
-        loss = model.fit({'count': normalize(full_data, sf_mat),
-                          'size_factors': sf_mat},
-                         full_data,
-                         epochs=epochs,
-                         batch_size=batch_size,
-                         shuffle=True,
-                         callbacks=callbacks_train+[tb_cb],
-                         **kwargs)
-        ret['full'] = loss.history
-
-    #https://github.com/tensorflow/tensorflow/issues/3388
-    #K.clear_session()
-
-    return ret
+    return loss
 
 
 def train_with_args(args):
-    x = io.read_from_file(args.trainingset)
+    ds = io.Dataset(args.trainingset)
 
     hidden_size = [int(x) for x in args.hiddensize.split(',')]
     hidden_dropout = [float(x) for x in args.dropoutrate.split(',')]
-    if len(hidden_dropout) == 1: hidden_dropout = hidden_dropout[0]
+    if len(hidden_dropout) == 1:
+        hidden_dropout = hidden_dropout[0]
 
-    net = MLP(x['shape'][1],
-              file_path = args.outputdir,
+    net = MLP(input_size=ds.shape[1],
               hidden_size=hidden_size,
               l2_coef=args.l2,
               l1_coef=args.l1,
@@ -143,12 +108,12 @@ def train_with_args(args):
               hidden_dropout=hidden_dropout,
               activation=args.activation,
               init=args.init,
-              masking=(x['mask'] is not None),
-              loss_type=args.type)
+              loss_type=args.type,
+              file_path=args.outputdir)
     net.save()
     net.build()
 
-    losses = train(x, net, output_dir=args.outputdir,
+    losses = train(ds, net, output_dir=args.outputdir,
                    learning_rate=args.learningrate,
                    epochs=args.epochs, batch_size=args.batchsize,
                    early_stop=args.earlystop,
@@ -156,10 +121,10 @@ def train_with_args(args):
                    size_factors=args.sizefactors,
                    normalize_input=args.norminput,
                    optimizer=args.optimizer,
-                   clipvalue=args.gradclip)
+                   clip_grad=args.gradclip)
 
-    net.predict(x['full'],
-            dimreduce=args.dimreduce,
-            reconstruct=args.reconstruct,
-            size_factors=args.sizefactors,
-            normalize_input=args.norminput)
+    net.predict(ds.matrix[:],
+                dimreduce=args.dimreduce,
+                reconstruct=args.reconstruct,
+                size_factors=args.sizefactors,
+                normalize_input=args.norminput)
