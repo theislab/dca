@@ -5,9 +5,7 @@ try:
     num_gpus = len(check_output(['nvidia-smi', '--query-gpu=gpu_name',
                                  '--format=csv']).decode().strip().split('\n'))
     tf = 'tensorflow-gpu>=1.0.0' if num_gpus > 1 else 'tensorflow>=1.0.0'
-except CalledProcessError:
-    tf = 'tensorflow>=1.0.0'
-except FileNotFoundError:
+except (CalledProcessError, FileNotFoundError, OSError):
     tf = 'tensorflow>=1.0.0'
 
 
