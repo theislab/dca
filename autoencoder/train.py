@@ -99,7 +99,7 @@ def train_with_args(args):
     if len(hidden_dropout) == 1:
         hidden_dropout = hidden_dropout[0]
 
-    net = MLP(input_size=ds.shape[1],
+    net = MLP(input_size=ds.train.shape[1],
               hidden_size=hidden_size,
               l2_coef=args.l2,
               l1_coef=args.l1,
