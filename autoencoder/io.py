@@ -33,7 +33,7 @@ class Matrix:
 
     @property
     def shape(self):
-        return self._group.shape[:]
+        return self._group.matrix.shape[:]
 
     @property
     def rownames(self):
