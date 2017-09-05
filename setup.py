@@ -21,6 +21,7 @@ setup(
                       'keras>=2.0.3',
                       'six>=1.10.0',
                       'scikit-learn',
+                      'zarr',
                       'pandas' #for preprocessing
                       ],
     url='https://github.com/gokceneraslan/autoencoder',
