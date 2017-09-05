@@ -43,6 +43,7 @@ class MLP():
                  l2_enc_coef=0.,
                  l1_enc_coef=0.,
                  hidden_dropout=0.,
+                 batchnorm=True,
                  activation='elu',
                  init='glorot_uniform',
                  loss_type='zinb',
@@ -80,6 +81,7 @@ class MLP():
         self.l2_enc_coef = l2_enc_coef
         self.l1_enc_coef = l1_enc_coef
         self.hidden_dropout = hidden_dropout
+        self.batchnorm = batchnorm
         self.activation = activation
         self.init = init
         self.loss_type = loss_type
@@ -131,12 +133,15 @@ class MLP():
             last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
                                 kernel_regularizer=l1_l2(l1, l2),
                                 name=layer_name)(last_hidden)
-            last_hidden = BatchNormalization()(last_hidden)
+            if self.batchnorm:
+                last_hidden = BatchNormalization()(last_hidden)
 
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
             last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
-            last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
+
+            if hid_drop > 0.0:
+                last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
 
         if self.loss_type == 'normal':
             self.loss = mean_squared_error
