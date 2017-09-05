@@ -123,7 +123,7 @@ def train_with_args(args):
                    optimizer=args.optimizer,
                    clip_grad=args.gradclip)
 
-    net.predict(ds.matrix[:],
+    net.predict(ds.full.matrix[:],
                 dimreduce=args.dimreduce,
                 reconstruct=args.reconstruct,
                 size_factors=args.sizefactors,
