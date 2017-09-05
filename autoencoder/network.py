@@ -31,6 +31,8 @@ from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
 from .io import write_text_matrix, estimate_size_factors, lognormalize
 
 
+ClippedExp = lambda x: K.minimum(K.exp(x), 1e12)
+
 class MLP():
     def __init__(self,
                  input_size,
@@ -146,7 +148,7 @@ class MLP():
             self.extra_models['mean_norm'] = Model(inputs=inp, outputs=mean)
 
         elif self.loss_type == 'poisson':
-            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+            mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
                          kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
             output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
             self.loss = poisson_loss
@@ -154,7 +156,7 @@ class MLP():
 
         elif self.loss_type == 'nb':
 
-            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+            mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
                          kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
 
             # Plug in dispersion parameters via fake dispersion layer
@@ -176,7 +178,7 @@ class MLP():
             disp = ConstantDispersionLayer(name='dispersion')
             last_hidden = disp(last_hidden)
 
-            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+            mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
                          kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
             output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
@@ -194,11 +196,11 @@ class MLP():
             pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='pi')(last_hidden)
 
-            disp = Dense(self.output_size, activation=lambda x:1.0/(K.exp(x)+1e-10),
+            disp = Dense(self.output_size, activation=lambda x:1.0/(K.exp(x)+1e-12),
                                kernel_initializer=self.init,
                                kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='dispersion')(last_hidden)
 
-            mean = Dense(self.output_size, activation=K.exp, kernel_initializer=self.init,
+            mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
             mulmean = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
