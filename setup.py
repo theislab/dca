@@ -18,7 +18,7 @@ setup(
     packages=['autoencoder'],
     install_requires=[tf,
                       'numpy>=1.7',
-                      'keras>=2.0.3',
+                      'keras>=2.0.8',
                       'six>=1.10.0',
                       'scikit-learn',
                       'zarr',
