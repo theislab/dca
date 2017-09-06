@@ -68,7 +68,7 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
     model.summary()
 
     tb_log_dir = os.path.join(output_dir, 'tb')
-    tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1)
+    tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1, write_grads=True)
 
     if size_factors:
         sf_mat = ds.train.size_factors[:]
