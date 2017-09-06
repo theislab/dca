@@ -78,7 +78,7 @@ class ZarrSequence:
 
 class Dataset:
     def __init__(self, filename):
-        self._root = zarr.open_group(filename)
+        self._root = zarr.open_group(filename, mode='r')
         self.train = Matrix(self._root.train)
         self.full = Matrix(self._root.train)
         if 'test' in self._root:
