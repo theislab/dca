@@ -201,7 +201,7 @@ class MLP():
             pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='pi')(last_hidden)
 
-            disp = Dense(self.output_size, activation=lambda x:1.0/(K.exp(x)+1e-12),
+            disp = Dense(self.output_size, activation=ClippedExp,
                                kernel_initializer=self.init,
                                kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='dispersion')(last_hidden)
 
