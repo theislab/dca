@@ -181,12 +181,13 @@ class MLP():
             pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='pi')(last_hidden)
 
-            # NB dispersion layer
-            disp = ConstantDispersionLayer(name='dispersion')
-            last_hidden = disp(last_hidden)
-
             mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
                          kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef), name='mean')(last_hidden)
+
+            # NB dispersion layer
+            disp = ConstantDispersionLayer(name='dispersion')
+            mean = disp(mean)
+
             output = ColWiseMultLayer(name='output')([mean, size_factor_inp])
 
             # Inject pi layer via slicing
