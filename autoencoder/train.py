@@ -41,7 +41,6 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
         optimizer = opt.__dict__[optimizer](lr=learning_rate, clipvalue=clip_grad)
 
     model.compile(loss=loss, optimizer=optimizer)
-    normalize = io.lognormalize if normalize_input else lambda x, sf: x
 
     # Callbacks
     checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % output_dir,
@@ -76,7 +75,10 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
         sf_mat = np.ones((ds.train.matrix.shape[0], 1),
                          dtype=np.float32)
 
-    loss = model.fit({'count': normalize(ds.train.matrix[:], sf_mat),
+    loss = model.fit({'count': io.normalize(ds.train.matrix[:],
+                                            sf_mat, True,
+                                            sfnorm=size_factors,
+                                            zscore=normalize_input),
                       'size_factors': sf_mat},
                      ds.train.matrix[:],
                      epochs=epochs,

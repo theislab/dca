@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 import zarr
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import scale
 
 
 class Matrix:
@@ -193,7 +192,7 @@ def estimate_size_factors(x, normtype='zheng'):
         raise NotImplemented
 
 
-def lognormalize(x, sf, logtrans=True, sfnorm=True, zscore=True):
+def normalize(x, sf, logtrans=True, sfnorm=True, zscore=True):
     if sfnorm:
         assert len(sf.shape) == 1
         x = x / (sf[:, None]+1e-8)  # colwise div
@@ -202,7 +201,7 @@ def lognormalize(x, sf, logtrans=True, sfnorm=True, zscore=True):
         x = np.log1p(x)
 
     if zscore:
-        x = scale(x, axis=0, copy=False)
+        x = x - x.mean(axis=0)
 
     return x
 
