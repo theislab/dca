@@ -28,7 +28,7 @@ import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
 from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
-from .io import write_text_matrix, estimate_size_factors, lognormalize
+from .io import write_text_matrix, estimate_size_factors, normalize
 
 
 ClippedExp = lambda x: K.minimum(K.exp(x), 1e12)
@@ -258,12 +258,11 @@ class MLP():
                 dimreduce=True, reconstruct=True):
         res = {}
         if size_factors:
-            size_factors = estimate_size_factors(count_matrix)
+            sf_mat = estimate_size_factors(count_matrix)
         else:
-            size_factors = np.ones((count_matrix.shape[0],))
+            sf_mat = np.ones((count_matrix.shape[0],))
 
-        if normalize_input:
-            count_matrix = lognormalize(count_matrix, size_factors)
+        count_matrix = normalize(count_matrix, sf_mat, True, size_factors, normalize_input)
 
         if 'dispersion' in self.extra_models:
             res['dispersion'] = self.extra_models['dispersion']()
@@ -277,11 +276,11 @@ class MLP():
         if dimreduce:
             print('Calculating low dimensional representations...')
             res['reduced'] = self.encoder.predict({'count': count_matrix,
-                                                   'size_factors': size_factors})
+                                                   'size_factors': sf_mat})
         if reconstruct:
             print('Calculating reconstructions...')
             res['mean'] = self.model.predict({'count': count_matrix,
-                                              'size_factors': size_factors})
+                                              'size_factors': sf_mat})
 
             res['mean_norm'] = self.extra_models['mean_norm'].predict(count_matrix)
 
