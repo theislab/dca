@@ -192,7 +192,7 @@ def estimate_size_factors(x, normtype='zheng'):
         raise NotImplemented
 
 
-def normalize(x, sf, logtrans=True, sfnorm=True, zscore=True):
+def normalize(x, sf, logtrans=True, sfnorm=True, zeromean=True):
     if sfnorm:
         assert len(sf.shape) == 1
         x = x / (sf[:, None]+1e-8)  # colwise div
@@ -200,7 +200,7 @@ def normalize(x, sf, logtrans=True, sfnorm=True, zscore=True):
     if logtrans:
         x = np.log1p(x)
 
-    if zscore:
+    if zeromean:
         x = x - x.mean(axis=0)
 
     return x

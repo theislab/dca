@@ -31,7 +31,7 @@ from keras.preprocessing.image import Iterator
 
 def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
           aetype=None, epochs=200, reduce_lr=20, size_factors=True, normalize_input=True,
-          early_stop=25, batch_size=32, clip_grad=5., **kwargs):
+          logtrans_input=True, early_stop=25, batch_size=32, clip_grad=5., **kwargs):
     model = network.model
     loss = network.loss
 
@@ -76,9 +76,9 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
                          dtype=np.float32)
 
     loss = model.fit({'count': io.normalize(ds.train.matrix[:],
-                                            sf_mat, True,
+                                            sf_mat, logtrans=logtrans_input,
                                             sfnorm=size_factors,
-                                            zscore=normalize_input),
+                                            zeromean=normalize_input),
                       'size_factors': sf_mat},
                      ds.train.matrix[:],
                      epochs=epochs,

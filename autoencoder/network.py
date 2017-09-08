@@ -255,14 +255,15 @@ class MLP():
         return ret
 
     def predict(self, count_matrix, size_factors=True, normalize_input=True,
-                dimreduce=True, reconstruct=True):
+                logtrans_input=True, dimreduce=True, reconstruct=True):
         res = {}
         if size_factors:
             sf_mat = estimate_size_factors(count_matrix)
         else:
             sf_mat = np.ones((count_matrix.shape[0],))
 
-        count_matrix = normalize(count_matrix, sf_mat, True, size_factors, normalize_input)
+        count_matrix = normalize(count_matrix, sf_mat, logtrans=logtrans_input,
+                                 sfnorm=size_factors, zeromean=normalize_input)
 
         if 'dispersion' in self.extra_models:
             res['dispersion'] = self.extra_models['dispersion']()
