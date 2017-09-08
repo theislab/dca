@@ -122,9 +122,10 @@ class NB(object):
         return final
 
 class ZINB(NB):
-    def __init__(self, pi, scope='zinb_loss/', **kwargs):
+    def __init__(self, pi, ridge_lambda=0.0, scope='zinb_loss/', **kwargs):
         super().__init__(scope=scope, **kwargs)
         self.pi = pi
+        self.ridge_lambda = ridge_lambda
 
     def loss(self, y_true, y_pred):
         scale_factor = self.scale_factor
@@ -141,6 +142,8 @@ class ZINB(NB):
             zero_nb = tf.pow(theta/(theta+y_pred+eps), theta)
             zero_case = -tf.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
             result = tf.where(tf.less(y_true, 1e-8), zero_case, nb_case)
+            ridge = self.ridge_lambda*tf.square(self.pi)
+            result += ridge
 
             if self.masking:
                 result = _reduce_mean(result)
@@ -151,5 +154,6 @@ class ZINB(NB):
                 tf.summary.histogram('nb_case', nb_case)
                 tf.summary.histogram('zero_nb', zero_nb)
                 tf.summary.histogram('zero_case', zero_case)
+                tf.summary.histogram('ridge', ridge)
 
         return result
