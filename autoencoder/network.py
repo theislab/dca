@@ -42,6 +42,7 @@ class MLP():
                  l1_coef=0.,
                  l2_enc_coef=0.,
                  l1_enc_coef=0.,
+                 ridge=0.,
                  hidden_dropout=0.,
                  batchnorm=True,
                  activation='elu',
@@ -80,6 +81,7 @@ class MLP():
         self.l1_coef = l1_coef
         self.l2_enc_coef = l2_enc_coef
         self.l1_enc_coef = l1_enc_coef
+        self.ridge = ridge
         self.hidden_dropout = hidden_dropout
         self.batchnorm = batchnorm
         self.activation = activation
@@ -190,7 +192,7 @@ class MLP():
             # Inject pi layer via slicing
             output = SliceLayer(index=0, name='slice')([output, pi])
 
-            zinb = ZINB(pi, theta=disp.theta_exp)
+            zinb = ZINB(pi, theta=disp.theta_exp, ridge_lambda=self.ridge, debug=True)
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
@@ -212,7 +214,7 @@ class MLP():
             # Inject pi and disp layers via slicing
             output = SliceLayer(index=0, name='slice')([mulmean, pi, disp])
 
-            zinb = ZINB(pi, theta=disp)
+            zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=True)
             self.loss = zinb.loss
             self.extra_models['pi'] = Model(inputs=inp, outputs=pi)
             self.extra_models['conddispersion'] = Model(inputs=inp, outputs=disp)
