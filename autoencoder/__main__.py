@@ -69,9 +69,13 @@ def parse_args():
     parser_train.add_argument('--nosizefactors', dest='sizefactors',
             action='store_false', help="Do not normalize means by library size")
     parser_train.add_argument('--norminput', dest='norminput',
-            action='store_true', help="Normalize input by library size (default: True)")
+            action='store_true', help="Zero-mean normalize input (default: True)")
     parser_train.add_argument('--nonorminput', dest='norminput',
-            action='store_false', help="Do not input normalize by library size")
+            action='store_false', help="Do not zero-mean normalize inputs")
+    parser_train.add_argument('--loginput', dest='loginput',
+            action='store_true', help="Log-transform input (default: True)")
+    parser_train.add_argument('--nologinput', dest='loginput',
+            action='store_false', help="Do not log-transform inputs")
     parser_train.add_argument('-d', '--dropoutrate', type=str, default='0.0',
             help="Dropout rate (default: 0)")
     parser_train.add_argument('--batchnorm', dest='batchnorm', action='store_true',
@@ -121,7 +125,8 @@ def parse_args():
                               reconstruct=True,
                               sizefactors=True,
                               batchnorm=True,
-                              norminput=True)
+                              norminput=True,
+                              loginput=True)
 
     # test subparser
     #parser_test = subparsers.add_parser('test', help='Test autoencoder')
@@ -141,11 +146,11 @@ def parse_args():
             action='store_true', help="predict input to the hidden size")
     parser_predict.add_argument('--reconstruct', dest='reconstruct',
             action='store_true', help="Save mean parameter (default: True)")
-    parser_predict.add_argument('--no-reconstruct', dest='reconstruct',
+    parser_predict.add_argument('--noreconstruct', dest='reconstruct',
             action='store_false', help="Do not save mean parameter")
     parser_predict.add_argument('--reduce', dest='dimreduce',
             action='store_true', help="Save dim reduced matrix (default: True)")
-    parser_predict.add_argument('--no-reduce', dest='dimreduce',
+    parser_predict.add_argument('--noreduce', dest='dimreduce',
             action='store_false', help="Do not save dim reduced matrix")
 
     parser_predict.set_defaults(func=predict.predict_with_args,
