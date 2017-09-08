@@ -17,7 +17,7 @@ class ConstantDispersionLayer(Layer):
                                      initializer='zeros',
                                      trainable=True,
                                      name='theta')
-        self.theta_exp = 1.0/(K.exp(self.theta)+1e-10)
+        self.theta_exp = K.minimum(K.exp(self.theta), 1e12)
         super().build(input_shape)
 
     def call(self, x):
