@@ -76,7 +76,7 @@ def parse_args():
             help="Dropout rate (default: 0)")
     parser_train.add_argument('--batchnorm', dest='batchnorm', action='store_true',
             help="Batchnorm (default: True)")
-    parser_train.add_argument('--no-batchnorm', dest='batchnorm', action='store_false',
+    parser_train.add_argument('--nobatchnorm', dest='batchnorm', action='store_false',
             help="Do not use batchnorm")
     parser_train.add_argument('--l2', type=float, default=0.0,
             help="L2 regularization coefficient (default: 0.0)")
