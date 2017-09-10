@@ -38,12 +38,13 @@ save.sim <- function(sim, dir) {
   saveRDS(sim, paste0(dir, '/sce.rds'))
 }
 
-nGenes <- 200
-nCells <- 2000
 
 for (dropout in c(0, 1, 3, 5)) {
   for (ngroup in c(1, 2, 3, 6)) {
     for(swap in c(F, T)) {
+
+      nGenes <- 200
+      nCells <- 2000
 
       if (swap) {
         tmp <- nGenes
