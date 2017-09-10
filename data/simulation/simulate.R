@@ -52,7 +52,11 @@ for (dropout in c(0, 1, 3, 5)) {
       }
 
       # split nCells into roughly ngroup groups
-      groupCells <- ifelse(ngroup==1, nCells, as.vector(table(as.integer(cut(seq_len(nCells), ngroup)))))
+      if(ngroup==1) {
+        groupCells <- nCells
+      } else {
+        groupCells <- as.vector(table(as.integer(cut(seq_len(nCells), ngroup))))
+      }
       method <- ifelse(ngroup == 1, 'single', 'groups')
 
       dirname <- paste0('real/group', ngroup, '/dropout', dropout, ifelse(swap, '/swap', ''))
