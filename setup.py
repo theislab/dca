@@ -19,6 +19,7 @@ setup(
     install_requires=[tf,
                       'numpy>=1.7',
                       'keras>=2.0.8',
+                      'h5py',
                       'six>=1.10.0',
                       'scikit-learn',
                       'zarr',
