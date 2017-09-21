@@ -258,40 +258,45 @@ class MLP():
         return ret
 
     def predict(self, count_matrix, size_factors=True, normalize_input=True,
-                logtrans_input=True, dimreduce=True, reconstruct=True):
+                logtrans_input=True, dimreduce=True, reconstruct=True,
+                error=True):
         res = {}
         if size_factors:
             sf_mat = estimate_size_factors(count_matrix)
         else:
             sf_mat = np.ones((count_matrix.shape[0],))
 
-        count_matrix = normalize(count_matrix, sf_mat, logtrans=logtrans_input,
-                                 sfnorm=size_factors, zeromean=normalize_input)
+        norm_count_matrix = normalize(count_matrix, sf_mat, logtrans=logtrans_input,
+                                      sfnorm=size_factors, zeromean=normalize_input)
 
         if 'dispersion' in self.extra_models:
             res['dispersion'] = self.extra_models['dispersion']()
 
         if 'pi' in self.extra_models:
-            res['pi'] = self.extra_models['pi'].predict(count_matrix)
+            res['pi'] = self.extra_models['pi'].predict(norm_count_matrix)
 
         if 'conddispersion' in self.extra_models:
-            res['dispersion'] = self.extra_models['conddispersion'].predict(count_matrix)
+            res['dispersion'] = self.extra_models['conddispersion'].predict(norm_count_matrix)
 
         if dimreduce:
             print('Calculating low dimensional representations...')
-            res['reduced'] = self.encoder.predict({'count': count_matrix,
+            res['reduced'] = self.encoder.predict({'count': norm_count_matrix,
                                                    'size_factors': sf_mat})
         if reconstruct:
             print('Calculating reconstructions...')
-            res['mean'] = self.model.predict({'count': count_matrix,
+            res['mean'] = self.model.predict({'count': norm_count_matrix,
                                               'size_factors': sf_mat})
 
-            res['mean_norm'] = self.extra_models['mean_norm'].predict(count_matrix)
+            res['mean_norm'] = self.extra_models['mean_norm'].predict(norm_count_matrix)
 
             if 'dispersion' in res:
                 m, d = res['mean'], res['dispersion']
                 res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
                 res['mode'][res['mode'] < 0] = 0
+
+        if error:
+            print('Calculating neg log likelihood values...')
+            res['error'] = self.model.loss(count_matrix, res['mean'], mean=False)
 
         if self.file_path:
             print('Saving files...')
@@ -308,5 +313,7 @@ class MLP():
                 write_text_matrix(res['mean_norm'], os.path.join(self.file_path, 'mean_norm.tsv'))
             if 'mode' in res:
                 write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
+            if 'error' in res:
+                write_text_matrix(res['error'], os.path.join(self.file_path, 'errors.tsv'))
 
         return res
