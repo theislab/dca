@@ -67,7 +67,7 @@ class NB(object):
         self.masking = masking
         self.theta = theta
 
-    def loss(self, y_true, y_pred, reduce=True):
+    def loss(self, y_true, y_pred, mean=True):
         scale_factor = self.scale_factor
         eps = self.eps
 
@@ -112,7 +112,7 @@ class NB(object):
             else:
                 final = t1 + t2 + t3 + t4 + t5 + t6
 
-            if reduce:
+            if mean:
                 if self.masking:
                     final = tf.divide(tf.reduce_sum(final), nelem)
                 else:
@@ -127,13 +127,15 @@ class ZINB(NB):
         self.pi = pi
         self.ridge_lambda = ridge_lambda
 
-    def loss(self, y_true, y_pred):
+    def loss(self, y_true, y_pred, mean=True):
         scale_factor = self.scale_factor
         eps = self.eps
 
         with tf.name_scope(self.scope):
             # reuse existing NB neg.log.lik.
-            nb_case = super().loss(y_true, y_pred, reduce=False) - tf.log(1.0-self.pi+eps)
+            # mean is always False here, because everything is calculated
+            # element-wise. we take the mean only in the end
+            nb_case = super().loss(y_true, y_pred, mean=False) - tf.log(1.0-self.pi+eps)
 
             y_true = tf.cast(y_true, tf.float32)
             y_pred = tf.cast(y_pred, tf.float32) * scale_factor
@@ -145,10 +147,11 @@ class ZINB(NB):
             ridge = self.ridge_lambda*tf.square(self.pi)
             result += ridge
 
-            if self.masking:
-                result = _reduce_mean(result)
-            else:
-                result = tf.reduce_mean(result)
+            if mean:
+                if self.masking:
+                    result = _reduce_mean(result)
+                else:
+                    result = tf.reduce_mean(result)
 
             if self.debug:
                 tf.summary.histogram('nb_case', nb_case)
