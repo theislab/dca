@@ -191,9 +191,6 @@ class Autoencoder():
 
         res['mean_norm'] = self.extra_models['mean_norm'].predict(norm_count_matrix)
 
-        #print('Calculating neg log likelihood values...')
-        #res['error'] = self.model.loss(count_matrix, res['mean'], mean=False)
-
         if self.file_path:
             print('Saving files...')
             os.makedirs(self.file_path, exist_ok=True)
@@ -201,7 +198,6 @@ class Autoencoder():
             write_text_matrix(res['reduced'], os.path.join(self.file_path, 'reduced.tsv'))
             write_text_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
             write_text_matrix(res['mean_norm'], os.path.join(self.file_path, 'mean_norm.tsv'))
-            #write_text_matrix(res['error'], os.path.join(self.file_path, 'errors.tsv'))
 
         return res
 
@@ -245,20 +241,21 @@ class NBAutoencoder(Autoencoder):
         if self.ae:
             self.encoder = self.get_encoder()
 
-    def predict(self, *args, **kwargs):
-        res = super().predict(*args, **kwargs)
+    def predict(self, count_matrix, **kwargs):
+        res = super().predict(count_matrix, **kwargs)
 
         res['dispersion'] = self.extra_models['dispersion']()
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
+        res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
 
         if self.file_path:
-            print('Saving files...')
             os.makedirs(self.file_path, exist_ok=True)
 
             write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
             write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
+            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
 
         return res
 
@@ -315,14 +312,15 @@ class ZINBAutoencoder(Autoencoder):
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
+        res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
 
         if self.file_path:
-            print('Saving files...')
             os.makedirs(self.file_path, exist_ok=True)
 
             write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
             write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
             write_text_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
+            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
 
         return res
 
@@ -378,14 +376,15 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
+        res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
 
         if self.file_path:
-            print('Saving files...')
             os.makedirs(self.file_path, exist_ok=True)
 
             write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
             write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
             write_text_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
+            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
 
         return res
 
