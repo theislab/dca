@@ -20,7 +20,7 @@ from __future__ import print_function
 import os
 
 from . import io
-from .network import MLP
+from .network import AE_types
 
 import numpy as np
 import keras.optimizers as opt
@@ -101,19 +101,20 @@ def train_with_args(args):
     if len(hidden_dropout) == 1:
         hidden_dropout = hidden_dropout[0]
 
-    net = MLP(input_size=ds.train.shape[1],
-              hidden_size=hidden_size,
-              l2_coef=args.l2,
-              l1_coef=args.l1,
-              l2_enc_coef=args.l2enc,
-              l1_enc_coef=args.l1enc,
-              ridge=args.ridge,
-              hidden_dropout=hidden_dropout,
-              batchnorm=args.batchnorm,
-              activation=args.activation,
-              init=args.init,
-              loss_type=args.type,
-              file_path=args.outputdir)
+    assert args.type in AE_types, 'loss type not supported'
+
+    net = AE_types[args.type](input_size=ds.train.shape[1],
+            hidden_size=hidden_size,
+            l2_coef=args.l2,
+            l1_coef=args.l1,
+            l2_enc_coef=args.l2enc,
+            l1_enc_coef=args.l1enc,
+            ridge=args.ridge,
+            hidden_dropout=hidden_dropout,
+            batchnorm=args.batchnorm,
+            activation=args.activation,
+            init=args.init,
+            file_path=args.outputdir)
     net.save()
     net.build()
 
@@ -131,4 +132,5 @@ def train_with_args(args):
                 dimreduce=args.dimreduce,
                 reconstruct=args.reconstruct,
                 size_factors=args.sizefactors,
-                normalize_input=args.norminput)
+                normalize_input=args.norminput,
+                logtrans_input=args.loginput)

@@ -2,7 +2,7 @@ import os
 
 from .io import Dataset, write_text_matrix
 from .train import train
-from .network import MLP
+from .network import AE_types
 
 
 def autoencode(count_matrix,
@@ -28,14 +28,13 @@ def autoencode(count_matrix,
     x = Dataset()
     x.import_from_text(count_matrix, test_split=test_split)
 
-    net = MLP(x['shape'][1],
+    net = AE_types[type](x['shape'][1],
               hidden_size=hidden_size,
               l2_coef=l2_coef,
               hidden_dropout=hidden_dropout,
               activation=activation,
               init=init,
-              masking=(mask is not None),
-              loss_type=type)
+              masking=(mask is not None))
     net.build()
 
     losses = train(x, net, output_dir=output_dir,
