@@ -316,6 +316,32 @@ class NBAutoencoder(Autoencoder):
         return res
 
 
+class NBSharedDispAutoencoder(NBAutoencoder):
+
+    def build_output(self):
+        disp = Dense(1, activation=ClippedExp,
+                     kernel_initializer=self.init,
+                     kernel_regularizer=l1_l2(self.l1_coef,
+                                              self.l2_coef),
+                     name='dispersion')(self.decoder_output)
+
+        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                       name='mean')(self.decoder_output)
+        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = SliceLayer(0, name='slice')([output, disp])
+
+        nb = NB(theta=disp, debug=True)
+        self.loss = nb.loss
+        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
+        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+
+        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
+
+        if self.ae:
+            self.encoder = self.get_encoder()
+
+
 class ZINBAutoencoder(Autoencoder):
 
     def build_output(self):
@@ -442,4 +468,6 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
 AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
             'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
+            'nb-shareddisp': NBSharedDispAutoencoder,
             'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder}
+
