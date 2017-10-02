@@ -215,7 +215,6 @@ class PoissonAutoencoder(Autoencoder):
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
         self.loss = poisson_loss
 
-        # keep unscaled output as an extra model
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
@@ -226,7 +225,6 @@ class PoissonAutoencoder(Autoencoder):
 class NBAutoencoder(Autoencoder):
 
     def build_output(self):
-
         mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
@@ -240,6 +238,9 @@ class NBAutoencoder(Autoencoder):
         nb = NB(disp.theta_exp)
         self.loss = nb.loss
         self.extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
+
+        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
         if self.ae:
             self.encoder = self.get_encoder()
