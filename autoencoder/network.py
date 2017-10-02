@@ -218,7 +218,7 @@ class PoissonAutoencoder(Autoencoder):
             self.encoder = self.get_encoder()
 
 
-class NBAutoencoder(Autoencoder):
+class NBConstantDispAutoencoder(Autoencoder):
 
     def build_output(self):
         mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
@@ -245,6 +245,61 @@ class NBAutoencoder(Autoencoder):
         res = super().predict(count_matrix, **kwargs)
 
         res['dispersion'] = self.extra_models['dispersion']()
+        m, d = res['mean'], res['dispersion']
+        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
+        res['mode'][res['mode'] < 0] = 0
+        res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
+
+        if self.file_path:
+            os.makedirs(self.file_path, exist_ok=True)
+
+            write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
+            write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
+            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
+
+        return res
+
+
+class NBAutoencoder(Autoencoder):
+
+    def build_output(self):
+        disp = Dense(self.output_size, activation=ClippedExp,
+                           kernel_initializer=self.init,
+                           kernel_regularizer=l1_l2(self.l1_coef,
+                               self.l2_coef),
+                           name='dispersion')(self.decoder_output)
+
+        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                       name='mean')(self.decoder_output)
+        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+
+        nb = NB(theta=disp, debug=True)
+        self.loss = nb.loss
+        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
+        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+
+        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
+
+        if self.ae:
+            self.encoder = self.get_encoder()
+
+    def predict(self, count_matrix, **kwargs):
+        res = super().predict(count_matrix, **kwargs)
+
+        if kwargs['size_factors']:
+            sf_mat = estimate_size_factors(count_matrix)
+        else:
+            sf_mat = np.ones((count_matrix.shape[0],))
+
+        norm_count_matrix = normalize(count_matrix,
+                                      sf_mat,
+                                      logtrans=kwargs['logtrans_input'],
+                                      sfnorm=kwargs['size_factors'],
+                                      zeromean=kwargs['normalize_input'])
+
+        res['dispersion'] = self.extra_models['dispersion'].predict(norm_count_matrix)
+
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
@@ -390,5 +445,5 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
 
 AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
-            'nb': NBAutoencoder, 'zinb': ZINBConstantDispAutoencoder,
-            'zinb-conddisp': ZINBAutoencoder}
+            'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
+            'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder}
