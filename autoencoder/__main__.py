@@ -61,7 +61,7 @@ def parse_args():
             help="The directory where everything will be will be saved")
     parser_train.add_argument('-t', '--type', type=str, default='zinb-conddisp',
             help="Type of autoencoder. Possible values: normal, poisson, nb, "
-                 "zinb, zinb-conddisp(default)")
+                 "nb-conddisp, zinb, zinb-conddisp(default)")
     parser_train.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
     parser_train.add_argument('--sizefactors', dest='sizefactors',
