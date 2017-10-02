@@ -260,6 +260,8 @@ class NBAutoencoder(Autoencoder):
             write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
             write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
 
+        return res
+
 
 class ZINBAutoencoder(Autoencoder):
 
