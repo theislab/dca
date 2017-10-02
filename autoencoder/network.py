@@ -27,7 +27,7 @@ from keras import backend as K
 import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
-from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
+from .layers import ConstantDispersionLayer, ColWiseMultLayer
 from .io import write_text_matrix, estimate_size_factors, normalize
 
 
@@ -331,10 +331,7 @@ class ZINBAutoencoder(Autoencoder):
         mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        mulmean = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-
-        # Inject pi and disp layers via slicing
-        output = SliceLayer(index=0, name='slice')([mulmean, pi, disp])
+        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=True)
         self.loss = zinb.loss
@@ -396,9 +393,6 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         mean = disp(mean)
 
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-
-        # Inject pi layer via slicing
-        output = SliceLayer(index=0, name='slice')([output, pi])
 
         zinb = ZINB(pi, theta=disp.theta_exp, ridge_lambda=self.ridge, debug=True)
         self.loss = zinb.loss
