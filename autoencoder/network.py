@@ -112,7 +112,7 @@ class Autoencoder():
                                 kernel_regularizer=l1_l2(l1, l2),
                                 name=layer_name)(last_hidden)
             if self.batchnorm:
-                last_hidden = BatchNormalization()(last_hidden)
+                last_hidden = BatchNormalization(center=True, scale=False)(last_hidden)
 
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
