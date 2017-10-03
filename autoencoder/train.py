@@ -48,11 +48,11 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
                                    verbose=1,
                                    save_weights_only=True,
                                    save_best_only=True)
-    es_cb = EarlyStopping(monitor='val_loss', patience=early_stop)
-    es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stop)
+    es_cb = EarlyStopping(monitor='val_loss', patience=early_stop, verbose=1)
+    es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stop, verbose=1)
 
-    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr)
-    lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr)
+    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr, verbose=1)
+    lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr, verbose=1)
 
     callbacks = []
     callbacks_train = []
