@@ -134,6 +134,7 @@ class Autoencoder():
 
         # keep unscaled output as an extra model
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
         if self.ae:
@@ -185,6 +186,8 @@ class Autoencoder():
         print('Calculating low dimensional representations...')
         res['reduced'] = self.encoder.predict({'count': norm_count_matrix,
                                                'size_factors': sf_mat})
+        res['decoded'] = self.extra_models['decoded'].predict(norm_count_matrix)
+
         print('Calculating reconstructions...')
         res['mean'] = self.model.predict({'count': norm_count_matrix,
                                           'size_factors': sf_mat})
@@ -196,6 +199,7 @@ class Autoencoder():
             os.makedirs(self.file_path, exist_ok=True)
 
             write_text_matrix(res['reduced'], os.path.join(self.file_path, 'reduced.tsv'))
+            write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
             write_text_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
             write_text_matrix(res['mean_norm'], os.path.join(self.file_path, 'mean_norm.tsv'))
 
@@ -212,6 +216,7 @@ class PoissonAutoencoder(Autoencoder):
         self.loss = poisson_loss
 
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
         if self.ae:
@@ -234,8 +239,8 @@ class NBConstantDispAutoencoder(Autoencoder):
         nb = NB(disp.theta_exp)
         self.loss = nb.loss
         self.extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
-
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
         if self.ae:
@@ -279,6 +284,7 @@ class NBAutoencoder(Autoencoder):
         self.loss = nb.loss
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
@@ -335,6 +341,7 @@ class NBSharedDispAutoencoder(NBAutoencoder):
         self.loss = nb.loss
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
@@ -366,6 +373,7 @@ class ZINBAutoencoder(Autoencoder):
         self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
@@ -429,6 +437,7 @@ class ZINBSharedAutoencoder(ZINBAutoencoder):
         self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
@@ -458,6 +467,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
         self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
