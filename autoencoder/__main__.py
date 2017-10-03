@@ -122,8 +122,13 @@ def parse_args():
             action='store_true', help="Save dim reduced matrix (default: True)")
     parser_train.add_argument('--no-reduce', dest='dimreduce',
             action='store_false', help="Do not save dim reduced matrix")
+    parser_train.add_argument('--saveweights', dest='saveweights',
+            action='store_true', help="Save weights (default: False)")
+    parser_train.add_argument('--no-saveweights', dest='saveweights',
+            action='store_false', help="Do not save weights")
 
     parser_train.set_defaults(func=train.train_with_args,
+                              saveweights=False,
                               dimreduce=True,
                               reconstruct=True,
                               sizefactors=True,

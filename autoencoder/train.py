@@ -31,7 +31,8 @@ from keras.preprocessing.image import Iterator
 
 def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
           aetype=None, epochs=200, reduce_lr=20, size_factors=True, normalize_input=True,
-          logtrans_input=True, early_stop=25, batch_size=32, clip_grad=5., **kwargs):
+          logtrans_input=True, early_stop=25, batch_size=32, clip_grad=5., save_weights=True,
+          **kwargs):
     model = network.model
     loss = network.loss
 
@@ -53,9 +54,12 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
     lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr)
     lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr)
 
-    callbacks = [checkpointer]
-    callbacks_train = [checkpointer]
+    callbacks = []
+    callbacks_train = []
 
+    if save_weights:
+        callbacks.append(checkpointer)
+        callbacks_train.append(checkpointer)
     if reduce_lr:
         callbacks.append(lr_cb)
         callbacks_train.append(lr_cb_train)
@@ -126,7 +130,8 @@ def train_with_args(args):
                    size_factors=args.sizefactors,
                    normalize_input=args.norminput,
                    optimizer=args.optimizer,
-                   clip_grad=args.gradclip)
+                   clip_grad=args.gradclip,
+                   save_weights=args.saveweights)
 
     net.predict(ds.full.matrix[:],
                 dimreduce=args.dimreduce,
