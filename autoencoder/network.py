@@ -31,7 +31,7 @@ from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
 from .io import write_text_matrix, estimate_size_factors, normalize
 
 
-ClippedExp = lambda x: K.minimum(K.exp(x), 1e12)
+ClippedExp = lambda x: K.minimum(K.exp(x), 1e10)
 
 class Autoencoder():
     def __init__(self,
@@ -359,7 +359,7 @@ class ZINBAutoencoder(Autoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp])
+        output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=True)
         self.loss = zinb.loss
@@ -403,6 +403,37 @@ class ZINBAutoencoder(Autoencoder):
             write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
 
         return res
+
+
+class ZINBSharedAutoencoder(ZINBAutoencoder):
+
+    def build_output(self):
+        pi = Dense(1, activation='sigmoid', kernel_initializer=self.init,
+                   kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                   name='pi')(self.decoder_output)
+
+        disp = Dense(1, activation=ClippedExp,
+                     kernel_initializer=self.init,
+                     kernel_regularizer=l1_l2(self.l1_coef,
+                                              self.l2_coef),
+                     name='dispersion')(self.decoder_output)
+
+        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                       name='mean')(self.decoder_output)
+        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = SliceLayer(0, name='slice')([output, disp, pi])
+
+        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=True)
+        self.loss = zinb.loss
+        self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
+        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
+        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+
+        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
+
+        if self.ae:
+            self.encoder = self.get_encoder()
 
 
 class ZINBConstantDispAutoencoder(Autoencoder):
@@ -469,5 +500,6 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
             'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
             'nb-shareddisp': NBSharedDispAutoencoder,
-            'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder}
+            'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder,
+            'zinb-shared': ZINBSharedAutoencoder}
 
