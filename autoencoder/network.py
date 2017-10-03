@@ -322,7 +322,7 @@ class NBAutoencoder(Autoencoder):
         return res
 
 
-class NBSharedDispAutoencoder(NBAutoencoder):
+class NBSharedAutoencoder(NBAutoencoder):
 
     def build_output(self):
         disp = Dense(1, activation=ClippedExp,
@@ -509,7 +509,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
 AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
             'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
-            'nb-shareddisp': NBSharedDispAutoencoder,
+            'nb-shared': NBSharedAutoencoder,
             'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder,
             'zinb-shared': ZINBSharedAutoencoder}
 
