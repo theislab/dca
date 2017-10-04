@@ -186,7 +186,7 @@ class Autoencoder():
         print('Calculating low dimensional representations...')
         res['reduced'] = self.encoder.predict({'count': norm_count_matrix,
                                                'size_factors': sf_mat})
-        res['decoded'] = self.extra_models['decoded'].predict(norm_count_matrix)
+        #res['decoded'] = self.extra_models['decoded'].predict(norm_count_matrix)
 
         print('Calculating reconstructions...')
         res['mean'] = self.model.predict({'count': norm_count_matrix,
@@ -199,7 +199,7 @@ class Autoencoder():
             os.makedirs(self.file_path, exist_ok=True)
 
             write_text_matrix(res['reduced'], os.path.join(self.file_path, 'reduced.tsv'))
-            write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
+            #write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
             write_text_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
             write_text_matrix(res['mean_norm'], os.path.join(self.file_path, 'mean_norm.tsv'))
 
@@ -399,7 +399,7 @@ class ZINBAutoencoder(Autoencoder):
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
-        res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
+        #res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
 
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
@@ -407,7 +407,7 @@ class ZINBAutoencoder(Autoencoder):
             write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
             write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
             write_text_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
-            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
+            #write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
 
         return res
 
