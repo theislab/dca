@@ -31,7 +31,7 @@ from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
 from .io import write_text_matrix, estimate_size_factors, normalize
 
 
-ClippedExp = lambda x: K.minimum(K.exp(x), 1e10)
+ClippedExp = lambda x: K.minimum(K.exp(x), 1e7)
 
 class Autoencoder():
     def __init__(self,
@@ -358,8 +358,7 @@ class ZINBAutoencoder(Autoencoder):
 
         disp = Dense(self.output_size, activation=ClippedExp,
                            kernel_initializer=self.init,
-                           kernel_regularizer=l1_l2(self.l1_coef,
-                               self.l2_coef),
+                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.decoder_output)
 
         mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
