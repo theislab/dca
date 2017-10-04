@@ -611,9 +611,104 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
             self.encoder = self.get_encoder()
 
 
+class NBForkAutoencoder(NBAutoencoder):
+
+    def build(self):
+
+        self.input_layer = Input(shape=(self.input_size,), name='count')
+        self.sf_layer = Input(shape=(1,), name='size_factors')
+        last_hidden = self.input_layer
+
+        for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
+            center_idx = int(np.floor(len(self.hidden_size) / 2.0))
+            if i == center_idx:
+                layer_name = 'center'
+                stage = 'center'  # let downstream know where we are
+            elif i < center_idx:
+                layer_name = 'enc%s' % i
+                stage = 'encoder'
+            else:
+                layer_name = 'dec%s' % (i-center_idx)
+                stage = 'decoder'
+
+            # use encoder-specific l1/l2 reg coefs if given
+            if self.l1_enc_coef != 0. and stage in ('center', 'encoder'):
+                l1 = self.l1_enc_coef
+            else:
+                l1 = self.l1_coef
+
+            if self.l2_enc_coef != 0. and stage in ('center', 'encoder'):
+                l2 = self.l2_enc_coef
+            else:
+                l2 = self.l2_coef
+
+            if i > center_idx:
+                self.last_hidden_mean = Dense(hid_size, activation=None, kernel_initializer=self.init,
+                                    kernel_regularizer=l1_l2(l1, l2),
+                                    name='%s_last_mean'%layer_name)(last_hidden)
+                self.last_hidden_disp = Dense(hid_size, activation=None, kernel_initializer=self.init,
+                                    kernel_regularizer=l1_l2(l1, l2),
+                                    name='%s_last_disp'%layer_name)(last_hidden)
+
+                if self.batchnorm:
+                    self.last_hidden_mean = BatchNormalization(center=True, scale=False)(self.last_hidden_mean)
+                    self.last_hidden_disp = BatchNormalization(center=True, scale=False)(self.last_hidden_disp)
+
+                # Use separate act. layers to give user the option to get pre-activations
+                # of layers when requested
+                self.last_hidden_mean = Activation(self.activation, name='%s_mean_act'%layer_name)(self.last_hidden_mean)
+                self.last_hidden_disp = Activation(self.activation, name='%s_disp_act'%layer_name)(self.last_hidden_disp)
+
+                if hid_drop > 0.0:
+                    self.last_hidden_mean = Dropout(hid_drop, name='%s_mean_drop'%layer_name)(self.last_hidden_mean)
+                    self.last_hidden_disp = Dropout(hid_drop, name='%s_disp_drop'%layer_name)(self.last_hidden_disp)
+
+            else:
+                last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
+                                    kernel_regularizer=l1_l2(l1, l2),
+                                    name=layer_name)(last_hidden)
+
+                if self.batchnorm:
+                    last_hidden = BatchNormalization(center=True, scale=False)(last_hidden)
+
+                # Use separate act. layers to give user the option to get pre-activations
+                # of layers when requested
+                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
+
+                if hid_drop > 0.0:
+                    last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
+
+        self.build_output()
+
+
+    def build_output(self):
+
+        disp = Dense(self.output_size, activation=ClippedExp,
+                           kernel_initializer=self.init,
+                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                           name='dispersion')(self.last_hidden_disp)
+
+        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                       name='mean')(self.last_hidden_mean)
+
+        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = SliceLayer(0, name='slice')([output, disp])
+
+        nb = NB(theta=disp, debug=True)
+        self.loss = nb.loss
+        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
+        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+
+        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
+
+        if self.ae:
+            self.encoder = self.get_encoder()
+
+
 AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
             'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
-            'nb-shared': NBSharedAutoencoder,
+            'nb-shared': NBSharedAutoencoder, 'nb-fork': NBForkAutoencoder,
             'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder,
             'zinb-shared': ZINBSharedAutoencoder, 'zinb-fork': ZINBForkAutoencoder}
 
