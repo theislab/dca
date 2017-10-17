@@ -85,10 +85,13 @@ class Dataset:
 
 
 def text_to_zarr(input_file, output_file, transpose=False,
-                 header='infer', test_split=True, size_factors='zheng'):
+                 header='infer', rownames=False, test_split=True, size_factors='zheng'):
 
     root = zarr.open_group(output_file, 'w')
-    matrix, rownames, colnames = read_text_matrix(input_file, header=header, transpose=transpose)
+    matrix, rownames, colnames = read_text_matrix(input_file,
+                                                  header=header,
+                                                  rownames=rownames,
+                                                  transpose=transpose)
 
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
@@ -132,8 +135,9 @@ def text_to_zarr(input_file, output_file, transpose=False,
     return root
 
 
-def read_text_matrix(inputfile, type=np.float, header=None, transpose=False):
-    df = pd.read_csv(inputfile, sep=None, engine='python', header=header)
+def read_text_matrix(inputfile, type=np.float, header=None, rownames=False, transpose=False):
+    df = pd.read_csv(inputfile, sep=None, engine='python', header=header,
+                     index_col=(0 if rownames else None))
 
     if transpose:
         df = df.transpose()
@@ -149,6 +153,7 @@ def read_text_matrix(inputfile, type=np.float, header=None, transpose=False):
         rownames = df.index
     else:
         rownames = np.array(['Cell' + str(x) for x in df.index])
+
 
     # filter out all zero features and samples
     colnames = colnames[df.sum(0) > 0]
@@ -211,5 +216,6 @@ def preprocess_with_args(args):
                  output_file=args.output,
                  transpose=args.transpose,
                  header=('infer' if args.header else None),
+                 rownames=args.rownames,
                  test_split=args.testsplit,
                  size_factors=args.normtype)

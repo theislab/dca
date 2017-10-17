@@ -49,6 +49,9 @@ def parse_args():
     parser_preprocess.add_argument('--header', dest='header',
             action='store_true', help="Whether there is a header in input file"
             " (default: False)")
+    parser_preprocess.add_argument('--rownames', dest='rownames',
+            action='store_true', help="Whether the first column is rownames in input file"
+            " (default: False)")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 
