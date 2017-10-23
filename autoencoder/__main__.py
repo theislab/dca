@@ -113,8 +113,8 @@ def parse_args():
     parser_train.add_argument('--reducelr', type=int, default=10,
             help="Number of epochs to reduce learning rate if no improvement "
             "in loss occurs (default: 10)")
-    parser_train.add_argument('-s', '--hiddensize', type=str, default='256,128,256',
-            help="Size of hidden layers (default: 256,128,256)")
+    parser_train.add_argument('-s', '--hiddensize', type=str, default='32,32,32',
+            help="Size of hidden layers (default: 32,32,32)")
     parser_train.add_argument('-r', '--learningrate', type=float, default=None,
             help="Learning rate (default: 0.001)")
     parser_train.add_argument('--reconstruct', dest='reconstruct',
