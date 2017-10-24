@@ -85,13 +85,10 @@ class Dataset:
 
 
 def text_to_zarr(input_file, output_file, transpose=False,
-                 header='infer', rownames=False, test_split=True, size_factors='zheng'):
+                 test_split=True, size_factors='zheng'):
 
     root = zarr.open_group(output_file, 'w')
-    matrix, rownames, colnames = read_text_matrix(input_file,
-                                                  header=header,
-                                                  rownames=rownames,
-                                                  transpose=transpose)
+    matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
 
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
@@ -135,25 +132,17 @@ def text_to_zarr(input_file, output_file, transpose=False,
     return root
 
 
-def read_text_matrix(inputfile, type=np.float, header=None, rownames=False, transpose=False):
-    df = pd.read_csv(inputfile, sep=None, engine='python', header=header,
-                     index_col=(0 if rownames else None))
+def read_text_matrix(inputfile, type=np.float, transpose=False):
+    df = pd.read_csv(inputfile, sep=None, header=0, index_col=0, engine='python')
+
+    assert len(df.index) == len(df.index.unique()), 'Rownames are not unique. Please add unique rownames'
+    assert len(df.columns) == len(df.columns.unique()), 'Colnames are not unique. Please add unique colnames'
 
     if transpose:
         df = df.transpose()
 
-    # check if colnames exist
-    if df.columns.dtype == 'O':
-        colnames = df.columns
-    else:
-        colnames = np.array(['Gene' + str(x) for x in df.columns])
-
-    # check if rownames exist
-    if df.index.dtype == 'O':
-        rownames = df.index
-    else:
-        rownames = np.array(['Cell' + str(x) for x in df.index])
-
+    colnames = df.columns
+    rownames = df.index
 
     # filter out all zero features and samples
     colnames = colnames[df.sum(0) > 0]
@@ -170,14 +159,12 @@ def read_text_matrix(inputfile, type=np.float, header=None, rownames=False, tran
     return matrix, list(rownames), list(colnames)
 
 
-def write_text_matrix(matrix, filename):
-    if issubclass(matrix.dtype.type, np.floating):
-        np.savetxt(filename, matrix, fmt="%.6e", delimiter="\t")
-    elif issubclass(matrix.dtype.type, np.integer):
-        np.savetxt(filename, matrix, fmt="%i", delimiter="\t")
-    else:
-        raise TypeError
-
+def write_text_matrix(matrix, filename, rownames=None, colnames=None):
+    pd.DataFrame(matrix, index=rownames, columns=colnames).to_csv(filename,
+                                                                  sep='\t',
+                                                                  index=(rownames is not None),
+                                                                  header=(colnames is not None),
+                                                                  float_format='%.6f')
 
 def read_pickle(inputfile):
     return pickle.load(open(inputfile, "rb"))
@@ -215,7 +202,5 @@ def preprocess_with_args(args):
     text_to_zarr(args.input,
                  output_file=args.output,
                  transpose=args.transpose,
-                 header=('infer' if args.header else None),
-                 rownames=args.rownames,
                  test_split=args.testsplit,
                  size_factors=args.normtype)

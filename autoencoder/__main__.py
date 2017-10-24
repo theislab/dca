@@ -46,12 +46,6 @@ def parse_args():
             action='store_true', help='Transpose input matrix (default: False)')
     parser_preprocess.add_argument('--testsplit', dest='testsplit',
             action='store_true', help="Use one fold as a test set (default: False)")
-    parser_preprocess.add_argument('--header', dest='header',
-            action='store_true', help="Whether there is a header in input file"
-            " (default: False)")
-    parser_preprocess.add_argument('--rownames', dest='rownames',
-            action='store_true', help="Whether the first column is rownames in input file"
-            " (default: False)")
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 

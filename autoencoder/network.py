@@ -171,9 +171,14 @@ class Autoencoder():
                         outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, count_matrix, dimreduce=True, reconstruct=True,
+    def predict(self, mat, setname='full', dimreduce=True, reconstruct=True,
                 size_factors=True, normalize_input=True, logtrans_input=True,
                 error=True):
+
+        rownames = mat.rownames
+        colnames = mat.colnames
+        count_matrix = mat.matrix[:]
+
         res = {}
         if size_factors:
             sf_mat = estimate_size_factors(count_matrix)
@@ -198,10 +203,18 @@ class Autoencoder():
             print('Saving files...')
             os.makedirs(self.file_path, exist_ok=True)
 
-            write_text_matrix(res['reduced'], os.path.join(self.file_path, 'reduced.tsv'))
+            write_text_matrix(res['reduced'],
+                              os.path.join(self.file_path, 'reduced.tsv'),
+                              rownames=rownames)
+
             #write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
-            write_text_matrix(res['mean'], os.path.join(self.file_path, 'mean.tsv'))
-            write_text_matrix(res['mean_norm'], os.path.join(self.file_path, 'mean_norm.tsv'))
+            write_text_matrix(res['mean'],
+                              os.path.join(self.file_path, 'mean.tsv'),
+                              rownames=rownames, colnames=colnames)
+
+            write_text_matrix(res['mean_norm'],
+                              os.path.join(self.file_path, 'mean_norm.tsv'),
+                              rownames=rownames, colnames=colnames)
 
         return res
 
@@ -246,8 +259,12 @@ class NBConstantDispAutoencoder(Autoencoder):
         if self.ae:
             self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, **kwargs):
-        res = super().predict(count_matrix, **kwargs)
+    def predict(self, mat, **kwargs):
+        res = super().predict(mat, **kwargs)
+
+        rownames = mat.rownames
+        colnames = mat.colnames
+        count_matrix = mat.matrix[:]
 
         res['dispersion'] = self.extra_models['dispersion']()
         m, d = res['mean'], res['dispersion']
@@ -258,9 +275,15 @@ class NBConstantDispAutoencoder(Autoencoder):
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
 
-            write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
-            write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
-            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
+            write_text_matrix(res['dispersion'],
+                              os.path.join(self.file_path, 'dispersion.tsv'),
+                              rownames=rownames)
+            write_text_matrix(res['mode'],
+                              os.path.join(self.file_path, 'mode.tsv'),
+                              rownames=rownames, colnames=colnames)
+            write_text_matrix(res['error'],
+                              os.path.join(self.file_path, 'error.tsv'),
+                              rownames=rownames, colnames=colnames)
 
         return res
 
@@ -291,8 +314,12 @@ class NBAutoencoder(Autoencoder):
         if self.ae:
             self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, **kwargs):
+    def predict(self, mat, **kwargs):
         res = super().predict(count_matrix, **kwargs)
+
+        rownames = mat.rownames
+        colnames = mat.colnames
+        count_matrix = mat.matrix[:]
 
         if kwargs['size_factors']:
             sf_mat = estimate_size_factors(count_matrix)
@@ -315,9 +342,15 @@ class NBAutoencoder(Autoencoder):
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
 
-            write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
-            write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
-            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
+            write_text_matrix(res['dispersion'],
+                              os.path.join(self.file_path, 'dispersion.tsv'),
+                              rownames=rownames, colnames=colnames)
+            write_text_matrix(res['mode'],
+                              os.path.join(self.file_path, 'mode.tsv'),
+                              rownames=rownames, colnames=colnames)
+            write_text_matrix(res['error'],
+                              os.path.join(self.file_path, 'error.tsv'),
+                              rownames=rownames, colnames=colnames)
 
         return res
 
@@ -379,8 +412,12 @@ class ZINBAutoencoder(Autoencoder):
         if self.ae:
             self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, **kwargs):
-        res = super().predict(count_matrix, **kwargs)
+    def predict(self, mat, **kwargs):
+        res = super().predict(mat, **kwargs)
+
+        rownames = mat.rownames
+        colnames = mat.colnames
+        count_matrix = mat.matrix[:]
 
         if kwargs['size_factors']:
             sf_mat = estimate_size_factors(count_matrix)
@@ -404,9 +441,15 @@ class ZINBAutoencoder(Autoencoder):
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
 
-            write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
-            write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
-            write_text_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
+            write_text_matrix(res['dispersion'],
+                              os.path.join(self.file_path, 'dispersion.tsv'),
+                              rownames=rownames, colnames=colnames)
+            write_text_matrix(res['mode'],
+                              os.path.join(self.file_path, 'mode.tsv'),
+                              rownames=rownames, colnames=colnames)
+            write_text_matrix(res['pi'],
+                              os.path.join(self.file_path, 'pi.tsv'),
+                              rownames=rownames, colnames=colnames)
             #write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
 
         return res
@@ -473,8 +516,12 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         if self.ae:
             self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, **kwargs):
-        res = super().predict(count_matrix, **kwargs)
+    def predict(self, mat, **kwargs):
+        res = super().predict(mat, **kwargs)
+
+        rownames = mat.rownames
+        colnames = mat.colnames
+        count_matrix = mat.matrix[:]
 
         if kwargs['size_factors']:
             sf_mat = estimate_size_factors(count_matrix)
@@ -498,10 +545,18 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
 
-            write_text_matrix(res['dispersion'], os.path.join(self.file_path, 'dispersion.tsv'))
-            write_text_matrix(res['mode'], os.path.join(self.file_path, 'mode.tsv'))
-            write_text_matrix(res['pi'], os.path.join(self.file_path, 'pi.tsv'))
-            write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
+            write_text_matrix(res['dispersion'],
+                              os.path.join(self.file_path, 'dispersion.tsv'),
+                              rownames=rownames)
+            write_text_matrix(res['mode'],
+                              os.path.join(self.file_path, 'mode.tsv'),
+                              rownames=rownames, colnames=colnames)
+            write_text_matrix(res['pi'],
+                              os.path.join(self.file_path, 'pi.tsv'),
+                              rownames=rownames, colnames=colnames)
+            write_text_matrix(res['error'],
+                              os.path.join(self.file_path, 'error.tsv'),
+                              rownames=rownames, colnames=colnames)
 
         return res
 
