@@ -34,11 +34,12 @@ class DictTensorDataset(Dataset):
 
 
 class ExpModule(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, eps=1e6):
         super().__init__()
+        self.eps = eps
 
     def forward(self, x):
-        return torch.exp(x)
+        return torch.exp(x).clamp(max=self.eps)
 
 
 class EarlyStopping(object):
