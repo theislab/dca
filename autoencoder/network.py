@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import numpy as np
 from .utils import *
 from .io import write_text_matrix, estimate_size_factors, normalize
@@ -28,13 +29,14 @@ class Autoencoder(torch.nn.Module):
     def __init__(self,
                  input_size,
                  loss_type, loss_args={},
-                 enc_size=(32, 32),
+                 enc_size=(64, 64),
                  dec_size=(),
-                 out_size=(32,),
+                 out_size=(64,),
                  enc_dropout=0.,
                  dec_dropout=0.,
                  out_dropout=0.,
                  out_modules={'input': torch.nn.Sequential},
+                 out_name_to_human={'input': 'mean'},
                  batchnorm=True):
 
         assert loss_type in LOSS_TYPES, 'Undefined loss type'
@@ -43,6 +45,7 @@ class Autoencoder(torch.nn.Module):
 
         self.input_size = input_size
         self.loss = LOSS_TYPES[loss_type](**loss_args)
+        self.out_name_to_human = out_name_to_human
 
         if isinstance(enc_dropout, list):
             assert len(enc_dropout) == len(enc_size)
@@ -138,25 +141,38 @@ class Autoencoder(torch.nn.Module):
                      epochs=epochs, batch_size=batch_size,
                      verbose=1)
 
+    def predict(self, X, folder='./'):
+        preds = self(Variable(torch.from_numpy(X)))
+        os.makedirs(folder, exist_ok=True)
+
+        for name, mat in preds.items():
+            name = self.out_name_to_human.get(name, name)
+            filename = os.path.join(folder, name + '.tsv')
+            write_text_matrix(mat.data.numpy(), filename)
+
 
 class ZINBAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'input': ExpModule, 'pi': torch.nn.Sigmoid,
+        out = {'mean': ExpModule,
+               'pi': torch.nn.Sigmoid,
                'theta': ExpModule}
 
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'zinb'
+        kwargs['out_name_to_human'] = {'theta': 'dispersion'}
 
         super().__init__(*args, **kwargs)
 
 
 class ZINBEMAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'input': ExpModule, 'pi': torch.nn.Sigmoid,
+        out = {'mean': ExpModule,
+               'pi': torch.nn.Sigmoid,
                'theta': ExpModule}
 
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'zinbem'
+        kwargs['out_name_to_human'] = {'theta': 'dispersion'}
         super().__init__(*args, **kwargs)
 
     def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32,
@@ -175,9 +191,10 @@ class ZINBEMAutoencoder(Autoencoder):
 
 class NBAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'input': ExpModule, 'theta': ExpModule}
+        out = {'mean': ExpModule, 'theta': ExpModule}
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'nb'
+        kwargs['out_name_to_human'] = {'theta': 'dispersion'}
 
         super().__init__(*args, **kwargs)
 
@@ -188,6 +205,7 @@ class PoissonAutoencoder(Autoencoder):
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'poisson'
         kwargs['loss_args'] = {'full': True, 'log_input': True}
+        kwargs['out_name_to_human'] = {'log_input': 'log_mean'}
 
         super().__init__(*args, **kwargs)
 
@@ -197,6 +215,7 @@ class MSEAutoencoder(Autoencoder):
         out = {'input': torch.nn.Sequential}
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'mse'
+        kwargs['out_name_to_human'] = {'input': 'mean'}
 
         super().__init__(*args, **kwargs)
 

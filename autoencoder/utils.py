@@ -154,16 +154,16 @@ class ZINBLoss(torch.nn.Module):
             theta = torch.Tensor(*theta_shape).log_normal_(0.1, 0.01)
             self.register_parameter('theta', torch.nn.Parameter(theta))
 
-    def forward(self, input, pi, target, theta=None):
+    def forward(self, mean, pi, target, theta=None):
         eps = 1e-10
 
         if self.theta_shape is not None:
             theta = 1.0/(torch.exp(self.theta).clamp(max=1e6)+eps)
 
         # reuse existing NB nll
-        nb_case = self.nb(input, target, theta) - torch.log(1.0-pi+eps)
+        nb_case = self.nb(mean, target, theta) - torch.log(1.0-pi+eps)
 
-        zero_nb = torch.pow(theta / (theta + input + eps), theta)
+        zero_nb = torch.pow(theta / (theta + mean + eps), theta)
         zero_case = -torch.log(pi + ((1.0-pi)*zero_nb) + eps)
 
         zero_mask = (target == 0.0).type_as(zero_case)
@@ -200,7 +200,7 @@ class ZINBEMLoss(torch.nn.Module):
             theta = torch.Tensor(*theta_shape).log_normal_(0.1, 0.01)
             self.register_parameter('theta', torch.nn.Parameter(theta))
 
-    def forward(self, input, pi, target, zero_memberships, theta=None):
+    def forward(self, mean, pi, target, zero_memberships, theta=None):
         eps = 1e-10
 
         if self.theta_shape is not None:
@@ -212,7 +212,7 @@ class ZINBEMLoss(torch.nn.Module):
         zero_comp.masked_fill_(target != 0.0, 0.0)
         zero_comp = zero_memberships * torch.log(zero_comp+eps)
 
-        nb_comp = torch.log(1.0-pi+eps) - self.nb(input, target, theta)
+        nb_comp = torch.log(1.0-pi+eps) - self.nb(mean, target, theta)
         nb_comp = nb_memberships * nb_comp
 
         result = -(zero_comp + nb_comp)
@@ -235,13 +235,13 @@ class ZINBEMLoss(torch.nn.Module):
         res = t1+t2+t3+t4+t5+t6
         return res
 
-    def zero_memberships(self, input, pi, target, theta=None):
+    def zero_memberships(self, mean, pi, target, theta=None):
         eps = 1e-10
 
         if self.theta_shape is not None:
             theta = 1.0/(torch.exp(self.theta).clamp(max=1e6)+eps)
 
-        nb_zero_ll = torch.pow((theta/(theta+input+eps)), theta)
+        nb_zero_ll = torch.pow((theta/(theta+mean+eps)), theta)
 
         memberships = pi.clone()
         memberships = memberships / (memberships+((1.0-pi)*nb_zero_ll)+eps)
