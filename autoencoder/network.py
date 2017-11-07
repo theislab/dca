@@ -20,21 +20,29 @@ from .io import write_text_matrix, estimate_size_factors, normalize
 import torch
 from torch.autograd import Variable
 
+LOSS_TYPES = {'mse': torch.nn.MSELoss, 'nb': NBLoss, 'zinb': ZINBLoss,
+              'zinbem': ZINBEMLoss, 'poisson': torch.nn.PoissonNLLLoss}
+
 
 class Autoencoder(torch.nn.Module):
     def __init__(self,
                  input_size,
+                 loss_type, loss_args={},
                  enc_size=(32, 32),
                  dec_size=(),
                  out_size=(32,),
                  enc_dropout=0.,
                  dec_dropout=0.,
                  out_dropout=0.,
-                 out_modules={'mean': torch.nn.Sequential},
+                 out_modules={'input': torch.nn.Sequential},
                  batchnorm=True):
 
+        assert loss_type in LOSS_TYPES, 'Undefined loss type'
+
         super().__init__()
+
         self.input_size = input_size
+        self.loss = LOSS_TYPES[loss_type](**loss_args)
 
         if isinstance(enc_dropout, list):
             assert len(enc_dropout) == len(enc_size)
@@ -52,7 +60,8 @@ class Autoencoder(torch.nn.Module):
             out_dropout = [out_dropout]*len(out_size)
 
 
-        self.encoder = torch.nn.Sequential()
+        encoder = torch.nn.Sequential()
+        self.add_module('encoder', encoder)
         last_hidden_size = input_size
 
         for i, (e_size, e_drop) in enumerate(zip(enc_size, enc_dropout)):
@@ -68,8 +77,8 @@ class Autoencoder(torch.nn.Module):
 
             last_hidden_size = e_size
 
-        self.add_module('encoder', self.encoder)
-        self.decoder = torch.nn.Sequential()
+        decoder = torch.nn.Sequential()
+        self.add_module('decoder', decoder)
 
         for i, (d_size, d_drop) in enumerate(zip(dec_size, dec_dropout)):
             layer_name = 'dec%s' % i
@@ -84,7 +93,6 @@ class Autoencoder(torch.nn.Module):
 
             last_hidden_size = d_size
 
-        self.add_module('decoder', self.decoder)
         self.outputs = {k: torch.nn.Sequential() for k in out_modules}
 
         for i, (o_size, o_drop) in enumerate(zip(out_size, out_dropout)):
@@ -114,10 +122,74 @@ class Autoencoder(torch.nn.Module):
 
     def forward(self, input):
         intermediate = self.decoder.forward(self.encoder.forward(input))
-
-        if len(self.outputs) == 1:
-            k = list(self.outputs.keys())[0]
-            return self.outputs[k].forward(intermediate)
-
         return {k: v.forward(intermediate) for k, v in self.outputs.items()}
+
+
+    def train(self, X, Y, epochs=300, batch_size=32,
+              optimizer='Adadelta', optimizer_args={}):
+
+        optimizer = torch.optim.__dict__[optimizer](list(self.parameters()) +
+                                                    list(self.loss.parameters()),
+                                                    **optimizer_args)
+
+        return train(model_dict={'input': X},
+                     loss_dict={'target': Y},
+                     model=self, loss=self.loss, optimizer=optimizer,
+                     epochs=epochs, batch_size=batch_size,
+                     verbose=1)
+
+
+class ZINBAutoencoder(Autoencoder):
+    def __init__(self, *args, **kwargs):
+        out = {'input': ExpModule, 'pi': torch.nn.Sigmoid,
+               'theta': ExpModule}
+
+        kwargs['out_modules'] = out
+        kwargs['loss_type'] = 'zinb'
+
+        super().__init__(*args, **kwargs)
+
+
+class ZINBEMAutoencoder(Autoencoder):
+    def __init__(self, *args, **kwargs):
+        out = {'input': ExpModule, 'pi': torch.nn.Sigmoid,
+               'theta': ExpModule}
+
+        kwargs['out_modules'] = out
+        kwargs['loss_type'] = 'zinbem'
+        super().__init__(*args, **kwargs)
+
+
+class NBAutoencoder(Autoencoder):
+    def __init__(self, *args, **kwargs):
+        out = {'input': ExpModule, 'theta': ExpModule}
+        kwargs['out_modules'] = out
+        kwargs['loss_type'] = 'nb'
+
+        super().__init__(*args, **kwargs)
+
+
+class PoissonAutoencoder(Autoencoder):
+    def __init__(self, *args, **kwargs):
+        out = {'log_input': torch.nn.Sequential}
+        kwargs['out_modules'] = out
+        kwargs['loss_type'] = 'poisson'
+        kwargs['loss_args'] = {'full': True, 'log_input': True}
+
+        super().__init__(*args, **kwargs)
+
+
+class MSEAutoencoder(Autoencoder):
+    def __init__(self, *args, **kwargs):
+        out = {'input': torch.nn.Sequential}
+        kwargs['out_modules'] = out
+        kwargs['loss_type'] = 'mse'
+
+        super().__init__(*args, **kwargs)
+
+
+
+AE_TYPES = {'zinb': ZINBAutoencoder, 'zinbem': ZINBEMAutoencoder,
+            'nb': NBAutoencoder, 'poisson': PoissonAutoencoder,
+            'mse': MSEAutoencoder}
 
