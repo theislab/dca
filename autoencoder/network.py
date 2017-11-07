@@ -1,769 +1,123 @@
-# Copyright 2016 Goekcen Eraslan
+# Copyright (C) 2017 Goekcen Eraslan
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
-import os
-import pickle
-from abc import ABCMeta, abstractmethod
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy as np
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
-from keras.models import Model
-from keras.regularizers import l1_l2
-from keras.objectives import mean_squared_error
-from keras.initializers import Constant
-from keras import backend as K
-import tensorflow as tf
-
-from .loss import poisson_loss, NB, ZINB
-from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
+from .utils import *
 from .io import write_text_matrix, estimate_size_factors, normalize
 
+import torch
+from torch.autograd import Variable
 
-ClippedExp = lambda x: K.minimum(K.exp(x), 1e7)
 
-class Autoencoder():
+class Autoencoder(torch.nn.Module):
     def __init__(self,
                  input_size,
-                 output_size=None,
-                 hidden_size=(256,),
-                 l2_coef=0.,
-                 l1_coef=0.,
-                 l2_enc_coef=0.,
-                 l1_enc_coef=0.,
-                 ridge=0.,
-                 hidden_dropout=0.,
-                 batchnorm=True,
-                 activation='elu',
-                 init='glorot_uniform',
-                 file_path=None):
+                 enc_size=(32, 32),
+                 dec_size=(),
+                 out_size=(32,),
+                 enc_dropout=0.,
+                 dec_dropout=0.,
+                 out_dropout=0.,
+                 out_modules={'mean': torch.nn.Sequential},
+                 batchnorm=True):
 
+        super().__init__()
         self.input_size = input_size
-        self.output_size = output_size
-        self.hidden_size = hidden_size
-        self.l2_coef = l2_coef
-        self.l1_coef = l1_coef
-        self.l2_enc_coef = l2_enc_coef
-        self.l1_enc_coef = l1_enc_coef
-        self.ridge = ridge
-        self.hidden_dropout = hidden_dropout
-        self.batchnorm = batchnorm
-        self.activation = activation
-        self.init = init
-        self.loss = None
-        self.file_path = file_path
-        self.extra_models = {}
-        self.model = None
-        self.encoder = None
-        self.decoder = None
-        self.input_layer = None
-        self.sf_layer = None
 
-        self.ae = True if self.output_size is None else False
-        if self.output_size is None:
-            self.output_size = input_size
-
-        if isinstance(self.hidden_dropout, list):
-            assert len(self.hidden_dropout) == len(self.hidden_size)
+        if isinstance(enc_dropout, list):
+            assert len(enc_dropout) == len(enc_size)
         else:
-            self.hidden_dropout = [self.hidden_dropout]*len(self.hidden_size)
+            enc_dropout = [enc_dropout]*len(enc_size)
 
-    def build(self):
-
-        self.input_layer = Input(shape=(self.input_size,), name='count')
-        self.sf_layer = Input(shape=(1,), name='size_factors')
-        last_hidden = self.input_layer
-
-        for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
-            center_idx = int(np.floor(len(self.hidden_size) / 2.0))
-            if i == center_idx:
-                layer_name = 'center'
-                stage = 'center'  # let downstream know where we are
-            elif i < center_idx:
-                layer_name = 'enc%s' % i
-                stage = 'encoder'
-            else:
-                layer_name = 'dec%s' % (i-center_idx)
-                stage = 'decoder'
-
-            # use encoder-specific l1/l2 reg coefs if given
-            if self.l1_enc_coef != 0. and stage in ('center', 'encoder'):
-                l1 = self.l1_enc_coef
-            else:
-                l1 = self.l1_coef
-
-            if self.l2_enc_coef != 0. and stage in ('center', 'encoder'):
-                l2 = self.l2_enc_coef
-            else:
-                l2 = self.l2_coef
-
-            last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                kernel_regularizer=l1_l2(l1, l2),
-                                name=layer_name)(last_hidden)
-            if self.batchnorm:
-                last_hidden = BatchNormalization(center=True, scale=False)(last_hidden)
-
-            # Use separate act. layers to give user the option to get pre-activations
-            # of layers when requested
-            last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
-
-            if hid_drop > 0.0:
-                last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
-
-        self.decoder_output = last_hidden
-        self.build_output()
-
-    def build_output(self):
-
-        self.loss = mean_squared_error
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                     kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                     name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-
-        # keep unscaled output as an extra model
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-
-    def save(self):
-        os.makedirs(self.file_path, exist_ok=True)
-        with open(os.path.join(self.file_path, 'model.pickle'), 'wb') as f:
-            pickle.dump(self, f)
-
-    def load_weights(self, filename):
-        self.model.load_weights(filename)
-        if self.ae:
-            self.encoder = self.get_encoder()
-            self.decoder = None  # get_decoder()
-
-    def get_decoder(self):
-        i = 0
-        for l in self.model.layers:
-            if l.name == 'center_drop':
-                break
-            i += 1
-
-        return Model(inputs=self.model.get_layer(index=i+1).input,
-                     outputs=self.model.output)
-
-    def get_encoder(self, activation=False):
-        if activation:
-            ret = Model(inputs=self.model.input,
-                        outputs=self.model.get_layer('center_act').output)
+        if isinstance(dec_dropout, list):
+            assert len(dec_dropout) == len(dec_size)
         else:
-            ret = Model(inputs=self.model.input,
-                        outputs=self.model.get_layer('center').output)
-        return ret
+            dec_dropout = [dec_dropout]*len(dec_size)
 
-    def predict(self, mat, setname='full', dimreduce=True, reconstruct=True,
-                size_factors=True, normalize_input=True, logtrans_input=True,
-                error=True):
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
-
-        res = {}
-        if size_factors:
-            sf_mat = estimate_size_factors(count_matrix)
+        if isinstance(out_dropout, list):
+            assert len(out_dropout) == len(out_size)
         else:
-            sf_mat = np.ones((count_matrix.shape[0],))
+            out_dropout = [out_dropout]*len(out_size)
 
-        norm_count_matrix = normalize(count_matrix, sf_mat, logtrans=logtrans_input,
-                                      sfnorm=size_factors, zeromean=normalize_input)
 
-        print('Calculating low dimensional representations...')
-        res['reduced'] = self.encoder.predict({'count': norm_count_matrix,
-                                               'size_factors': sf_mat})
-        #res['decoded'] = self.extra_models['decoded'].predict(norm_count_matrix)
+        self.encoder = torch.nn.Sequential()
+        last_hidden_size = input_size
 
-        print('Calculating reconstructions...')
-        res['mean'] = self.model.predict({'count': norm_count_matrix,
-                                          'size_factors': sf_mat})
+        for i, (e_size, e_drop) in enumerate(zip(enc_size, enc_dropout)):
+            layer_name = 'enc%s' % i
 
-        res['mean_norm'] = self.extra_models['mean_norm'].predict(norm_count_matrix)
+            self.encoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, e_size))
+            if batchnorm:
+                self.encoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(e_size, affine=False))
 
-        if self.file_path:
-            print('Saving files...')
-            os.makedirs(self.file_path, exist_ok=True)
+            self.encoder.add_module(layer_name + '_act', torch.nn.ReLU())
+            if e_drop > 0.0:
+                self.encoder.add_module(layer_name + '_drop', torch.nn.Dropout(e_drop))
 
-            write_text_matrix(res['reduced'],
-                              os.path.join(self.file_path, 'reduced.tsv'),
-                              rownames=rownames)
+            last_hidden_size = e_size
 
-            #write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
-            write_text_matrix(res['mean'],
-                              os.path.join(self.file_path, 'mean.tsv'),
-                              rownames=rownames, colnames=colnames)
+        self.add_module('encoder', self.encoder)
+        self.decoder = torch.nn.Sequential()
 
-            write_text_matrix(res['mean_norm'],
-                              os.path.join(self.file_path, 'mean_norm.tsv'),
-                              rownames=rownames, colnames=colnames)
+        for i, (d_size, d_drop) in enumerate(zip(dec_size, dec_dropout)):
+            layer_name = 'dec%s' % i
 
-        return res
+            self.decoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, d_size))
+            if batchnorm:
+                self.decoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(d_size, affine=False))
 
+            self.decoder.add_module(layer_name + '_act', torch.nn.ReLU())
+            if d_drop > 0.0:
+                self.decoder.add_module(layer_name + '_drop', torch.nn.Dropout(d_drop))
 
-class PoissonAutoencoder(Autoencoder):
+            last_hidden_size = d_size
 
-    def build_output(self):
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                     kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                     name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        self.loss = poisson_loss
+        self.add_module('decoder', self.decoder)
+        self.outputs = {k: torch.nn.Sequential() for k in out_modules}
 
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
+        for i, (o_size, o_drop) in enumerate(zip(out_size, out_dropout)):
+            layer_name = 'out%s' % i
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+            for out in self.outputs:
 
+                self.outputs[out].add_module(out + '_' + layer_name, torch.nn.Linear(last_hidden_size, o_size))
+                if batchnorm:
+                    self.outputs[out].add_module(out + '_' + layer_name + '_bn',
+                                                 torch.nn.BatchNorm1d(o_size, affine=False))
 
-class NBConstantDispAutoencoder(Autoencoder):
+                self.outputs[out].add_module(out + '_' + layer_name + '_act',
+                                             torch.nn.ReLU())
+                if o_drop > 0.0:
+                    self.outpute[out].add_module(out + '_' + layer_name + '_drop',
+                                                 torch.nn.Dropout(o_drop))
 
-    def build_output(self):
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                     kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                     name='mean')(self.decoder_output)
+            last_hidden_size = o_size
 
-        # Plug in dispersion parameters via fake dispersion layer
-        disp = ConstantDispersionLayer(name='dispersion')
-        mean = disp(mean)
+        for out, out_act  in out_modules.items():
+            self.outputs[out].add_module(out + '_pre', torch.nn.Linear(last_hidden_size, self.input_size))
+            self.outputs[out].add_module(out, out_act())
 
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+            self.add_module(out, self.outputs[out])
 
-        nb = NB(disp.theta_exp)
-        self.loss = nb.loss
-        self.extra_models['dispersion'] = lambda :K.function([], [nb.theta])([])[0].squeeze()
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+    def forward(self, input):
+        intermediate = self.decoder.forward(self.encoder.forward(input))
 
-    def predict(self, mat, **kwargs):
-        res = super().predict(mat, **kwargs)
+        if len(self.outputs) == 1:
+            k = list(self.outputs.keys())[0]
+            return self.outputs[k].forward(intermediate)
 
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
-
-        res['dispersion'] = self.extra_models['dispersion']()
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
-
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'],
-                              os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
-            write_text_matrix(res['error'],
-                              os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames)
-
-        return res
-
-
-class NBAutoencoder(Autoencoder):
-
-    def build_output(self):
-        disp = Dense(self.output_size, activation=ClippedExp,
-                           kernel_initializer=self.init,
-                           kernel_regularizer=l1_l2(self.l1_coef,
-                               self.l2_coef),
-                           name='dispersion')(self.decoder_output)
-
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp])
-
-        nb = NB(theta=disp, debug=True)
-        self.loss = nb.loss
-        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-    def predict(self, mat, **kwargs):
-        res = super().predict(count_matrix, **kwargs)
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
-
-        if kwargs['size_factors']:
-            sf_mat = estimate_size_factors(count_matrix)
-        else:
-            sf_mat = np.ones((count_matrix.shape[0],))
-
-        norm_count_matrix = normalize(count_matrix,
-                                      sf_mat,
-                                      logtrans=kwargs['logtrans_input'],
-                                      sfnorm=kwargs['size_factors'],
-                                      zeromean=kwargs['normalize_input'])
-
-        res['dispersion'] = self.extra_models['dispersion'].predict(norm_count_matrix)
-
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
-
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'],
-                              os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames, colnames=colnames)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
-            write_text_matrix(res['error'],
-                              os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames)
-
-        return res
-
-
-class NBSharedAutoencoder(NBAutoencoder):
-
-    def build_output(self):
-        disp = Dense(1, activation=ClippedExp,
-                     kernel_initializer=self.init,
-                     kernel_regularizer=l1_l2(self.l1_coef,
-                                              self.l2_coef),
-                     name='dispersion')(self.decoder_output)
-
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp])
-
-        nb = NB(theta=disp, debug=True)
-        self.loss = nb.loss
-        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-
-class ZINBAutoencoder(Autoencoder):
-
-    def build_output(self):
-        pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='pi')(self.decoder_output)
-
-        disp = Dense(self.output_size, activation=ClippedExp,
-                           kernel_initializer=self.init,
-                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                           name='dispersion')(self.decoder_output)
-
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp, pi])
-
-        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=True)
-        self.loss = zinb.loss
-        self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
-        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-    def predict(self, mat, **kwargs):
-        res = super().predict(mat, **kwargs)
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
-
-        if kwargs['size_factors']:
-            sf_mat = estimate_size_factors(count_matrix)
-        else:
-            sf_mat = np.ones((count_matrix.shape[0],))
-
-        norm_count_matrix = normalize(count_matrix,
-                                      sf_mat,
-                                      logtrans=kwargs['logtrans_input'],
-                                      sfnorm=kwargs['size_factors'],
-                                      zeromean=kwargs['normalize_input'])
-
-        res['pi'] = self.extra_models['pi'].predict(norm_count_matrix)
-        res['dispersion'] = self.extra_models['dispersion'].predict(norm_count_matrix)
-
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        #res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
-
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'],
-                              os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames, colnames=colnames)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
-            write_text_matrix(res['pi'],
-                              os.path.join(self.file_path, 'pi.tsv'),
-                              rownames=rownames, colnames=colnames)
-            #write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
-
-        return res
-
-
-class ZINBSharedAutoencoder(ZINBAutoencoder):
-
-    def build_output(self):
-        pi = Dense(1, activation='sigmoid', kernel_initializer=self.init,
-                   kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                   name='pi')(self.decoder_output)
-
-        disp = Dense(1, activation=ClippedExp,
-                     kernel_initializer=self.init,
-                     kernel_regularizer=l1_l2(self.l1_coef,
-                                              self.l2_coef),
-                     name='dispersion')(self.decoder_output)
-
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp, pi])
-
-        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=True)
-        self.loss = zinb.loss
-        self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
-        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-
-class ZINBConstantDispAutoencoder(Autoencoder):
-
-    def build_output(self):
-        pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                   kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                   name='pi')(self.decoder_output)
-
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                     kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                     name='mean')(self.decoder_output)
-
-        # NB dispersion layer
-        disp = ConstantDispersionLayer(name='dispersion')
-        mean = disp(mean)
-
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-
-        zinb = ZINB(pi, theta=disp.theta_exp, ridge_lambda=self.ridge, debug=True)
-        self.loss = zinb.loss
-        self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
-        self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
-
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-    def predict(self, mat, **kwargs):
-        res = super().predict(mat, **kwargs)
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
-
-        if kwargs['size_factors']:
-            sf_mat = estimate_size_factors(count_matrix)
-        else:
-            sf_mat = np.ones((count_matrix.shape[0],))
-
-        norm_count_matrix = normalize(count_matrix,
-                                      sf_mat,
-                                      logtrans=kwargs['logtrans_input'],
-                                      sfnorm=kwargs['size_factors'],
-                                      zeromean=kwargs['normalize_input'])
-
-        res['pi'] = self.extra_models['pi'].predict(norm_count_matrix)
-        res['dispersion'] = self.extra_models['dispersion']()
-
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
-
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'],
-                              os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
-            write_text_matrix(res['pi'],
-                              os.path.join(self.file_path, 'pi.tsv'),
-                              rownames=rownames, colnames=colnames)
-            write_text_matrix(res['error'],
-                              os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames)
-
-        return res
-
-
-class ZINBForkAutoencoder(ZINBAutoencoder):
-
-    def build(self):
-
-        self.input_layer = Input(shape=(self.input_size,), name='count')
-        self.sf_layer = Input(shape=(1,), name='size_factors')
-        last_hidden = self.input_layer
-
-        for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
-            center_idx = int(np.floor(len(self.hidden_size) / 2.0))
-            if i == center_idx:
-                layer_name = 'center'
-                stage = 'center'  # let downstream know where we are
-            elif i < center_idx:
-                layer_name = 'enc%s' % i
-                stage = 'encoder'
-            else:
-                layer_name = 'dec%s' % (i-center_idx)
-                stage = 'decoder'
-
-            # use encoder-specific l1/l2 reg coefs if given
-            if self.l1_enc_coef != 0. and stage in ('center', 'encoder'):
-                l1 = self.l1_enc_coef
-            else:
-                l1 = self.l1_coef
-
-            if self.l2_enc_coef != 0. and stage in ('center', 'encoder'):
-                l2 = self.l2_enc_coef
-            else:
-                l2 = self.l2_coef
-
-            if i > center_idx:
-                self.last_hidden_mean = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                    kernel_regularizer=l1_l2(l1, l2),
-                                    name='%s_last_mean'%layer_name)(last_hidden)
-                self.last_hidden_disp = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                    kernel_regularizer=l1_l2(l1, l2),
-                                    name='%s_last_disp'%layer_name)(last_hidden)
-                self.last_hidden_pi = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                    kernel_regularizer=l1_l2(l1, l2),
-                                    name='%s_last_pi'%layer_name)(last_hidden)
-
-                if self.batchnorm:
-                    self.last_hidden_mean = BatchNormalization(center=True, scale=False)(self.last_hidden_mean)
-                    self.last_hidden_disp = BatchNormalization(center=True, scale=False)(self.last_hidden_disp)
-                    self.last_hidden_pi = BatchNormalization(center=True, scale=False)(self.last_hidden_pi)
-
-                # Use separate act. layers to give user the option to get pre-activations
-                # of layers when requested
-                self.last_hidden_mean = Activation(self.activation, name='%s_mean_act'%layer_name)(self.last_hidden_mean)
-                self.last_hidden_disp = Activation(self.activation, name='%s_disp_act'%layer_name)(self.last_hidden_disp)
-                self.last_hidden_pi = Activation(self.activation, name='%s_pi_act'%layer_name)(self.last_hidden_pi)
-
-                if hid_drop > 0.0:
-                    self.last_hidden_mean = Dropout(hid_drop, name='%s_mean_drop'%layer_name)(self.last_hidden_mean)
-                    self.last_hidden_disp = Dropout(hid_drop, name='%s_disp_drop'%layer_name)(self.last_hidden_disp)
-                    self.last_hidden_pi = Dropout(hid_drop, name='%s_pi_drop'%layer_name)(self.last_hidden_pi)
-
-            else:
-                last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                    kernel_regularizer=l1_l2(l1, l2),
-                                    name=layer_name)(last_hidden)
-
-                if self.batchnorm:
-                    last_hidden = BatchNormalization(center=True, scale=False)(last_hidden)
-
-                # Use separate act. layers to give user the option to get pre-activations
-                # of layers when requested
-                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
-
-                if hid_drop > 0.0:
-                    last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
-
-        self.build_output()
-
-
-    def build_output(self):
-        pi = Dense(self.output_size, activation='sigmoid', kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='pi')(self.last_hidden_pi)
-
-        disp = Dense(self.output_size, activation=ClippedExp,
-                           kernel_initializer=self.init,
-                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                           name='dispersion')(self.last_hidden_disp)
-
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='mean')(self.last_hidden_mean)
-
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp, pi])
-
-        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=True)
-        self.loss = zinb.loss
-        self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
-        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-
-class NBForkAutoencoder(NBAutoencoder):
-
-    def build(self):
-
-        self.input_layer = Input(shape=(self.input_size,), name='count')
-        self.sf_layer = Input(shape=(1,), name='size_factors')
-        last_hidden = self.input_layer
-
-        for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
-            center_idx = int(np.floor(len(self.hidden_size) / 2.0))
-            if i == center_idx:
-                layer_name = 'center'
-                stage = 'center'  # let downstream know where we are
-            elif i < center_idx:
-                layer_name = 'enc%s' % i
-                stage = 'encoder'
-            else:
-                layer_name = 'dec%s' % (i-center_idx)
-                stage = 'decoder'
-
-            # use encoder-specific l1/l2 reg coefs if given
-            if self.l1_enc_coef != 0. and stage in ('center', 'encoder'):
-                l1 = self.l1_enc_coef
-            else:
-                l1 = self.l1_coef
-
-            if self.l2_enc_coef != 0. and stage in ('center', 'encoder'):
-                l2 = self.l2_enc_coef
-            else:
-                l2 = self.l2_coef
-
-            if i > center_idx:
-                self.last_hidden_mean = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                    kernel_regularizer=l1_l2(l1, l2),
-                                    name='%s_last_mean'%layer_name)(last_hidden)
-                self.last_hidden_disp = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                    kernel_regularizer=l1_l2(l1, l2),
-                                    name='%s_last_disp'%layer_name)(last_hidden)
-
-                if self.batchnorm:
-                    self.last_hidden_mean = BatchNormalization(center=True, scale=False)(self.last_hidden_mean)
-                    self.last_hidden_disp = BatchNormalization(center=True, scale=False)(self.last_hidden_disp)
-
-                # Use separate act. layers to give user the option to get pre-activations
-                # of layers when requested
-                self.last_hidden_mean = Activation(self.activation, name='%s_mean_act'%layer_name)(self.last_hidden_mean)
-                self.last_hidden_disp = Activation(self.activation, name='%s_disp_act'%layer_name)(self.last_hidden_disp)
-
-                if hid_drop > 0.0:
-                    self.last_hidden_mean = Dropout(hid_drop, name='%s_mean_drop'%layer_name)(self.last_hidden_mean)
-                    self.last_hidden_disp = Dropout(hid_drop, name='%s_disp_drop'%layer_name)(self.last_hidden_disp)
-
-            else:
-                last_hidden = Dense(hid_size, activation=None, kernel_initializer=self.init,
-                                    kernel_regularizer=l1_l2(l1, l2),
-                                    name=layer_name)(last_hidden)
-
-                if self.batchnorm:
-                    last_hidden = BatchNormalization(center=True, scale=False)(last_hidden)
-
-                # Use separate act. layers to give user the option to get pre-activations
-                # of layers when requested
-                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
-
-                if hid_drop > 0.0:
-                    last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
-
-        self.build_output()
-
-
-    def build_output(self):
-
-        disp = Dense(self.output_size, activation=ClippedExp,
-                           kernel_initializer=self.init,
-                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                           name='dispersion')(self.last_hidden_disp)
-
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
-                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
-                       name='mean')(self.last_hidden_mean)
-
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp])
-
-        nb = NB(theta=disp, debug=True)
-        self.loss = nb.loss
-        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
-        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
-
-        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
-        if self.ae:
-            self.encoder = self.get_encoder()
-
-
-AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
-            'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
-            'nb-shared': NBSharedAutoencoder, 'nb-fork': NBForkAutoencoder,
-            'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder,
-            'zinb-shared': ZINBSharedAutoencoder, 'zinb-fork': ZINBForkAutoencoder}
+        return {k: v.forward(intermediate) for k, v in self.outputs.items()}
 
