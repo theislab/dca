@@ -87,7 +87,8 @@ class lgamma2(Function):
         res = torch.from_numpy(digamma(input.numpy())).type_as(input)
         return grad_output*res
 
-
+ # log gamma code from pyro:
+ # https://github.com/uber/pyro/blob/dev/pyro/distributions/util.py
 def lgamma(xx):
     if isinstance(xx, torch.Tensor):
         xx = Variable(xx)
