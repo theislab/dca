@@ -112,7 +112,7 @@ def lgamma(xx):
     return torch.log(ser * magic2) - t
 
 
-class TorchNBLoss(torch.nn.Module):
+class NBLoss(torch.nn.Module):
     def __init__(self, theta_shape=None, theta_dtype=torch.Tensor, size_average=True):
         super().__init__()
         self.size_average = size_average
@@ -143,7 +143,7 @@ class TorchNBLoss(torch.nn.Module):
             return res
 
 
-class TorchZINBLoss(torch.nn.Module):
+class ZINBLoss(torch.nn.Module):
     def __init__(self, theta_shape=None, size_average=True):
         super().__init__()
         self.size_average = size_average
@@ -189,7 +189,7 @@ class TorchZINBLoss(torch.nn.Module):
         return res
 
 
-class TorchZINBLossEM(torch.nn.Module):
+class ZINBEMLoss(torch.nn.Module):
     def __init__(self, theta_shape=None, size_average=True):
         super().__init__()
         self.size_average = size_average
