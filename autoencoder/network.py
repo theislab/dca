@@ -37,6 +37,7 @@ class Autoencoder(torch.nn.Module):
                  out_dropout=0.,
                  out_modules={'input': torch.nn.Sequential},
                  out_name_to_human={'input': 'mean'},
+                 activation='ReLU',
                  batchnorm=True):
 
         assert loss_type in LOSS_TYPES, 'Undefined loss type'
@@ -46,6 +47,7 @@ class Autoencoder(torch.nn.Module):
         self.input_size = input_size
         self.loss = LOSS_TYPES[loss_type](**loss_args)
         self.out_name_to_human = out_name_to_human
+        act = torch.nn.__dict__[activation]
 
         if isinstance(enc_dropout, list):
             assert len(enc_dropout) == len(enc_size)
@@ -71,10 +73,17 @@ class Autoencoder(torch.nn.Module):
             layer_name = 'enc%s' % i
 
             self.encoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, e_size))
+
             if batchnorm:
                 self.encoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(e_size, affine=False))
 
-            self.encoder.add_module(layer_name + '_act', torch.nn.ReLU())
+            # make a soft copy of the encoder to be able to get embeddings w/o
+            # activation
+            if i == (len(enc_size)-1):
+                self.add_module('encoder_linear',
+                                torch.nn.Sequential(*list(self.encoder._modules.values())))
+
+            self.encoder.add_module(layer_name + '_act', act())
             if e_drop > 0.0:
                 self.encoder.add_module(layer_name + '_drop', torch.nn.Dropout(e_drop))
 
@@ -90,7 +99,7 @@ class Autoencoder(torch.nn.Module):
             if batchnorm:
                 self.decoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(d_size, affine=False))
 
-            self.decoder.add_module(layer_name + '_act', torch.nn.ReLU())
+            self.decoder.add_module(layer_name + '_act', act())
             if d_drop > 0.0:
                 self.decoder.add_module(layer_name + '_drop', torch.nn.Dropout(d_drop))
 
@@ -109,7 +118,7 @@ class Autoencoder(torch.nn.Module):
                                                  torch.nn.BatchNorm1d(o_size, affine=False))
 
                 self.outputs[out].add_module(out + '_' + layer_name + '_act',
-                                             torch.nn.ReLU())
+                                             act())
                 if o_drop > 0.0:
                     self.outpute[out].add_module(out + '_' + layer_name + '_drop',
                                                  torch.nn.Dropout(o_drop))
