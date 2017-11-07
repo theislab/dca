@@ -100,8 +100,9 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
 def train_with_args(args):
     ds = io.Dataset(args.trainingset)
 
-    hidden_size = [int(x) for x in args.hiddensize.split(',')]
-    hidden_dropout = [float(x) for x in args.dropoutrate.split(',')]
+    enc_size = [int(x) for x in args.hiddensize.split(',')]
+    enc_dropout = [float(x) for x in args.dropoutrate.split(',')]
+
     if len(hidden_dropout) == 1:
         hidden_dropout = hidden_dropout[0]
 
