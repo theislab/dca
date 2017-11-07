@@ -159,6 +159,19 @@ class ZINBEMAutoencoder(Autoencoder):
         kwargs['loss_type'] = 'zinbem'
         super().__init__(*args, **kwargs)
 
+    def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32,
+              optimizer='Adadelta', optimizer_args={}):
+
+        optimizer = torch.optim.__dict__[optimizer](list(self.parameters()) +
+                                                    list(self.loss.parameters()),
+                                                    **optimizer_args)
+
+        return train_em(model_dict={'input': X},
+                       loss_dict={'target': Y},
+                       model=self, loss=self.loss, optimizer=optimizer,
+                       epochs=epochs, batch_size=batch_size,
+                       verbose=1, m_epochs=m_epochs)
+
 
 class NBAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
