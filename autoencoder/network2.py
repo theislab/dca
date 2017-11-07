@@ -98,9 +98,8 @@ class Autoencoder(torch.nn.Module):
 
             self.add_module(out, self.outputs[out])
 
+
     def forward(self, input):
         intermediate = self.decoder.forward(self.encoder.forward(input))
+        return {k: v.forward(intermediate) for k, v in self.outputs.items()}
 
-        return {'input': self.mean.forward(intermediate),
-                'pi':    self.pi.forward(intermediate),
-                'theta': self.theta.forward(intermediate)}
