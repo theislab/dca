@@ -17,11 +17,11 @@ save.sim <- function(sim, dir) {
 
   # save count matrices
   write.table(counts, paste0(dir, '/counts.tsv'),
-              sep='\t', row.names=F, col.names=F, quote=F)
+              sep='\t', row.names=T, col.names=T, quote=F)
   write.table(truecounts, paste0(dir, '/info_truecounts.tsv'),
-              sep='\t', row.names=F, col.names=F, quote=F)
+              sep='\t', row.names=T, col.names=T, quote=F)
   write.table(format(lognorm, digits=6), paste0(dir, '/counts_lognorm.tsv'),
-              sep='\t', row.names=F, col.names=F, quote=F)
+              sep='\t', row.names=T, col.names=T, quote=F)
 
   if (drp) {
     # save ground truth dropout labels
