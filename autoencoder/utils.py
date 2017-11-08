@@ -146,10 +146,11 @@ class NBLoss(torch.nn.Module):
 
 
 class ZINBLoss(torch.nn.Module):
-    def __init__(self, theta_shape=None, size_average=True):
+    def __init__(self, theta_shape=None, pi_ridge=0.0, size_average=True):
         super().__init__()
         self.size_average = size_average
         self.theta_shape = theta_shape
+        self.pi_ridge = pi_ridge
 
         if theta_shape is not None:
             theta = torch.Tensor(*theta_shape).log_normal_(0.1, 0.01)
@@ -172,6 +173,10 @@ class ZINBLoss(torch.nn.Module):
 
         result = zero_mask*zero_case + nb_mask*nb_case
 
+        if self.pi_ridge:
+            ridge = self.pi_ridge*tf.square(pi)
+            result += ridge
+
         if self.size_average:
             return result.mean()
         else:
@@ -192,10 +197,11 @@ class ZINBLoss(torch.nn.Module):
 
 
 class ZINBEMLoss(torch.nn.Module):
-    def __init__(self, theta_shape=None, size_average=True):
+    def __init__(self, theta_shape=None, pi_ridge=0.0, size_average=True):
         super().__init__()
         self.size_average = size_average
         self.theta_shape = theta_shape
+        self.pi_ridge = pi_ridge
 
         if theta_shape is not None:
             theta = torch.Tensor(*theta_shape).log_normal_(0.1, 0.01)
@@ -217,6 +223,10 @@ class ZINBEMLoss(torch.nn.Module):
         nb_comp = nb_memberships * nb_comp
 
         result = -(zero_comp + nb_comp)
+
+        if self.pi_ridge:
+            ridge = self.pi_ridge*tf.square(pi)
+            result += ridge
 
         if self.size_average:
             return result.mean()
