@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+from collections import namedtuple
 import numpy as np
 from .utils import *
 from .io import write_text_matrix, estimate_size_factors, normalize
@@ -24,8 +25,20 @@ from torch.autograd import Variable
 LOSS_TYPES = {'mse': torch.nn.MSELoss, 'nb': NBLoss, 'zinb': ZINBLoss,
               'zinbem': ZINBEMLoss, 'poisson': torch.nn.PoissonNLLLoss}
 
+# metadat of an output module
+# such as human readable name, row/col names (true/false) and activation
+OutModule = namedtuple('OutModule', 'hname rname cname act')
 
-class Autoencoder(torch.nn.Module):
+class AEModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input):
+        intermediate = self.decoder.forward(self.encoder.forward(input))
+        return {k: v.forward(intermediate) for k, v in self.outputs.named_children()}
+
+
+class Autoencoder():
     def __init__(self,
                  input_size,
                  loss_type, loss_args={},
@@ -35,8 +48,10 @@ class Autoencoder(torch.nn.Module):
                  enc_dropout=0.,
                  dec_dropout=0.,
                  out_dropout=0.,
-                 out_modules={'input': torch.nn.Sequential},
-                 out_name_to_human={'input': 'mean'},
+                 out_modules={'input': OutModule(hname='mean',
+                                                 rname=True,
+                                                 cname=True,
+                                                 act=torch.nn.Sequential)},
                  activation='ReLU',
                  batchnorm=True):
 
@@ -46,7 +61,19 @@ class Autoencoder(torch.nn.Module):
 
         self.input_size = input_size
         self.loss = LOSS_TYPES[loss_type](**loss_args)
-        self.out_name_to_human = out_name_to_human
+        self.outputs_metadata = out_modules
+        self.model = AEModule()
+
+        encoder = torch.nn.Sequential()
+        self.model.add_module('encoder', encoder)
+
+        decoder = torch.nn.Sequential()
+        self.model.add_module('decoder', decoder)
+
+        outputsdict = {k: torch.nn.Sequential() for k in out_modules}
+        outputsmod = torch.nn.Module()
+        self.model.add_module('outputs', outputsmod)
+
         act = torch.nn.__dict__[activation]
 
         if isinstance(enc_dropout, list):
@@ -64,167 +91,209 @@ class Autoencoder(torch.nn.Module):
         else:
             out_dropout = [out_dropout]*len(out_size)
 
-
-        encoder = torch.nn.Sequential()
-        self.add_module('encoder', encoder)
         last_hidden_size = input_size
 
         for i, (e_size, e_drop) in enumerate(zip(enc_size, enc_dropout)):
             layer_name = 'enc%s' % i
 
-            self.encoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, e_size))
+            encoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, e_size))
 
             if batchnorm:
-                self.encoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(e_size, affine=False))
+                encoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(e_size, affine=False))
 
             # make a soft copy of the encoder to be able to get embeddings w/o
             # activation
             if i == (len(enc_size)-1):
-                self.add_module('encoder_linear',
-                                torch.nn.Sequential(*list(self.encoder._modules.values())))
+                self.model.add_module('encoder_linear',
+                                      torch.nn.Sequential(*list(self.encoder._modules.values())))
 
-            self.encoder.add_module(layer_name + '_act', act())
+            encoder.add_module(layer_name + '_act', act())
             if e_drop > 0.0:
-                self.encoder.add_module(layer_name + '_drop', torch.nn.Dropout(e_drop))
+                encoder.add_module(layer_name + '_drop', torch.nn.Dropout(e_drop))
 
             last_hidden_size = e_size
-
-        decoder = torch.nn.Sequential()
-        self.add_module('decoder', decoder)
 
         for i, (d_size, d_drop) in enumerate(zip(dec_size, dec_dropout)):
             layer_name = 'dec%s' % i
 
-            self.decoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, d_size))
+            decoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, d_size))
             if batchnorm:
-                self.decoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(d_size, affine=False))
+                decoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(d_size, affine=False))
 
-            self.decoder.add_module(layer_name + '_act', act())
+            decoder.add_module(layer_name + '_act', act())
             if d_drop > 0.0:
-                self.decoder.add_module(layer_name + '_drop', torch.nn.Dropout(d_drop))
+                decoder.add_module(layer_name + '_drop', torch.nn.Dropout(d_drop))
 
             last_hidden_size = d_size
-
-        self.outputs = {k: torch.nn.Sequential() for k in out_modules}
 
         for i, (o_size, o_drop) in enumerate(zip(out_size, out_dropout)):
             layer_name = 'out%s' % i
 
-            for out in self.outputs:
+            for out in outputsdict:
 
-                self.outputs[out].add_module(out + '_' + layer_name, torch.nn.Linear(last_hidden_size, o_size))
+                outputsdict[out].add_module(out + '_' + layer_name, torch.nn.Linear(last_hidden_size, o_size))
                 if batchnorm:
-                    self.outputs[out].add_module(out + '_' + layer_name + '_bn',
-                                                 torch.nn.BatchNorm1d(o_size, affine=False))
+                    outputsdict[out].add_module(out + '_' + layer_name + '_bn',
+                                                torch.nn.BatchNorm1d(o_size, affine=False))
 
-                self.outputs[out].add_module(out + '_' + layer_name + '_act',
-                                             act())
+                outputsdict[out].add_module(out + '_' + layer_name + '_act',
+                                            act())
                 if o_drop > 0.0:
-                    self.outpute[out].add_module(out + '_' + layer_name + '_drop',
-                                                 torch.nn.Dropout(o_drop))
+                    outputedict[out].add_module(out + '_' + layer_name + '_drop',
+                                                torch.nn.Dropout(o_drop))
 
             last_hidden_size = o_size
 
-        for out, out_act  in out_modules.items():
-            self.outputs[out].add_module(out + '_pre', torch.nn.Linear(last_hidden_size, self.input_size))
-            self.outputs[out].add_module(out, out_act())
+        for out_name, out in out_modules.items():
+            outputsdict[out_name].add_module(out_name + '_pre',
+                                             torch.nn.Linear(last_hidden_size, self.input_size))
+            outputsdict[out_name].add_module(out_name, out.act())
 
-            self.add_module(out, self.outputs[out])
-
-
-    def forward(self, input):
-        intermediate = self.decoder.forward(self.encoder.forward(input))
-        return {k: v.forward(intermediate) for k, v in self.outputs.items()}
+            outputsmod.add_module(out_name, outputsdict[out_name])
 
 
-    def train(self, X, Y, epochs=300, batch_size=32,
-              optimizer='Adadelta', optimizer_args={}):
+    def __repr__(self):
+        return self.model.__repr__()
 
-        optimizer = torch.optim.__dict__[optimizer](list(self.parameters()) +
-                                                    list(self.loss.parameters()),
-                                                    **optimizer_args)
+    @property
+    def encoder(self):
+        return self.model.encoder
 
-        return train(model_dict={'input': X},
+    @property
+    def decoder(self):
+        return self.model.decoder
+
+    @property
+    def outputs(self):
+        return self.model.outputs
+
+    def train(self, X, Y, epochs=300, batch_size=32, l2=0.0,
+              l2_enc=0.0, l2_out=0.0, optimizer='Adadelta', optimizer_args={},
+              gpu=False):
+
+        optimizer = self.setup_optimizer(optimizer, optimizer_args,
+                                         l2, l2_enc, l2_out)
+        if gpu:
+            print('Running on GPU')
+        else:
+            print('Running on CPU')
+
+        ret = train(model_dict={'input': X},
                      loss_dict={'target': Y},
-                     model=self, loss=self.loss, optimizer=optimizer,
+                     model=self.model, loss=self.loss, optimizer=optimizer,
                      epochs=epochs, batch_size=batch_size,
-                     verbose=1)
+                     verbose=1, gpu=gpu)
 
-    def predict(self, X, folder='./'):
-        preds = self(Variable(torch.from_numpy(X)))
+        self.model = ret['model']
+        return ret
+
+    def setup_optimizer(self, optimizer, optimizer_args, l2, l2_enc, l2_out):
+        params = [{'params': self.encoder.parameters()},
+                  {'params': self.decoder.parameters()},
+                  {'params': self.outputs.parameters()}]
+
+        if l2_enc:
+            params[0]['weight_decay'] = l2_enc
+        if l2_out:
+            params[2]['weight_decay'] = l2_out
+
+        if l2:
+            return torch.optim.__dict__[optimizer](params, **optimizer_args,
+                                                   weight_decay=l2)
+        else:
+            return torch.optim.__dict__[optimizer](params, **optimizer_args)
+
+
+    def predict(self, X, rownames=None, colnames=None, folder='./', gpu=False):
+        X = Variable(torch.from_numpy(X))
+        if gpu:
+            X = X.cuda()
+            model = self.model.cuda()
+        else:
+            X = X.float()
+            model = self.model.float()
+
+        preds = model(X)
         os.makedirs(folder, exist_ok=True)
 
         for name, mat in preds.items():
-            name = self.out_name_to_human.get(name, name)
-            filename = os.path.join(folder, name + '.tsv')
-            write_text_matrix(mat.data.numpy(), filename)
+            hname = self.outputs_metadata[name].hname
+            rname = self.outputs_metadata[name].rname
+            cname = self.outputs_metadata[name].cname
+            filename = os.path.join(folder, hname + '.tsv')
+            write_text_matrix(mat.data.numpy(), filename,
+                              rownames=rownames if rname else None,
+                              colnames=colnames if cname else None)
 
 
 class ZINBAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'mean': ExpModule,
-               'pi': torch.nn.Sigmoid,
-               'theta': ExpModule}
+        out = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
+               'pi': OutModule(hname='pi', rname=True, cname=True, act=torch.nn.Sigmoid),
+               'theta': OutModule(hname='dispersion', rname=True, cname=True, act=ExpModule)}
 
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'zinb'
-        kwargs['out_name_to_human'] = {'theta': 'dispersion'}
 
         super().__init__(*args, **kwargs)
 
 
 class ZINBEMAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'mean': ExpModule,
-               'pi': torch.nn.Sigmoid,
-               'theta': ExpModule}
+        out = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
+               'pi': OutModule(hname='pi', rname=True, cname=True, act=torch.nn.Sigmoid),
+               'theta': OutModule(hname='dispersion', rname=True, cname=True, act=ExpModule)}
 
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'zinbem'
-        kwargs['out_name_to_human'] = {'theta': 'dispersion'}
         super().__init__(*args, **kwargs)
 
-    def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32,
-              optimizer='Adadelta', optimizer_args={}):
+    def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32, l2=0, l2_enc=0, l2_out=0,
+              optimizer='Adadelta', optimizer_args={}, gpu=False):
 
-        optimizer = torch.optim.__dict__[optimizer](list(self.parameters()) +
-                                                    list(self.loss.parameters()),
-                                                    **optimizer_args)
+        optimizer = self.setup_optimizer(optimizer, optimizer_args,
+                                         l2, l2_enc, l2_out)
+        if gpu:
+            print('Running on GPU')
+        else:
+            print('Running on CPU')
 
-        return train_em(model_dict={'input': X},
+        ret = train_em(model_dict={'input': X},
                        loss_dict={'target': Y},
-                       model=self, loss=self.loss, optimizer=optimizer,
+                       model=self.model, loss=self.loss, optimizer=optimizer,
                        epochs=epochs, batch_size=batch_size,
-                       verbose=1, m_epochs=m_epochs)
+                       verbose=1, m_epochs=m_epochs, gpu=gpu)
+        self.model = ret['model']
+        return ret
 
 
 class NBAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'mean': ExpModule, 'theta': ExpModule}
+        out = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
+               'theta': OutModule(hname='dispersion', rname=True, cname=True, act=ExpModule)}
+
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'nb'
-        kwargs['out_name_to_human'] = {'theta': 'dispersion'}
 
         super().__init__(*args, **kwargs)
 
 
 class PoissonAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'log_input': torch.nn.Sequential}
+        out = {'log_input': OutModule(hname='log_mean', rname=True, cname=True, act=ExpModule)}
+
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'poisson'
         kwargs['loss_args'] = {'full': True, 'log_input': True}
-        kwargs['out_name_to_human'] = {'log_input': 'log_mean'}
 
         super().__init__(*args, **kwargs)
 
 
 class MSEAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
-        out = {'input': torch.nn.Sequential}
+        out = {'input': OutModule(hname='mean', rname=True, cname=True, act=torch.nn.Sequential)}
         kwargs['out_modules'] = out
         kwargs['loss_type'] = 'mse'
-        kwargs['out_name_to_human'] = {'input': 'mean'}
 
         super().__init__(*args, **kwargs)
 

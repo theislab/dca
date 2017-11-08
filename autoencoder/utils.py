@@ -21,8 +21,11 @@ class DictTensorDataset(Dataset):
         check_dicts(inputs, outputs)
         inlens = np.unique(np.array([len(x) for x in inputs.values()]))
 
-        self.inputs =  {k: torch.from_numpy(v) if type(v).__name__ == 'ndarray' else v for k, v in inputs.items()}
-        self.outputs = {k: torch.from_numpy(v) if type(v).__name__ == 'ndarray' else v for k, v in outputs.items()}
+        self.inputs =  {k: torch.from_numpy(v)
+                        if type(v).__name__ == 'ndarray' else v for k, v in inputs.items()}
+
+        self.outputs = {k: torch.from_numpy(v)
+                        if type(v).__name__ == 'ndarray' else v for k, v in outputs.items()}
         self.length = inlens[0]
 
     def __getitem__(self, index):
@@ -31,6 +34,14 @@ class DictTensorDataset(Dataset):
 
     def __len__(self):
         return self.length
+
+    def type(self, dtype):
+        return DictTensorDataset({k: v.type(dtype) for k, v in self.inputs.items()},
+                                 {k: v.type(dtype) for k, v in self.outputs.items()})
+
+    def cuda(self, dtype):
+        return DictTensorDataset({k: v.cuda() for k, v in self.inputs.items()},
+                                 {k: v.cuda() for k, v in self.outputs.items()})
 
 
 class ExpModule(torch.nn.Module):
@@ -266,10 +277,18 @@ class ZINBEMLoss(torch.nn.Module):
 
 def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
           val_split=0.1, val_data=None, batch_size=32,
-          shuffle=True, verbose=0, early_stopping=None, scheduler=None):
+          shuffle=True, verbose=0, early_stopping=None, scheduler=None,
+          gpu=False):
 
     check_dicts(model_dict, loss_dict)
     dataset = DictTensorDataset(model_dict, loss_dict)
+
+    if gpu:
+        dataset = dataset.cuda()
+        model = model.cuda()
+    else:
+        dataset = dataset.type('torch.FloatTensor')
+        model = model.float()
 
     if shuffle:
         # shuffle dataset
@@ -345,12 +364,19 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
 def train_em(model_dict, loss_dict, model, loss,
              optimizer, epochs=1, m_epochs=1, val_split=0.1,
              batch_size=32, shuffle=True, verbose=0, early_stopping=None,
-             scheduler=None):
+             scheduler=None, gpu=False):
 
     memberships = torch.from_numpy(np.zeros_like(loss_dict['target']))
     loss_dict['zero_memberships'] = memberships
     check_dicts(model_dict, loss_dict)
     dataset = DictTensorDataset(model_dict, loss_dict)
+
+    if gpu:
+        dataset = dataset.cuda()
+        model = model.cuda()
+    else:
+        dataset = dataset.type('torch.FloatTensor')
+        model = model.float()
 
     if shuffle:
         idx = torch.randperm(len(dataset))
@@ -369,7 +395,8 @@ def train_em(model_dict, loss_dict, model, loss,
                           model=model, loss=loss, optimizer=optimizer,
                           epochs=m_epochs, shuffle=shuffle, verbose=0,
                           batch_size=batch_size, val_data=val_data,
-                          val_split=0.0, early_stopping=early_stopping)
+                          val_split=0.0, early_stopping=early_stopping,
+                          gpu=gpu)
         ret['loss'] += train_ret['loss']
 
         if val_data:

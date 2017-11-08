@@ -20,10 +20,8 @@ from __future__ import print_function
 import os, sys, argparse
 import numpy as np
 import six
-import tensorflow as tf
-slim = tf.contrib.slim
 
-from . import io, train, test, predict
+from . import io, train
 
 
 def parse_args():
@@ -61,32 +59,36 @@ def parse_args():
                  "zinb, zinbem(default)")
     parser_train.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
-    #parser_train.add_argument('--sizefactors', dest='sizefactors',
-            #action='store_true', help="Normalize means by library size (default: True)")
-    #parser_train.add_argument('--nosizefactors', dest='sizefactors',
-            #action='store_false', help="Do not normalize means by library size")
-    #parser_train.add_argument('--norminput', dest='norminput',
-            #action='store_true', help="Zero-mean normalize input (default: True)")
-    #parser_train.add_argument('--nonorminput', dest='norminput',
-            #action='store_false', help="Do not zero-mean normalize inputs")
-    #parser_train.add_argument('--loginput', dest='loginput',
-            #action='store_true', help="Log-transform input (default: True)")
-    #parser_train.add_argument('--nologinput', dest='loginput',
-            #action='store_false', help="Do not log-transform inputs")
+    parser_train.add_argument('--gpu', dest='gpu',
+            action='store_true', help="Run on GPU")
+    parser_train.add_argument('--sizefactors', dest='sizefactors',
+            action='store_true', help="Normalize means by library size (default: True)")
+    parser_train.add_argument('--nosizefactors', dest='sizefactors',
+            action='store_false', help="Do not normalize means by library size")
+    parser_train.add_argument('--norminput', dest='norminput',
+            action='store_true', help="Zero-mean normalize input (default: True)")
+    parser_train.add_argument('--nonorminput', dest='norminput',
+            action='store_false', help="Do not zero-mean normalize inputs")
+    parser_train.add_argument('--loginput', dest='loginput',
+            action='store_true', help="Log-transform input (default: True)")
+    parser_train.add_argument('--nologinput', dest='loginput',
+            action='store_false', help="Do not log-transform inputs")
     parser_train.add_argument('--batchnorm', dest='batchnorm', action='store_true',
             help="Batchnorm (default: True)")
     parser_train.add_argument('--nobatchnorm', dest='batchnorm', action='store_false',
             help="Do not use batchnorm")
     parser_train.add_argument('--l2', type=float, default=0.0,
             help="L2 regularization coefficient (default: 0.0)")
+    parser_train.add_argument('--l2enc', type=float, default=0.0,
+            help="Encoder-specific L2 regularization coefficient (default: 0.0)")
+    parser_train.add_argument('--l2out', type=float, default=0.0,
+            help="Output ranch-specific L2 regularization coefficient (default: 0.0)")
     #parser_train.add_argument('--l1', type=float, default=0.0,
             #help="L1 regularization coefficient (default: 0.0)")
-    #parser_train.add_argument('--l2enc', type=float, default=0.0,
-            #help="Encoder-specific L2 regularization coefficient (default: 0.0)")
     #parser_train.add_argument('--l1enc', type=float, default=0.0,
             #help="Encoder-specific L1 regularization coefficient (default: 0.0)")
-    #parser_train.add_argument('--ridge', type=float, default=0.0,
-            #help="L2 regularization coefficient for dropout probabilities (default: 0.0)")
+    parser_train.add_argument('--piridge', type=float, default=0.0,
+            help="L2 regularization coefficient for dropout probabilities (default: 0.0)")
     #parser_train.add_argument('--gradclip', type=float, default=5.0,
             #help="Clip grad values (default: 5.0)")
     parser_train.add_argument('--activation', type=str, default='ReLU',
@@ -121,29 +123,29 @@ def parse_args():
     #parser_test.set_defaults(func=test.test)
 
     # predict subparser
-    parser_predict = subparsers.add_parser('predict',
-            help='make predictions on a given dataset using a pre-trained model.')
-    parser_predict.add_argument('dataset', type=str,
-            help="File path of the input set. It must be preprocessed using "
-                 "preprocess subcommand")
-    parser_predict.add_argument('modeldir', type=str,
-            help="Path of the folder where model weights and arch are saved")
-    parser_predict.add_argument('-o', '--outputdir', type=str,
-            help="Path of the output", required=True)
-    parser_predict.add_argument('-r', '--reduced', dest='reduced',
-            action='store_true', help="predict input to the hidden size")
-    parser_predict.add_argument('--reconstruct', dest='reconstruct',
-            action='store_true', help="Save mean parameter (default: True)")
-    parser_predict.add_argument('--noreconstruct', dest='reconstruct',
-            action='store_false', help="Do not save mean parameter")
-    parser_predict.add_argument('--reduce', dest='dimreduce',
-            action='store_true', help="Save dim reduced matrix (default: True)")
-    parser_predict.add_argument('--noreduce', dest='dimreduce',
-            action='store_false', help="Do not save dim reduced matrix")
+    #parser_predict = subparsers.add_parser('predict',
+            #help='make predictions on a given dataset using a pre-trained model.')
+    #parser_predict.add_argument('dataset', type=str,
+            #help="File path of the input set. It must be preprocessed using "
+                 #"preprocess subcommand")
+    #parser_predict.add_argument('modeldir', type=str,
+            #help="Path of the folder where model weights and arch are saved")
+    #parser_predict.add_argument('-o', '--outputdir', type=str,
+            #help="Path of the output", required=True)
+    #parser_predict.add_argument('-r', '--reduced', dest='reduced',
+            #action='store_true', help="predict input to the hidden size")
+    #parser_predict.add_argument('--reconstruct', dest='reconstruct',
+            #action='store_true', help="Save mean parameter (default: True)")
+    #parser_predict.add_argument('--noreconstruct', dest='reconstruct',
+            #action='store_false', help="Do not save mean parameter")
+    #parser_predict.add_argument('--reduce', dest='dimreduce',
+            #action='store_true', help="Save dim reduced matrix (default: True)")
+    #parser_predict.add_argument('--noreduce', dest='dimreduce',
+            #action='store_false', help="Do not save dim reduced matrix")
 
-    parser_predict.set_defaults(func=predict.predict_with_args,
-                                dimreduce=True,
-                                reconstruct=True)
+    #parser_predict.set_defaults(func=predict.predict_with_args,
+                                #dimreduce=True,
+                                #reconstruct=True)
 
     return parser.parse_args()
 
