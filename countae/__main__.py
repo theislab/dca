@@ -39,7 +39,7 @@ def parse_args():
             action='store_true', help="Use one fold as a test set (default: False)")
 
     # Training options
-    parser.add_argument('-t', '--type', type=str, default='zinbem',
+    parser.add_argument('--type', type=str, default='zinbem',
             help="Type of autoencoder. Possible values: mse, poisson, nb, "
                  "zinb, zinbem(default)")
     parser.add_argument('-b', '--batchsize', type=int, default=32,
