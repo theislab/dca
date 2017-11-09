@@ -256,7 +256,7 @@ class ZINBEMLoss(torch.nn.Module):
 
 
 def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
-          val_split=0.1, val_data=None, batch_size=32,
+          val_split=0.1, val_data=None, batch_size=32, grad_clip=5.0,
           shuffle=True, verbose=0, early_stopping=None, scheduler=None,
           gpu=False):
 
@@ -305,6 +305,8 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
                 l = loss(**pred, **lossd)
                 train_batch_losses.append(l.data.numpy()[0]*(cur_batch_size/batch_size))
                 l.backward()
+                for pg in optimizer.param_groups:
+                    torch.nn.utils.clip_grad(pg['params'], grad_clip)
                 return l
 
             optimizer.step(closure)
@@ -342,7 +344,7 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
 
 
 def train_em(model_dict, loss_dict, model, loss,
-             optimizer, epochs=1, m_epochs=1, val_split=0.1,
+             optimizer, epochs=1, m_epochs=1, val_split=0.1, grad_clip=5.0,
              batch_size=32, shuffle=True, verbose=0, early_stopping=None,
              scheduler=None, gpu=False):
 
@@ -374,7 +376,7 @@ def train_em(model_dict, loss_dict, model, loss,
         train_ret = train(model_dict=train_data.inputs, loss_dict=train_data.outputs,
                           model=model, loss=loss, optimizer=optimizer,
                           epochs=m_epochs, shuffle=shuffle, verbose=0,
-                          batch_size=batch_size, val_data=val_data,
+                          batch_size=batch_size, grad_clip=grad_clip, val_data=val_data,
                           val_split=0.0, early_stopping=early_stopping,
                           gpu=gpu)
         ret['loss'] += train_ret['loss']
