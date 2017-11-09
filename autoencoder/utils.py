@@ -101,24 +101,20 @@ class lgamma2(Function):
  # log gamma code from pyro:
  # https://github.com/uber/pyro/blob/dev/pyro/distributions/util.py
 def lgamma(xx):
-    if isinstance(xx, torch.Tensor):
-        xx = Variable(xx)
-
-    ttype = xx.data.type()
-    gamma_coeff = [
+    gamma_coeff = (
         76.18009172947146,
         -86.50532032941677,
         24.01409824083091,
         -1.231739572450155,
         0.1208650973866179e-2,
         -0.5395239384953e-5,
-    ]
+    )
     magic1 = 1.000000000190015
     magic2 = 2.5066282746310005
     x = xx - 1.0
     t = x + 5.5
     t = t - (x + 0.5) * torch.log(t)
-    ser = Variable(torch.ones(x.size()).type(ttype)) * magic1
+    ser = Variable(torch.ones(x.size()).type_as(xx)) * magic1
     for c in gamma_coeff:
         x = x + 1.0
         ser = ser + torch.pow(x / c, -1)
@@ -126,10 +122,8 @@ def lgamma(xx):
 
 
 class NBLoss(torch.nn.Module):
-    def __init__(self, theta_shape=None, theta_dtype=torch.Tensor, size_average=True):
+    def __init__(self, theta_shape=None, theta_dtype=torch.Tensor):
         super().__init__()
-        self.size_average = size_average
-        self.theta_shape = theta_shape
 
         if theta_shape is not None:
             theta = torch.Tensor(*theta_shape).log_normal_(0.1, 0.01).type(theta_dtype)
@@ -138,7 +132,7 @@ class NBLoss(torch.nn.Module):
     def forward(self, input, target, theta=None):
         eps = 1e-10
 
-        if self.theta_shape is not None:
+        if theta is None:
             theta = 1.0/(torch.exp(self.theta).clamp(max=1e7)+eps)
 
         t1 = -lgamma(target+theta+eps)
@@ -149,18 +143,12 @@ class NBLoss(torch.nn.Module):
         t6 = (theta+target) * torch.log(theta+input+eps)
 
         res = t1+t2+t3+t4+t5+t6
-
-        if self.size_average:
-            return res.mean()
-        else:
-            return res
+        return res.mean()
 
 
 class ZINBLoss(torch.nn.Module):
-    def __init__(self, theta_shape=None, pi_ridge=0.0, size_average=True):
+    def __init__(self, theta_shape=None, pi_ridge=0.0):
         super().__init__()
-        self.size_average = size_average
-        self.theta_shape = theta_shape
         self.pi_ridge = pi_ridge
 
         if theta_shape is not None:
@@ -170,7 +158,7 @@ class ZINBLoss(torch.nn.Module):
     def forward(self, mean, pi, target, theta=None):
         eps = 1e-10
 
-        if self.theta_shape is not None:
+        if theta is None:
             theta = 1.0/(torch.exp(self.theta).clamp(max=1e6)+eps)
 
         # reuse existing NB nll
@@ -188,10 +176,7 @@ class ZINBLoss(torch.nn.Module):
             ridge = self.pi_ridge*tf.square(pi)
             result += ridge
 
-        if self.size_average:
-            return result.mean()
-        else:
-            return result
+        return result.mean()
 
     def nb(self, input, target, theta):
         eps = 1e-10
@@ -208,10 +193,8 @@ class ZINBLoss(torch.nn.Module):
 
 
 class ZINBEMLoss(torch.nn.Module):
-    def __init__(self, theta_shape=None, pi_ridge=0.0, size_average=True):
+    def __init__(self, theta_shape=None, pi_ridge=0.0):
         super().__init__()
-        self.size_average = size_average
-        self.theta_shape = theta_shape
         self.pi_ridge = pi_ridge
 
         if theta_shape is not None:
@@ -221,7 +204,7 @@ class ZINBEMLoss(torch.nn.Module):
     def forward(self, mean, pi, target, zero_memberships, theta=None):
         eps = 1e-10
 
-        if self.theta_shape is not None:
+        if theta is None:
             theta = 1.0/(torch.exp(self.theta).clamp(max=1e6)+eps)
 
         nb_memberships = 1.0 - zero_memberships
@@ -239,10 +222,7 @@ class ZINBEMLoss(torch.nn.Module):
             ridge = self.pi_ridge*tf.square(pi)
             result += ridge
 
-        if self.size_average:
-            return result.mean()
-        else:
-            return result
+        return result.mean()
 
     def nb(self, input, target, theta):
         eps = 1e-10
