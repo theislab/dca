@@ -25,9 +25,10 @@ from torch.autograd import Variable
 LOSS_TYPES = {'mse': torch.nn.MSELoss, 'nb': NBLoss, 'zinb': ZINBLoss,
               'zinbem': ZINBEMLoss, 'poisson': torch.nn.PoissonNLLLoss}
 
-# metadat of an output module
+# metadata of an output module
 # such as human readable name, row/col names (true/false) and activation
 OutModule = namedtuple('OutModule', 'hname rname cname act')
+NormOptions = namedtuple('NormOptions', 'sizefactors lognorm zscore')
 
 class AEModule(torch.nn.Module):
     def __init__(self):
@@ -53,7 +54,8 @@ class Autoencoder():
                                                  cname=True,
                                                  act=torch.nn.Sequential)},
                  activation='ReLU',
-                 batchnorm=True):
+                 batchnorm=True,
+                 norm_options=NormOptions(sizefactors=True, lognorm=True, zscore=True)):
 
         assert loss_type in LOSS_TYPES, 'Undefined loss type'
 
@@ -63,6 +65,7 @@ class Autoencoder():
         self.loss = LOSS_TYPES[loss_type](**loss_args)
         self.outputs_metadata = out_modules
         self.model = AEModule()
+        self.norm_options = norm_options
 
         encoder = torch.nn.Sequential()
         self.model.add_module('encoder', encoder)
@@ -171,6 +174,8 @@ class Autoencoder():
               l2_enc=0.0, l2_out=0.0, optimizer='Adadelta', optimizer_args={},
               gpu=False):
 
+        X = self.normalize(X)
+
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
         if gpu:
@@ -205,6 +210,9 @@ class Autoencoder():
 
 
     def predict(self, X, rownames=None, colnames=None, folder='./', gpu=False):
+
+        X = self.normalize(X)
+
         X = Variable(torch.from_numpy(X))
         if gpu:
             X = X.cuda()
@@ -214,6 +222,7 @@ class Autoencoder():
             model = self.model.float()
 
         preds = model(X)
+        preds = {k: v.data.numpy() for k, v in preds.items()}
         os.makedirs(folder, exist_ok=True)
 
         for name, mat in preds.items():
@@ -221,9 +230,15 @@ class Autoencoder():
             rname = self.outputs_metadata[name].rname
             cname = self.outputs_metadata[name].cname
             filename = os.path.join(folder, hname + '.tsv')
-            write_text_matrix(mat.data.numpy(), filename,
+            print("Saving %s file..." % (filename))
+
+            write_text_matrix(mat, filename,
                               rownames=rownames if rname else None,
                               colnames=colnames if cname else None)
+        return preds
+
+    def normalize(self, X):
+        return io.normalize(X, self.norm_options)
 
 
 class ZINBAutoencoder(Autoencoder):
@@ -236,6 +251,17 @@ class ZINBAutoencoder(Autoencoder):
         kwargs['loss_type'] = 'zinb'
 
         super().__init__(*args, **kwargs)
+
+    def predict(self, *args, **kwargs):
+        preds = super().predict(*args, **kwargs)
+
+        nb_mode = np.floor(preds['mean']*((preds['theta']-1)/preds['theta'])).astype(np.int)
+        nb_mode[nb_mode < 0] = 0
+
+        print("Saving mode.tsv file...")
+
+        write_text_matrix(nb_mode, 'mode.tsv',
+                          rownames=kwargs['rownames'], colnames=kwargs['colnames'])
 
 
 class ZINBEMAutoencoder(Autoencoder):
@@ -266,6 +292,21 @@ class ZINBEMAutoencoder(Autoencoder):
         self.model = ret['model']
         return ret
 
+    def predict(self, *args, **kwargs):
+        preds = super().predict(*args, **kwargs)
+
+        nb_mode = np.floor(preds['mean']*((preds['theta']-1)/preds['theta'])).astype(np.int)
+        nb_mode[nb_mode < 0] = 0
+
+        # Save the mode file
+        print("Saving mode.tsv file...")
+        write_text_matrix(nb_mode, 'mode.tsv',
+                          rownames=kwargs['rownames'], colnames=kwargs['colnames'])
+
+        # Save membership file
+        memberships = self.loss.zero_memberships(preds['mean'], preds['pi'])
+
+
 
 class NBAutoencoder(Autoencoder):
     def __init__(self, *args, **kwargs):
@@ -276,6 +317,18 @@ class NBAutoencoder(Autoencoder):
         kwargs['loss_type'] = 'nb'
 
         super().__init__(*args, **kwargs)
+
+    def predict(self, *args, **kwargs):
+        preds = super().predict(*args, **kwargs)
+
+        nb_mode = np.floor(preds['mean']*((preds['theta']-1)/preds['theta'])).astype(np.int)
+        nb_mode[nb_mode < 0] = 0
+
+        print("Saving mode.tsv file...")
+
+        write_text_matrix(nb_mode, 'mode.tsv',
+                          rownames=kwargs['rownames'], colnames=kwargs['colnames'])
+
 
 
 class PoissonAutoencoder(Autoencoder):
