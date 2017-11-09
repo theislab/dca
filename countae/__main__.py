@@ -21,14 +21,14 @@ import os, sys, argparse
 import numpy as np
 import six
 
-from . import io, train
+from . import io, denoise
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Deep count autoencoder')
 
     parser.add_argument('input', type=str, help='Input in TSV/CSV format (cells x genes). Note that row/col names are mandatory.')
-    parser.add_argument('outputdir', type=str, required=True, help="The directory where everything will be will be saved")
+    parser.add_argument('outputdir', type=str, help="The directory where everything will be will be saved")
 
     # IO options
     parser.add_argument('--normtype', type=str, default='zheng',
@@ -90,8 +90,7 @@ def parse_args():
     parser.add_argument('--outdropoutrate', type=str, default='0.0',
             help="Dropout rate for output branch layers (default: 0)")
 
-    parser_denoise.set_defaults(func=denoise.denoise_with_args,
-                              batchnorm=True)
+    parser.set_defaults(func=denoise.denoise_with_args, batchnorm=True)
 
     return parser.parse_args()
 

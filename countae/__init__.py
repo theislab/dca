@@ -1,3 +1,3 @@
 from . import network
 from . import io
-from . import train
+from . import denoise
