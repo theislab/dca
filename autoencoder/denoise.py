@@ -24,7 +24,7 @@ from .network import AE_TYPES
 import numpy as np
 
 
-def train_with_args(args):
+def denoise_with_args(args):
     ds = io.Dataset(args.trainingset)
 
     enc_size = [int(x) for x in args.enchiddensize.split(',') if x]
@@ -67,9 +67,6 @@ def train_with_args(args):
                     l2_enc=args.l2enc,
                     l2_out=args.l2out,
                     gpu=args.gpu)
-
-    X = io.normalize(ds.full.matrix[:], args.loginput,
-                     args.sizefactors, args.norminput)
 
     net.predict(X,
                 rownames=ds.full.rownames,

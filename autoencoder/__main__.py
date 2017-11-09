@@ -47,75 +47,65 @@ def parse_args():
 
     parser_preprocess.set_defaults(func=io.preprocess_with_args)
 
-    # train subparser
-    parser_train = subparsers.add_parser('train',
-            help='Train an autoencoder using given training set.')
-    parser_train.add_argument('trainingset', type=str,
+    # denoise subparser
+    parser_denoise = subparsers.add_parser('denoise',
+            help='denoise an autoencoder using given dataset and make predictions.')
+    parser_denoise.add_argument('trainingset', type=str,
             help="File path of the training set ")
-    parser_train.add_argument('-o', '--outputdir', type=str, required=True,
+    parser_denoise.add_argument('-o', '--outputdir', type=str, required=True,
             help="The directory where everything will be will be saved")
-    parser_train.add_argument('-t', '--type', type=str, default='zinbem',
+    parser_denoise.add_argument('-t', '--type', type=str, default='zinbem',
             help="Type of autoencoder. Possible values: mse, poisson, nb, "
                  "zinb, zinbem(default)")
-    parser_train.add_argument('-b', '--batchsize', type=int, default=32,
+    parser_denoise.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
-    parser_train.add_argument('--gpu', dest='gpu',
+    parser_denoise.add_argument('--gpu', dest='gpu',
             action='store_true', help="Run on GPU")
-    parser_train.add_argument('--sizefactors', dest='sizefactors',
+    parser_denoise.add_argument('--sizefactors', dest='sizefactors',
             action='store_true', help="Normalize means by library size (default: True)")
-    parser_train.add_argument('--nosizefactors', dest='sizefactors',
+    parser_denoise.add_argument('--nosizefactors', dest='sizefactors',
             action='store_false', help="Do not normalize means by library size")
-    parser_train.add_argument('--norminput', dest='norminput',
+    parser_denoise.add_argument('--norminput', dest='norminput',
             action='store_true', help="Zero-mean normalize input (default: True)")
-    parser_train.add_argument('--nonorminput', dest='norminput',
+    parser_denoise.add_argument('--nonorminput', dest='norminput',
             action='store_false', help="Do not zero-mean normalize inputs")
-    parser_train.add_argument('--loginput', dest='loginput',
+    parser_denoise.add_argument('--loginput', dest='loginput',
             action='store_true', help="Log-transform input (default: True)")
-    parser_train.add_argument('--nologinput', dest='loginput',
+    parser_denoise.add_argument('--nologinput', dest='loginput',
             action='store_false', help="Do not log-transform inputs")
-    parser_train.add_argument('--batchnorm', dest='batchnorm', action='store_true',
+    parser_denoise.add_argument('--batchnorm', dest='batchnorm', action='store_true',
             help="Batchnorm (default: True)")
-    parser_train.add_argument('--nobatchnorm', dest='batchnorm', action='store_false',
+    parser_denoise.add_argument('--nobatchnorm', dest='batchnorm', action='store_false',
             help="Do not use batchnorm")
-    parser_train.add_argument('--l2', type=float, default=0.0,
+    parser_denoise.add_argument('--l2', type=float, default=0.0,
             help="L2 regularization coefficient (default: 0.0)")
-    parser_train.add_argument('--l2enc', type=float, default=0.0,
+    parser_denoise.add_argument('--l2enc', type=float, default=0.0,
             help="Encoder-specific L2 regularization coefficient (default: 0.0)")
-    parser_train.add_argument('--l2out', type=float, default=0.0,
+    parser_denoise.add_argument('--l2out', type=float, default=0.0,
             help="Output ranch-specific L2 regularization coefficient (default: 0.0)")
-    #parser_train.add_argument('--l1', type=float, default=0.0,
-            #help="L1 regularization coefficient (default: 0.0)")
-    #parser_train.add_argument('--l1enc', type=float, default=0.0,
-            #help="Encoder-specific L1 regularization coefficient (default: 0.0)")
-    parser_train.add_argument('--piridge', type=float, default=0.0,
+    parser_denoise.add_argument('--piridge', type=float, default=0.0,
             help="L2 regularization coefficient for dropout probabilities (default: 0.0)")
-    #parser_train.add_argument('--gradclip', type=float, default=5.0,
-            #help="Clip grad values (default: 5.0)")
-    parser_train.add_argument('--activation', type=str, default='ReLU',
+    parser_denoise.add_argument('--activation', type=str, default='ReLU',
             help="Activation function of hidden units (default: ReLU)")
-    parser_train.add_argument('--optimizer', type=str, default='RMSprop',
+    parser_denoise.add_argument('--optimizer', type=str, default='RMSprop',
             help="Optimization method (default: rmsprop)")
-    parser_train.add_argument('-e', '--epochs', type=int, default=300,
+    parser_denoise.add_argument('-e', '--epochs', type=int, default=300,
             help="Max number of epochs to continue training in case of no "
                  "improvement on validation loss (default: 200)")
-    parser_train.add_argument('--enchiddensize', type=str, default='64,64',
+    parser_denoise.add_argument('--enchiddensize', type=str, default='64,64',
             help="Size of hidden encoder layers (default: 64,64)")
-    parser_train.add_argument('--dechiddensize', type=str, default='',
+    parser_denoise.add_argument('--dechiddensize', type=str, default='',
             help="Size of hidden decoder layers (default: None)")
-    parser_train.add_argument('--outhiddensize', type=str, default='64',
+    parser_denoise.add_argument('--outhiddensize', type=str, default='64',
             help="Size of hidden output branch layers (default: 64)")
-    parser_train.add_argument('--encdropoutrate', type=str, default='0.0',
+    parser_denoise.add_argument('--encdropoutrate', type=str, default='0.0',
             help="Dropout rate for encoder layers (default: 0)")
-    parser_train.add_argument('--decdropoutrate', type=str, default='0.0',
+    parser_denoise.add_argument('--decdropoutrate', type=str, default='0.0',
             help="Dropout rate for decoder layers (default: 0)")
-    parser_train.add_argument('--outdropoutrate', type=str, default='0.0',
+    parser_denoise.add_argument('--outdropoutrate', type=str, default='0.0',
             help="Dropout rate for output branch layers (default: 0)")
-    #parser_train.add_argument('--saveweights', dest='saveweights',
-            #action='store_true', help="Save weights (default: False)")
-    #parser_train.add_argument('--no-saveweights', dest='saveweights',
-            #action='store_false', help="Do not save weights")
 
-    parser_train.set_defaults(func=train.train_with_args,
+    parser_denoise.set_defaults(func=denoise.denoise_with_args,
                               batchnorm=True)
 
     # test subparser
