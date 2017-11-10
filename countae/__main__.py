@@ -27,7 +27,7 @@ from . import io, denoise
 def parse_args():
     parser = argparse.ArgumentParser(description='Deep count autoencoder')
 
-    parser.add_argument('input', type=str, help='Input in TSV/CSV format (cells x genes). Note that row/col names are mandatory.')
+    parser.add_argument('inputfile', type=str, help='Input in TSV/CSV format (cells x genes). Note that row/col names are mandatory.')
     parser.add_argument('outputdir', type=str, help="The directory where everything will be will be saved")
 
     # IO options
@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument('-t', '--transpose', dest='transpose',
             action='store_true', help='Transpose input matrix (default: False)')
     parser.add_argument('--testsplit', dest='testsplit',
-            action='store_true', help="Use one fold as a test set (default: False)")
+            action='store_true', help="Use 10 percent as a test set (default: False)")
 
     # Training options
     parser.add_argument('--type', type=str, default='zinbem',

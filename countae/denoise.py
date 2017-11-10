@@ -25,7 +25,12 @@ import numpy as np
 
 
 def denoise_with_args(args):
-    ds = io.Dataset(args.trainingset)
+
+    ds = text_to_zarr(args.inputfile,
+                 output_file=os.path.join(args.outputdir, 'input.zarr'),
+                 transpose=args.transpose,
+                 test_split=args.testsplit,
+                 size_factors=args.normtype)
 
     enc_size = [int(x) for x in args.enchiddensize.split(',') if x]
     enc_dropout = [float(x) for x in args.encdropoutrate.split(',')]
@@ -54,9 +59,6 @@ def denoise_with_args(args):
             activation=args.activation,
             loss_args={'pi_ridge'} if args.piridge else {})
 
-    X = io.normalize(ds.train.matrix[:], args.loginput,
-                     args.sizefactors, args.norminput)
-
     print(net)
 
     ret = net.train(X=X,
@@ -73,3 +75,5 @@ def denoise_with_args(args):
                 colnames=ds.full.colnames,
                 folder=args.outputdir,
                 gpu=args.gpu)
+
+    #TODO: predict on test set if available

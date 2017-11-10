@@ -25,6 +25,7 @@ import pandas as pd
 import zarr
 from sklearn.model_selection import train_test_split
 
+NormOptions = namedtuple('NormOptions', 'sizefactors lognorm zscore')
 
 class Matrix:
     def __init__(self, grp):
@@ -154,7 +155,7 @@ def read_text_matrix(inputfile, type=np.float, transpose=False):
     matrix = df.as_matrix()
     matrix = matrix.astype(type)
 
-    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(colnames), len(rownames)))
+    print('### Count autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(colnames), len(rownames)))
 
     return matrix, list(rownames), list(colnames)
 
@@ -196,11 +197,3 @@ def normalize(x, sf, logtrans=True, sfnorm=True, zeromean=True):
         x = x - x.mean(axis=0)
 
     return x
-
-
-def preprocess_with_args(args):
-    text_to_zarr(args.input,
-                 output_file=args.output,
-                 transpose=args.transpose,
-                 test_split=args.testsplit,
-                 size_factors=args.normtype)

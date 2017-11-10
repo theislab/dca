@@ -17,7 +17,7 @@ import os
 from collections import namedtuple
 import numpy as np
 from .utils import *
-from .io import write_text_matrix, estimate_size_factors, normalize
+from .io import write_text_matrix, estimate_size_factors, normalize, NormOptions
 
 import torch
 from torch.autograd import Variable
@@ -28,7 +28,6 @@ LOSS_TYPES = {'mse': torch.nn.MSELoss, 'nb': NBLoss, 'zinb': ZINBLoss,
 # metadata of an output module
 # such as human readable name, row/col names (true/false) and activation
 OutModule = namedtuple('OutModule', 'hname rname cname act')
-NormOptions = namedtuple('NormOptions', 'sizefactors lognorm zscore')
 
 class AEModule(torch.nn.Module):
     def __init__(self):
