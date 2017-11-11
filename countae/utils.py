@@ -114,7 +114,7 @@ def lgamma(xx):
     x = xx - 1.0
     t = x + 5.5
     t = t - (x + 0.5) * torch.log(t)
-    ser = Variable(torch.ones(x.size()).type_as(xx)) * magic1
+    ser = torch.ones_like(x) * magic1
     for c in gamma_coeff:
         x = x + 1.0
         ser = ser + torch.pow(x / c, -1)
