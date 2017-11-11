@@ -429,12 +429,12 @@ def train_em(model_dict, loss_dict, model, loss,
             print('Epoch: ', i+1, ' train loss: ', ret['loss'][-1],
                   'val loss: ', ret['val_loss'][-1] if 'val_loss' in ret else  '---')
 
-        pred = model.forward(**{k: Variable(v) for k, v in train_data.inputs.items()}) #we need variables here
+        pred = model(**{k: Variable(v) for k, v in train_data.inputs.items()}) #we need variables here
         memberships = loss.zero_memberships(**pred, target=Variable(train_data.outputs['target'])).data
         train_data.outputs['zero_memberships'] = memberships.clone()
 
         if val_data is not None:
-            pred = model.forward(**{k: Variable(v) for k, v in val_data.inputs.items()})
+            pred = model(**{k: Variable(v) for k, v in val_data.inputs.items()})
             memberships = loss.zero_memberships(**pred,
                                                 target=Variable(val_data.outputs['target'])).data
             val_data.outputs['zero_memberships'] = memberships.clone()
@@ -450,7 +450,7 @@ def train_em(model_dict, loss_dict, model, loss,
         if train_ret['early_stop']:
             break
 
-    pred = model.forward(**{k: Variable(v) for k, v in dataset.inputs.items()})
+    pred = model(**{k: Variable(v) for k, v in dataset.inputs.items()})
     ret['memberships'] = loss.zero_memberships(**pred,
                                                target=Variable(dataset.outputs['target'])).data.numpy()
     ret['model'] = model
