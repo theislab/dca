@@ -10,6 +10,7 @@ setup(
     install_requires=['numpy>=1.7',
                       #'pytorch', not on pypi yet
                       'h5py',
+                      'tqdm',
                       'six>=1.10.0',
                       'scikit-learn',
                       'zarr',

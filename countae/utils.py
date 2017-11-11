@@ -2,6 +2,7 @@ import numpy as np
 from scipy.special import digamma
 
 import torch
+from tqdm import trange
 from torch.utils.data import Dataset, TensorDataset, DataLoader
 from torch.autograd import Function, Variable
 
@@ -399,7 +400,12 @@ def train_em(model_dict, loss_dict, model, loss,
         train_data, val_data = dataset, None
 
     ret = {'loss': []}
-    for i in range(int(np.ceil(epochs/m_epochs))):
+    if verbose:
+        it = trange(int(np.ceil(epochs/m_epochs)))
+    else:
+        it = range(int(np.ceil(epochs/m_epochs)))
+
+    for i in it:
         train_ret = train(model_dict=train_data.inputs, loss_dict=train_data.outputs,
                           model=model, loss=loss, optimizer=optimizer,
                           epochs=m_epochs, shuffle=shuffle, verbose=0,
@@ -412,8 +418,8 @@ def train_em(model_dict, loss_dict, model, loss,
             ret.setdefault('val_loss', []).extend(train_ret['val_loss'])
 
         if verbose:
-            print('Epoch: ', i+1, ' train loss: ', ret['loss'][-1],
-                  'val loss: ', ret['val_loss'][-1] if 'val_loss' in ret else  '---')
+            text = 'Epoch: %s training loss: %s val loss: %s' % ((i+1), ret['loss'][-1], ret['val_loss'][-1] if 'val_loss' in ret else  '---')
+            it.set_description(text)
 
         pred = model(**{k: Variable(v) for k, v in train_data.inputs.items()}) #we need variables here
         memberships = loss.zero_memberships(**pred, target=Variable(train_data.outputs['target'])).data
