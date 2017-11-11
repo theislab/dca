@@ -88,7 +88,7 @@ class EarlyStopping(object):
         return True
 
 
-class lgamma2(Function):
+class lgamma3(Function):
     def forward(self, input):
         self.save_for_backward(input)
         return torch.lgamma(input)
@@ -125,20 +125,6 @@ def lgamma2(xx):
 def lgamma(z):
     gamma_r10 = 10.900511
 
-    # dk[0], ..., dk[10].
-    gamma_dk = (
-    2.48574089138753565546e-5,
-    1.05142378581721974210,
-    -3.45687097222016235469,
-    4.51227709466894823700,
-    -2.98285225323576655721,
-    1.05639711577126713077,
-    -1.95428773191645869583e-1,
-    1.70970543404441224307e-2,
-    -5.71926117404305781283e-4,
-    4.63399473359905636708e-6,
-    -2.71994908488607703910e-9
-    )
     pi = torch.zeros_like(z)
     pi.fill_(np.pi)
     gamma_c = 2.0 * torch.sqrt(np.e/pi)
@@ -146,17 +132,17 @@ def lgamma(z):
     #if z < 0:
     #  return torch.log(pi) - torch.log(torch.abs(torch.sin(pi*z))) - lgamma(1.0 - z)
 
-    sum = gamma_dk[0]
-    sum += gamma_dk[1]/(z)
-    sum += gamma_dk[2]/(z + 1.0)
-    sum += gamma_dk[3]/(z + 2.0)
-    sum += gamma_dk[4]/(z + 3.0)
-    sum += gamma_dk[5]/(z + 4.0)
-    sum += gamma_dk[6]/(z + 5.0)
-    sum += gamma_dk[7]/(z + 6.0)
-    sum += gamma_dk[8]/(z + 7.0)
-    sum += gamma_dk[9]/(z + 8.0)
-    sum += gamma_dk[10]/(z + 9.0)
+    sum = 2.48574089138753565546e-5
+    sum += 1.05142378581721974210  / z
+    sum += -3.45687097222016235469 / (z + 1.0)
+    sum += 4.51227709466894823700  / (z + 2.0)
+    sum += -2.98285225323576655721 / (z + 3.0)
+    sum += 1.05639711577126713077  / (z + 4.0)
+    sum += -1.95428773191645869583e-1 / (z + 5.0)
+    sum += 1.70970543404441224307e-2  / (z + 6.0)
+    sum += -5.71926117404305781283e-4 / (z + 7.0)
+    sum += 4.63399473359905636708e-6  / (z + 8.0)
+    sum += -2.71994908488607703910e-9 / (z + 9.0)
 
     # For z >= 0 gamma function is positive, no abs() required.
     return torch.log(gamma_c) + (z - 0.5)*torch.log(z  + gamma_r10 - 0.5) - (z - 0.5) + torch.log(sum)
