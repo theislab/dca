@@ -50,7 +50,7 @@ def denoise_with_args(args):
 
     assert args.type in AE_TYPES, 'AE type not supported'
 
-    net = AE_TYPES[args.type](input_size=ds.train.shape[1],
+    net = AE_TYPES[args.type](input_size=ds.train.matrix.shape[1],
             enc_size=enc_size,
             enc_dropout=enc_dropout,
             dec_size=dec_size,
