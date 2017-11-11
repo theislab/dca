@@ -279,9 +279,9 @@ class ZINBEMLoss(torch.nn.Module):
         return res
 
     def zero_memberships(self, mean, pi, target, theta=None):
-        eps = 1e-10
+        eps = _epsilon
 
-        if self.theta_shape is not None:
+        if theta is None:
             theta = 1.0/(torch.exp(self.theta).clamp(max=1e6)+eps)
 
         nb_zero_ll = torch.pow((theta/(theta+mean+eps)), theta)
