@@ -50,9 +50,9 @@ def parse_args():
             action='store_true', help="Normalize means by library size (default: True)")
     parser.add_argument('--nosizefactors', dest='sizefactors',
             action='store_false', help="Do not normalize means by library size")
-    parser.add_argument('--norminput', dest='norminput',
+    parser.add_argument('--norminput', dest='zeromean',
             action='store_true', help="Zero-mean normalize input (default: True)")
-    parser.add_argument('--nonorminput', dest='norminput',
+    parser.add_argument('--nonorminput', dest='zeromean',
             action='store_false', help="Do not zero-mean normalize inputs")
     parser.add_argument('--loginput', dest='loginput',
             action='store_true', help="Log-transform input (default: True)")

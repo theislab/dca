@@ -19,13 +19,14 @@ from __future__ import division
 from __future__ import print_function
 
 import pickle, os, numbers
+from collections import namedtuple
 
 import numpy as np
 import pandas as pd
 import zarr
 from sklearn.model_selection import train_test_split
 
-NormOptions = namedtuple('NormOptions', 'sizefactors lognorm zscore')
+NormOptions = namedtuple('NormOptions', 'sizefactors lognorm zeromean')
 
 class Matrix:
     def __init__(self, grp):
@@ -185,15 +186,17 @@ def estimate_size_factors(x, normtype='zheng'):
         raise NotImplemented
 
 
-def normalize(x, sf, logtrans=True, sfnorm=True, zeromean=True):
-    if sfnorm:
+def normalize(x, sf, norm_options):
+
+    #   logtrans=True, sfnorm=True, zeromean=True
+    if norm_options.sizefactors:
         assert len(sf.shape) == 1
         x = x / (sf[:, None]+1e-8)  # colwise div
 
-    if logtrans:
+    if norm_options.lognorm:
         x = np.log1p(x)
 
-    if zeromean:
+    if norm_options.zeromean:
         x = x - x.mean(axis=0)
 
     return x

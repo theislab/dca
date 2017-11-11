@@ -22,15 +22,17 @@ import os
 from . import io
 from .network import AE_TYPES
 import numpy as np
+import torch
 
 
 def denoise_with_args(args):
+    torch.manual_seed(42)
 
-    ds = text_to_zarr(args.inputfile,
-                 output_file=os.path.join(args.outputdir, 'input.zarr'),
-                 transpose=args.transpose,
-                 test_split=args.testsplit,
-                 size_factors=args.normtype)
+    ds = io.text_to_zarr(args.inputfile,
+                         output_file=os.path.join(args.outputdir, 'input.zarr'),
+                         transpose=args.transpose,
+                         test_split=args.testsplit,
+                         size_factors=args.normtype)
 
     enc_size = [int(x) for x in args.enchiddensize.split(',') if x]
     enc_dropout = [float(x) for x in args.encdropoutrate.split(',')]
@@ -61,8 +63,14 @@ def denoise_with_args(args):
 
     print(net)
 
-    ret = net.train(X=X,
-                    Y=ds.train.matrix[:],
+    norm_options = io.NormOptions(sizefactors=args.sizefactors,
+                                  lognorm=args.loginput,
+                                  zeromean=args.zeromean)
+
+    X = io.normalize(ds.train.matrix[:], ds.train.size_factors, norm_options)
+    Y = ds.train.matrix[:]
+
+    ret = net.train(X=X, Y=Y,
                     epochs=args.epochs,
                     batch_size=args.batchsize,
                     l2=args.l2,
@@ -70,10 +78,18 @@ def denoise_with_args(args):
                     l2_out=args.l2out,
                     gpu=args.gpu)
 
+    X = io.normalize(ds.full.matrix[:], ds.full.size_factors, norm_options)
     net.predict(X,
                 rownames=ds.full.rownames,
                 colnames=ds.full.colnames,
                 folder=args.outputdir,
                 gpu=args.gpu)
 
-    #TODO: predict on test set if available
+    # predict on test set if available
+    if ds.test:
+        X = io.normalize(ds.test.matrix[:], ds.test.size_factors, norm_options)
+        net.predict(X,
+                    rownames=ds.test.rownames,
+                    colnames=ds.test.colnames,
+                    folder=os.path.join(args.outputdir, 'testset'),
+                    gpu=args.gpu)

@@ -53,8 +53,7 @@ class Autoencoder():
                                                  cname=True,
                                                  act=torch.nn.Sequential)},
                  activation='ReLU',
-                 batchnorm=True,
-                 norm_options=NormOptions(sizefactors=True, lognorm=True, zscore=True)):
+                 batchnorm=True):
 
         assert loss_type in LOSS_TYPES, 'Undefined loss type'
 
@@ -64,7 +63,6 @@ class Autoencoder():
         self.loss = LOSS_TYPES[loss_type](**loss_args)
         self.outputs_metadata = out_modules
         self.model = AEModule()
-        self.norm_options = norm_options
 
         encoder = torch.nn.Sequential()
         self.model.add_module('encoder', encoder)
@@ -235,9 +233,6 @@ class Autoencoder():
                               rownames=rownames if rname else None,
                               colnames=colnames if cname else None)
         return preds
-
-    def normalize(self, X):
-        return io.normalize(X, self.norm_options)
 
 
 class ZINBAutoencoder(Autoencoder):
