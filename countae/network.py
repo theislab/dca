@@ -168,7 +168,7 @@ class Autoencoder():
         return self.model.outputs
 
     def train(self, X, Y, epochs=300, batch_size=32, l2=0.0,
-              l2_enc=0.0, l2_out=0.0, optimizer='Adadelta', optimizer_args={},
+              l2_enc=0.0, l2_out=0.0, optimizer='RMSprop', optimizer_args={},
               gpu=False):
 
         X = self.normalize(X)
@@ -269,7 +269,7 @@ class ZINBEMAutoencoder(Autoencoder):
         super().__init__(*args, **kwargs)
 
     def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32, l2=0, l2_enc=0, l2_out=0,
-              optimizer='Adadelta', optimizer_args={}, gpu=False):
+              optimizer='RMSprop', optimizer_args={}, gpu=False):
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
