@@ -89,16 +89,19 @@ class EarlyStopping(object):
         return True
 
 
-class lgamma3(Function):
+class Lgamma(Function):
+    @staticmethod
     def forward(self, input):
         self.save_for_backward(input)
         return torch.lgamma(input)
 
+    @staticmethod
     def backward(self, grad_output):
         input, = self.saved_tensors
 
-        res = torch.from_numpy(digamma(input.numpy())).type_as(input)
+        res = Variable(torch.from_numpy(digamma(input.numpy())).type_as(input))
         return grad_output*res
+lgamma = Lgamma.apply
 
  # log gamma code from pyro:
  # https://github.com/uber/pyro/blob/dev/pyro/distributions/util.py
@@ -123,7 +126,7 @@ def lgamma2(xx):
     return torch.log(ser * magic2) - t
 
 
-def lgamma(z):
+def lgamma3(z):
     gamma_r10 = 10.900511
 
     pi = torch.zeros_like(z)
