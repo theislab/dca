@@ -342,8 +342,9 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
                 l = loss(**pred, **lossd)
                 train_batch_losses.append(l.data.numpy()[0]*(cur_batch_size/batch_size))
                 l.backward()
-                for pg in optimizer.param_groups:
-                    torch.nn.utils.clip_grad_norm(pg['params'], grad_clip)
+                if grad_clip:
+                    for pg in optimizer.param_groups:
+                        torch.nn.utils.clip_grad_norm(pg['params'], grad_clip)
                 return l
 
             optimizer.step(closure)
