@@ -297,9 +297,11 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
     if gpu:
         dataset = dataset.cuda()
         model = model.cuda()
+        loss = loss.cuda()
     else:
         dataset = dataset.type('torch.FloatTensor')
         model = model.float()
+        loss = loss.float()
 
     if shuffle:
         # shuffle dataset
@@ -392,9 +394,11 @@ def train_em(model_dict, loss_dict, model, loss,
     if gpu:
         dataset = dataset.cuda()
         model = model.cuda()
+        loss = loss.cuda()
     else:
         dataset = dataset.type('torch.FloatTensor')
         model = model.float()
+        loss = loss.float()
 
     if shuffle:
         idx = torch.randperm(len(dataset))

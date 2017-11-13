@@ -192,7 +192,8 @@ class Autoencoder():
     def setup_optimizer(self, optimizer, optimizer_args, l2, l2_enc, l2_out):
         params = [{'params': self.encoder.parameters()},
                   {'params': self.decoder.parameters()},
-                  {'params': self.outputs.parameters()}]
+                  {'params': self.outputs.parameters()},
+                  {'params': self.loss.parameters()}]
 
         if l2_enc:
             params[0]['weight_decay'] = l2_enc
@@ -254,6 +255,19 @@ class ZINBAutoencoder(Autoencoder):
 
         write_text_matrix(nb_mode, 'mode.tsv',
                           rownames=kwargs['rownames'], colnames=kwargs['colnames'])
+
+
+class ZINBConstDispAutoencoder(Autoencoder):
+    def __init__(self, *args, **kwargs):
+        out = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
+               'pi': OutModule(hname='pi', rname=True, cname=True, act=torch.nn.Sigmoid)}
+
+        kwargs['out_modules'] = out
+        kwargs['loss_type'] = 'zinb'
+        output_size = kwargs['output_size'] or kwargs['input_size']
+        kwargs['loss_args'] = {'theta_shape': (output_size, )}
+
+        super().__init__(*args, **kwargs)
 
 
 class ZINBEMAutoencoder(Autoencoder):
@@ -347,6 +361,7 @@ class MSEAutoencoder(Autoencoder):
 
 
 AE_TYPES = {'zinb': ZINBAutoencoder, 'zinbem': ZINBEMAutoencoder,
+            'zinbconddisp': ZINBConstDispAutoencoder,
             'nb': NBAutoencoder, 'poisson': PoissonAutoencoder,
             'mse': MSEAutoencoder}
 
