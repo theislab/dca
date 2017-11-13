@@ -373,7 +373,7 @@ class ZINBConstDispEMAutoencoder(ZINBEMAutoencoder):
 
         self.input_size = input_size
         self.output_size = self.input_size if output_size is None else output_size
-        self.loss = LOSS_TYPES['zinb'](theta_shape=(output_size, ))
+        self.loss = LOSS_TYPES['zinbem'](theta_shape=(output_size, ))
         self.built = False
 
         self.outputs_metadata  = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
