@@ -192,9 +192,7 @@ class Autoencoder():
     def setup_optimizer(self, optimizer, optimizer_args, l2, l2_enc, l2_out):
         if optimizer == 'LBFGS':
             # lbfgs does not support per-parameter options
-            return torch.optim.__dict__[optimizer](list(self.encoder.parameters()) +
-                                                   list(self.decoder.parameters()) +
-                                                   list(self.outputs.parameters()) +
+            return torch.optim.__dict__[optimizer](list(self.model.parameters()) +
                                                    list(self.loss.parameters()), **optimizer_args)
 
         params = [{'params': self.encoder.parameters()},
