@@ -359,7 +359,8 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
                 result.setdefault('val_loss', []).append(l.data.numpy()[0])
 
         if verbose:
-            text = 'Epoch: %s training loss: %s val loss: %s' % ((i+1), ret['loss'][-1], ret['val_loss'][-1] if 'val_loss' in ret else  '---')
+            text = 'Epoch: %s training loss: %s val loss: %s' % ((epoch+1), result['loss'][-1],
+                    result['val_loss'][-1] if 'val_loss' in result else  '---')
             it.set_description(text)
 
         if scheduler:

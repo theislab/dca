@@ -17,7 +17,7 @@ import os
 from collections import namedtuple
 import numpy as np
 from .utils import *
-from .io import write_text_matrix, estimate_size_factors, normalize, NormOptions
+from .io import write_text_matrix, estimate_size_factors
 
 import torch
 from torch.autograd import Variable
@@ -42,6 +42,7 @@ class Autoencoder():
     def __init__(self,
                  input_size,
                  loss_type, loss_args={},
+                 output_size = None,
                  enc_size=(64, 64),
                  dec_size=(),
                  out_size=(64,),
@@ -60,6 +61,7 @@ class Autoencoder():
         super().__init__()
 
         self.input_size = input_size
+        self.output_size = self.input_size if output_size is None else output_size
         self.loss = LOSS_TYPES[loss_type](**loss_args)
         self.outputs_metadata = out_modules
         self.model = AEModule()
@@ -146,7 +148,7 @@ class Autoencoder():
 
         for out_name, out in out_modules.items():
             outputsdict[out_name].add_module(out_name + '_pre',
-                                             torch.nn.Linear(last_hidden_size, self.input_size))
+                                             torch.nn.Linear(last_hidden_size, self.output_size))
             outputsdict[out_name].add_module(out_name, out.act())
 
             outputsmod.add_module(out_name, outputsdict[out_name])
@@ -170,8 +172,6 @@ class Autoencoder():
     def train(self, X, Y, epochs=300, batch_size=32, l2=0.0,
               l2_enc=0.0, l2_out=0.0, optimizer='RMSprop', optimizer_args={},
               gpu=False):
-
-        X = self.normalize(X)
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
@@ -207,8 +207,6 @@ class Autoencoder():
 
 
     def predict(self, X, rownames=None, colnames=None, folder='./', gpu=False):
-
-        X = self.normalize(X)
 
         X = Variable(torch.from_numpy(X))
         if gpu:
