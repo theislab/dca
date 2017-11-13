@@ -69,6 +69,7 @@ def denoise_with_args(args):
 
     X = io.normalize(ds.train.matrix[:], ds.train.size_factors, norm_options)
     Y = ds.train.matrix[:]
+    dtype = 'cuda' if args.gpu else 'float'
 
     ret = net.train(X=X, Y=Y,
                     epochs=args.epochs,
@@ -76,14 +77,14 @@ def denoise_with_args(args):
                     l2=args.l2,
                     l2_enc=args.l2enc,
                     l2_out=args.l2out,
-                    gpu=args.gpu)
+                    dtype=dtype)
 
     X = io.normalize(ds.full.matrix[:], ds.full.size_factors, norm_options)
     net.predict(X,
                 rownames=ds.full.rownames,
                 colnames=ds.full.colnames,
                 folder=args.outputdir,
-                gpu=args.gpu)
+                dtype=dtype)
 
     # predict on test set if available
     if ds.test:
@@ -92,4 +93,4 @@ def denoise_with_args(args):
                     rownames=ds.test.rownames,
                     colnames=ds.test.colnames,
                     folder=os.path.join(args.outputdir, 'testset'),
-                    gpu=args.gpu)
+                    dtype=dtype)

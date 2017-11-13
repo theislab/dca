@@ -171,11 +171,11 @@ class Autoencoder():
 
     def train(self, X, Y, epochs=300, batch_size=32, l2=0.0,
               l2_enc=0.0, l2_out=0.0, optimizer='RMSprop', optimizer_args={},
-              val_split=0.1, grad_clip=5.0, gpu=False, shuffle=True):
+              val_split=0.1, grad_clip=5.0, dtype='float', shuffle=True):
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
-        if gpu:
+        if dtype == 'cuda':
             print('Running on GPU')
         else:
             print('Running on CPU')
@@ -184,7 +184,7 @@ class Autoencoder():
                     loss_dict={'target': Y},
                     model=self.model, loss=self.loss, optimizer=optimizer,
                     epochs=epochs, batch_size=batch_size, shuffle=shuffle,
-                    verbose=1, gpu=gpu, val_split=val_split, grad_clip=grad_clip)
+                    verbose=1, dtype=dtype, val_split=val_split, grad_clip=grad_clip)
 
         self.model = ret['model']
         return ret
@@ -212,15 +212,18 @@ class Autoencoder():
             return torch.optim.__dict__[optimizer](params, **optimizer_args)
 
 
-    def predict(self, X, rownames=None, colnames=None, folder='./', gpu=False):
+    def predict(self, X, rownames=None, colnames=None, folder='./', dtype='float'):
 
         X = Variable(torch.from_numpy(X))
-        if gpu:
+        if dtype == 'cuda':
             X = X.cuda()
             model = self.model.cuda()
-        else:
+        elif dtype == 'float':
             X = X.float()
             model = self.model.float()
+        else:
+            X = X.double()
+            model = self.model.double()
 
         preds = model(X)
         preds = {k: v.data.numpy() for k, v in preds.items()}
@@ -286,12 +289,12 @@ class ZINBEMAutoencoder(Autoencoder):
         super().__init__(*args, **kwargs)
 
     def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32, l2=0, l2_enc=0, l2_out=0,
-              optimizer='RMSprop', optimizer_args={}, gpu=False, val_split=0.1,
+              optimizer='RMSprop', optimizer_args={}, dtype='float', val_split=0.1,
               grad_clip=5.0, shuffle=True):
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
-        if gpu:
+        if dtype == 'cuda':
             print('Running on GPU')
         else:
             print('Running on CPU')
@@ -300,7 +303,7 @@ class ZINBEMAutoencoder(Autoencoder):
                        loss_dict={'target': Y},
                        model=self.model, loss=self.loss, optimizer=optimizer,
                        epochs=epochs, batch_size=batch_size, shuffle=shuffle,
-                       verbose=1, m_epochs=m_epochs, gpu=gpu,
+                       verbose=1, m_epochs=m_epochs, dtype=dtype,
                        val_split=val_split, grad_clip=grad_clip)
         self.model = ret['model']
         return ret

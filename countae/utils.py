@@ -280,28 +280,31 @@ class ZINBEMLoss(torch.nn.Module):
         memberships = memberships / (memberships+((1.0-pi)*nb_zero_ll)+eps)
         memberships.masked_fill_(target != 0.0, 0.0)
 
-        assert (memberships >= 0.0).data.all(), 'mem cannot be neg'
-        assert (memberships <= 1.0).data.all(), 'mem cannot be > 1'
-
         return memberships
 
 
 def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
           val_split=0.1, val_data=None, batch_size=32, grad_clip=5.0,
           shuffle=True, verbose=0, early_stopping=None, scheduler=None,
-          gpu=False):
+          dtype='float'):
 
     check_dicts(model_dict, loss_dict)
     dataset = DictTensorDataset(model_dict, loss_dict)
 
-    if gpu:
+    if dtype == 'cuda':
         dataset = dataset.cuda()
         model = model.cuda()
         loss = loss.cuda()
-    else:
+    elif dtype == 'double':
+        dataset = dataset.type('torch.DoubleTensor')
+        model = model.double()
+        loss = loss.double()
+    elif dtype == 'float':
         dataset = dataset.type('torch.FloatTensor')
         model = model.float()
         loss = loss.float()
+    else:
+        raise 'Unknown dtype'
 
     if shuffle:
         # shuffle dataset
@@ -385,21 +388,27 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
 def train_em(model_dict, loss_dict, model, loss,
              optimizer, epochs=1, m_epochs=1, val_split=0.1, grad_clip=5.0,
              batch_size=32, shuffle=True, verbose=0, early_stopping=None,
-             scheduler=None, gpu=False):
+             scheduler=None, dtype='float'):
 
     memberships = torch.from_numpy(np.zeros_like(loss_dict['target']))
     loss_dict['zero_memberships'] = memberships
     check_dicts(model_dict, loss_dict)
     dataset = DictTensorDataset(model_dict, loss_dict)
 
-    if gpu:
+    if dtype == 'cuda':
         dataset = dataset.cuda()
         model = model.cuda()
         loss = loss.cuda()
-    else:
+    elif dtype == 'double':
+        dataset = dataset.type('torch.DoubleTensor')
+        model = model.double()
+        loss = loss.double()
+    elif dtype == 'float':
         dataset = dataset.type('torch.FloatTensor')
         model = model.float()
         loss = loss.float()
+    else:
+        raise 'Unknown dtype'
 
     if shuffle:
         idx = torch.randperm(len(dataset))
@@ -424,7 +433,7 @@ def train_em(model_dict, loss_dict, model, loss,
                           epochs=m_epochs, shuffle=shuffle, verbose=0,
                           batch_size=batch_size, grad_clip=grad_clip, val_data=val_data,
                           val_split=0.0, early_stopping=early_stopping,
-                          gpu=gpu)
+                          dtype=dtype)
         ret['loss'] += train_ret['loss']
 
         if val_data:
