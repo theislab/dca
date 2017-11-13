@@ -171,7 +171,7 @@ class Autoencoder():
 
     def train(self, X, Y, epochs=300, batch_size=32, l2=0.0,
               l2_enc=0.0, l2_out=0.0, optimizer='RMSprop', optimizer_args={},
-              val_split=0.1, grad_clip=5.0, gpu=False):
+              val_split=0.1, grad_clip=5.0, gpu=False, shuffle=True):
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
@@ -183,7 +183,7 @@ class Autoencoder():
         ret = train(model_dict={'input': X},
                     loss_dict={'target': Y},
                     model=self.model, loss=self.loss, optimizer=optimizer,
-                    epochs=epochs, batch_size=batch_size,
+                    epochs=epochs, batch_size=batch_size, shuffle=shuffle,
                     verbose=1, gpu=gpu, val_split=val_split, grad_clip=grad_clip)
 
         self.model = ret['model']
@@ -289,7 +289,7 @@ class ZINBEMAutoencoder(Autoencoder):
 
     def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32, l2=0, l2_enc=0, l2_out=0,
               optimizer='RMSprop', optimizer_args={}, gpu=False, val_split=0.1,
-              grad_clip=5.0):
+              grad_clip=5.0, shuffle=True):
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
@@ -301,7 +301,7 @@ class ZINBEMAutoencoder(Autoencoder):
         ret = train_em(model_dict={'input': X},
                        loss_dict={'target': Y},
                        model=self.model, loss=self.loss, optimizer=optimizer,
-                       epochs=epochs, batch_size=batch_size,
+                       epochs=epochs, batch_size=batch_size, shuffle=shuffle,
                        verbose=1, m_epochs=m_epochs, gpu=gpu,
                        val_split=val_split, grad_clip=grad_clip)
         self.model = ret['model']
