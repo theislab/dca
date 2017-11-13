@@ -171,7 +171,7 @@ class Autoencoder():
 
     def train(self, X, Y, epochs=300, batch_size=32, l2=0.0,
               l2_enc=0.0, l2_out=0.0, optimizer='RMSprop', optimizer_args={},
-              gpu=False):
+              val_split=0.1, grad_clip=5.0, gpu=False):
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
@@ -181,10 +181,10 @@ class Autoencoder():
             print('Running on CPU')
 
         ret = train(model_dict={'input': X},
-                     loss_dict={'target': Y},
-                     model=self.model, loss=self.loss, optimizer=optimizer,
-                     epochs=epochs, batch_size=batch_size,
-                     verbose=1, gpu=gpu)
+                    loss_dict={'target': Y},
+                    model=self.model, loss=self.loss, optimizer=optimizer,
+                    epochs=epochs, batch_size=batch_size,
+                    verbose=1, gpu=gpu, val_split=val_split, grad_clip=grad_clip)
 
         self.model = ret['model']
         return ret
@@ -267,7 +267,8 @@ class ZINBEMAutoencoder(Autoencoder):
         super().__init__(*args, **kwargs)
 
     def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32, l2=0, l2_enc=0, l2_out=0,
-              optimizer='RMSprop', optimizer_args={}, gpu=False):
+              optimizer='RMSprop', optimizer_args={}, gpu=False, val_split=0.1,
+              grad_clip=5.0):
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args,
                                          l2, l2_enc, l2_out)
@@ -280,7 +281,8 @@ class ZINBEMAutoencoder(Autoencoder):
                        loss_dict={'target': Y},
                        model=self.model, loss=self.loss, optimizer=optimizer,
                        epochs=epochs, batch_size=batch_size,
-                       verbose=1, m_epochs=m_epochs, gpu=gpu)
+                       verbose=1, m_epochs=m_epochs, gpu=gpu,
+                       val_split=val_split, grad_clip=grad_clip)
         self.model = ret['model']
         return ret
 
