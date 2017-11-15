@@ -284,11 +284,11 @@ class ZINBAutoencoder(NBAutoencoder):
     def __init__(self, input_size, output_size = None,
                  enc_size=(64, 64), dec_size=(),  out_size=(64,),
                  enc_dropout=0., dec_dropout=0., out_dropout=0.,
-                 activation='ReLU', batchnorm=True):
+                 activation='ReLU', batchnorm=True, pi_ridge=0.0):
 
         self.input_size = input_size
         self.output_size = self.input_size if output_size is None else output_size
-        self.loss = LOSS_TYPES['zinb']()
+        self.loss = LOSS_TYPES['zinb'](pi_ridge=pi_ridge)
         self.built = False
 
         self.outputs_metadata = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
@@ -307,11 +307,12 @@ class ZINBConstDispAutoencoder(ZINBAutoencoder):
     def __init__(self, input_size, output_size = None,
                  enc_size=(64, 64), dec_size=(),  out_size=(64,),
                  enc_dropout=0., dec_dropout=0., out_dropout=0.,
-                 activation='ReLU', batchnorm=True):
+                 activation='ReLU', batchnorm=True, pi_ridge=0.0):
 
         self.input_size = input_size
         self.output_size = self.input_size if output_size is None else output_size
-        self.loss = LOSS_TYPES['zinb'](theta_shape=(output_size, ))
+        self.loss = LOSS_TYPES['zinb'](theta_shape=(output_size, ),
+                                       pi_ridge=pi_ridge)
         self.built = False
 
         self.outputs_metadata  = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
@@ -325,11 +326,11 @@ class ZINBEMAutoencoder(ZINBAutoencoder):
     def __init__(self, input_size, output_size = None,
                  enc_size=(64, 64), dec_size=(),  out_size=(64,),
                  enc_dropout=0., dec_dropout=0., out_dropout=0.,
-                 activation='ReLU', batchnorm=True):
+                 activation='ReLU', batchnorm=True, pi_ridge=0.0):
 
         self.input_size = input_size
         self.output_size = self.input_size if output_size is None else output_size
-        self.loss = LOSS_TYPES['zinbem']()
+        self.loss = LOSS_TYPES['zinbem'](pi_ridge=pi_ridge)
         self.built = False
 
         self.outputs_metadata = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
@@ -369,11 +370,12 @@ class ZINBConstDispEMAutoencoder(ZINBEMAutoencoder):
     def __init__(self, input_size, output_size = None,
                  enc_size=(64, 64), dec_size=(),  out_size=(64,),
                  enc_dropout=0., dec_dropout=0., out_dropout=0.,
-                 activation='ReLU', batchnorm=True):
+                 activation='ReLU', batchnorm=True, pi_ridge=0.0):
 
         self.input_size = input_size
         self.output_size = self.input_size if output_size is None else output_size
-        self.loss = LOSS_TYPES['zinbem'](theta_shape=(output_size, ))
+        self.loss = LOSS_TYPES['zinbem'](theta_shape=(output_size, ),
+                                         pi_ridge=pi_ridge)
         self.built = False
 
         self.outputs_metadata  = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),

@@ -50,6 +50,8 @@ def denoise_with_args(args):
 
     assert args.type in AE_TYPES, 'AE type not supported'
 
+    pi_ridge = {'pi_ridge': args.piridge} if args.piridge else {}
+
     net = AE_TYPES[args.type](input_size=ds.train.matrix.shape[1],
             enc_size=enc_size,
             enc_dropout=enc_dropout,
@@ -59,7 +61,7 @@ def denoise_with_args(args):
             out_dropout=out_dropout,
             batchnorm=args.batchnorm,
             activation=args.activation,
-            loss_args={'pi_ridge'} if args.piridge else {})
+            **pi_ridge)
 
     print(net)
 
