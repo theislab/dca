@@ -41,7 +41,7 @@ class DictTensorDataset(Dataset):
         return DictTensorDataset({k: v.type(dtype) for k, v in self.inputs.items()},
                                  {k: v.type(dtype) for k, v in self.outputs.items()})
 
-    def cuda(self, dtype):
+    def cuda(self):
         return DictTensorDataset({k: v.cuda() for k, v in self.inputs.items()},
                                  {k: v.cuda() for k, v in self.outputs.items()})
 
