@@ -53,8 +53,8 @@ class Autoencoder():
         super().__init__()
 
         self.input_size = input_size
-        self.output_size = self.input_size if output_size is none else output_size
-        self.loss = loss_types[loss_type](**loss_args)
+        self.output_size = self.input_size if output_size is None else output_size
+        self.loss = LOSS_TYPES[loss_type](**loss_args)
         self.outputs_metadata = out_modules
         self.built = False
         self.build(enc_dropout,
@@ -108,7 +108,7 @@ class Autoencoder():
             encoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, e_size))
 
             if batchnorm:
-                encoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(e_size, affine=false))
+                encoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(e_size, affine=False))
 
             # make a soft copy of the encoder to be able to get embeddings w/o
             # activation
@@ -127,7 +127,7 @@ class Autoencoder():
 
             decoder.add_module(layer_name, torch.nn.Linear(last_hidden_size, d_size))
             if batchnorm:
-                decoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(d_size, affine=false))
+                decoder.add_module(layer_name + '_bn', torch.nn.BatchNorm1d(d_size, affine=False))
 
             decoder.add_module(layer_name + '_act', act())
             if d_drop > 0.0:
@@ -143,13 +143,13 @@ class Autoencoder():
                 outputsdict[out].add_module(out + '_' + layer_name, torch.nn.Linear(last_hidden_size, o_size))
                 if batchnorm:
                     outputsdict[out].add_module(out + '_' + layer_name + '_bn',
-                                                torch.nn.BatchNorm1d(o_size, affine=false))
+                                                torch.nn.BatchNorm1d(o_size, affine=False))
 
                 outputsdict[out].add_module(out + '_' + layer_name + '_act',
                                             act())
                 if o_drop > 0.0:
-                    outputedict[out].add_module(out + '_' + layer_name + '_drop',
-                                                torch.nn.dropout(o_drop))
+                    outputsdict[out].add_module(out + '_' + layer_name + '_drop',
+                                                torch.nn.Dropout(o_drop))
 
             last_hidden_size = o_size
 
