@@ -73,7 +73,7 @@ def parse_args():
     parser.add_argument('--activation', type=str, default='ReLU',
             help="Activation function of hidden units (default: ReLU)")
     parser.add_argument('--optimizer', type=str, default='RMSprop',
-            help="Optimization method (default: rmsprop)")
+            help="Optimization method (default: RMSprop)")
     parser.add_argument('-e', '--epochs', type=int, default=300,
             help="Max number of epochs to continue training in case of no "
                  "improvement on validation loss (default: 200)")
