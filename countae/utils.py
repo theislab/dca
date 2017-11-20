@@ -166,7 +166,7 @@ class NBLoss(torch.nn.Module):
             theta = torch.Tensor(*theta_shape).log_normal_(0.1, 0.01).type(theta_dtype)
             self.register_parameter('theta', torch.nn.Parameter(theta))
 
-    def forward(self, input, target, theta=None):
+    def forward(self, mean, target, theta=None):
         eps = _epsilon
 
         if theta is None:
@@ -176,8 +176,8 @@ class NBLoss(torch.nn.Module):
         t2 = lgamma(theta+eps)
         t3 = lgamma(target+1.0)
         t4 = -(theta * (torch.log(theta+eps)))
-        t5 = -(target * (torch.log(input+eps)))
-        t6 = (theta+target) * torch.log(theta+input+eps)
+        t5 = -(target * (torch.log(mean+eps)))
+        t6 = (theta+target) * torch.log(theta+mean+eps)
 
         res = t1+t2+t3+t4+t5+t6
         return res.mean()
