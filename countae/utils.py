@@ -45,6 +45,12 @@ class DictTensorDataset(Dataset):
         return DictTensorDataset({k: v.cuda() for k, v in self.inputs.items()},
                                  {k: v.cuda() for k, v in self.outputs.items()})
 
+    def float(self):
+        return DictTensorDataset({k: v.float() for k, v in self.inputs.items()},
+                                 {k: v.float() for k, v in self.outputs.items()})
+    def double(self):
+        return DictTensorDataset({k: v.double() for k, v in self.inputs.items()},
+                                 {k: v.double() for k, v in self.outputs.items()})
 
 class ExpModule(torch.nn.Module):
     def __init__(self, eps=1e6):
@@ -292,15 +298,15 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
     dataset = DictTensorDataset(model_dict, loss_dict)
 
     if dtype == 'cuda':
-        dataset = dataset.cuda()
-        model = model.cuda()
-        loss = loss.cuda()
+        dataset = dataset.float().cuda()
+        model = model.float().cuda()
+        loss = loss.float().cuda()
     elif dtype == 'double':
-        dataset = dataset.type('torch.DoubleTensor')
+        dataset = dataset.double()
         model = model.double()
         loss = loss.double()
     elif dtype == 'float':
-        dataset = dataset.type('torch.FloatTensor')
+        dataset = dataset.float()
         model = model.float()
         loss = loss.float()
     else:
@@ -309,6 +315,8 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
     if shuffle:
         # shuffle dataset
         idx = torch.randperm(len(dataset))
+        if dtype == 'cuda':
+            idx = idx.cuda()
         dataset = DictTensorDataset(*dataset[idx])
 
     if val_data is not None:
@@ -396,15 +404,15 @@ def train_em(model_dict, loss_dict, model, loss,
     dataset = DictTensorDataset(model_dict, loss_dict)
 
     if dtype == 'cuda':
-        dataset = dataset.cuda()
-        model = model.cuda()
-        loss = loss.cuda()
+        dataset = dataset.float().cuda()
+        model = model.float().cuda()
+        loss = loss.float().cuda()
     elif dtype == 'double':
-        dataset = dataset.type('torch.DoubleTensor')
+        dataset = dataset.double()
         model = model.double()
         loss = loss.double()
     elif dtype == 'float':
-        dataset = dataset.type('torch.FloatTensor')
+        dataset = dataset.float()
         model = model.float()
         loss = loss.float()
     else:
@@ -412,6 +420,8 @@ def train_em(model_dict, loss_dict, model, loss,
 
     if shuffle:
         idx = torch.randperm(len(dataset))
+        if dtype == 'cuda':
+            idx = idx.cuda()
         dataset = DictTensorDataset(*dataset[idx])
 
     if val_split > 0.:
