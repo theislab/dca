@@ -375,7 +375,7 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
         if verbose:
             text = 'Epoch: %s training loss: %s val loss: %s' % ((epoch+1), result['loss'][-1],
                     result['val_loss'][-1] if 'val_loss' in result else  '---')
-            it.set_description(text)
+            print(text)
 
         if scheduler:
             if val_data is not None:
@@ -451,7 +451,8 @@ def train_em(model_dict, loss_dict, model, loss,
 
         if verbose:
             text = 'Epoch: %s training loss: %s val loss: %s' % ((i+1), ret['loss'][-1], ret['val_loss'][-1] if 'val_loss' in ret else  '---')
-            it.set_description(text)
+            # it.set_description() can also be used but it's better to see errors flowing
+            print(text)
 
         model.eval()
         pred = model(**{k: Variable(v) for k, v in train_data.inputs.items()}) #we need variables here
