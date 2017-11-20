@@ -265,7 +265,7 @@ class NBAutoencoder(Autoencoder):
         self.built = False
 
         self.outputs_metadata = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
-                                 'theta': OutModule(hname='dispersion', rname=True, cname=True, act=ExpModule)},
+                                 'theta': OutModule(hname='dispersion', rname=True, cname=True, act=ExpModule)}
 
         self.build(enc_dropout, enc_size, dec_dropout, dec_size,
                    out_dropout, out_size, activation, batchnorm)
@@ -297,7 +297,7 @@ class ZINBAutoencoder(NBAutoencoder):
 
         self.outputs_metadata = {'mean': OutModule(hname='mean', rname=True, cname=True, act=ExpModule),
                                  'pi': OutModule(hname='pi', rname=True, cname=True, act=torch.nn.Sigmoid),
-                                 'theta': OutModule(hname='dispersion', rname=True, cname=True, act=ExpModule)},
+                                 'theta': OutModule(hname='dispersion', rname=True, cname=True, act=ExpModule)}
 
         self.build(enc_dropout, enc_size, dec_dropout, dec_size,
                    out_dropout, out_size, activation, batchnorm)
