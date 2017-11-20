@@ -27,6 +27,7 @@ import torch
 
 def denoise_with_args(args):
     torch.manual_seed(42)
+    np.random.seed(42)
 
     ds = io.text_to_zarr(args.inputfile,
                          output_file=os.path.join(args.outputdir, 'input.zarr'),

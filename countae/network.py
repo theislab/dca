@@ -367,7 +367,16 @@ class ZINBEMAutoencoder(ZINBAutoencoder):
         preds = super().predict(*args, **kwargs)
 
         # Save membership file
-        memberships = self.loss.zero_memberships(preds['mean'], preds['pi'])
+        memberships = self.loss.zero_memberships(mean=torch.from_numpy(preds['mean']),
+                                                 pi=torch.from_numpy(preds['pi']),
+                                                 target=torch.from_numpy(args[0]),
+                                                 theta=torch.from_numpy(preds['theta']))
+
+        mem_path = os.path.join(kwargs['folder'], 'memberships.tsv')
+        print("Saving %s file..." % mem_path)
+        write_text_matrix(memberships.numpy(), mem_path,
+                          rownames=kwargs['rownames'],
+                          colnames=kwargs['colnames'])
 
 
 class ZINBConstDispEMAutoencoder(ZINBEMAutoencoder):
