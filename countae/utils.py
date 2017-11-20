@@ -453,6 +453,7 @@ def train_em(model_dict, loss_dict, model, loss,
             text = 'Epoch: %s training loss: %s val loss: %s' % ((i+1), ret['loss'][-1], ret['val_loss'][-1] if 'val_loss' in ret else  '---')
             it.set_description(text)
 
+        model.eval()
         pred = model(**{k: Variable(v) for k, v in train_data.inputs.items()}) #we need variables here
         memberships = loss.zero_memberships(**pred, target=Variable(train_data.outputs['target'])).data
         train_data.outputs['zero_memberships'] = memberships.clone()
@@ -462,6 +463,7 @@ def train_em(model_dict, loss_dict, model, loss,
             memberships = loss.zero_memberships(**pred,
                                                 target=Variable(val_data.outputs['target'])).data
             val_data.outputs['zero_memberships'] = memberships.clone()
+        model.train()
 
         if scheduler:
             if val_data is not None:

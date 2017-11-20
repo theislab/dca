@@ -182,7 +182,7 @@ class Autoencoder():
               l2_enc=0.0, l2_out=0.0, optimizer='RMSprop', optimizer_args={},
               val_split=0.1, grad_clip=5.0, dtype='float', shuffle=True):
 
-        self.model = self.model.train()
+        self.model.train()
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args, l2, l2_enc, l2_out)
         if dtype == 'cuda':
@@ -235,7 +235,7 @@ class Autoencoder():
             X = X.double()
             model = self.model.double()
 
-        self.model = model.eval()
+        model.eval()
         preds = model(X)
         preds = {k: v.data.numpy() for k, v in preds.items()}
         os.makedirs(folder, exist_ok=True)
@@ -348,7 +348,7 @@ class ZINBEMAutoencoder(ZINBAutoencoder):
               optimizer='RMSprop', optimizer_args={}, dtype='float', val_split=0.1,
               grad_clip=5.0, shuffle=True):
 
-        self.model = self.model.train()
+        self.model.train()
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args, l2, l2_enc, l2_out)
         if dtype == 'cuda':
