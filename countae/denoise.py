@@ -91,7 +91,7 @@ def denoise_with_args(args):
                 dtype=dtype)
 
     # predict on test set if available
-    if ds.test:
+    if 'test' in ds:
         X = io.normalize(ds.test.matrix[:], ds.test.size_factors, norm_options)
         net.predict(X,
                     rownames=ds.test.rownames,
