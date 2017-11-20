@@ -276,9 +276,10 @@ class NBAutoencoder(Autoencoder):
         nb_mode = np.floor(preds['mean']*((preds['theta']-1)/preds['theta'])).astype(np.int)
         nb_mode[nb_mode < 0] = 0
 
-        print("Saving mode.tsv file...")
+        mode_path = os.path.join(kwargs['folder'], 'mode.tsv')
+        print("Saving %s file..." % mode_path)
 
-        write_text_matrix(nb_mode, 'mode.tsv',
+        write_text_matrix(nb_mode, mode_path,
                           rownames=kwargs['rownames'], colnames=kwargs['colnames'])
         return preds
 
