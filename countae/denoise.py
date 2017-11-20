@@ -79,12 +79,13 @@ def denoise_with_args(args):
                     l2=args.l2,
                     l2_enc=args.l2enc,
                     l2_out=args.l2out,
+                    optimizer=args.optimizer,
                     dtype=dtype)
 
-    X = io.normalize(ds.full.matrix[:], ds.full.size_factors, norm_options)
+    X = io.normalize(ds['full'].matrix[:], ds['full'].size_factors, norm_options)
     net.predict(X,
-                rownames=ds.full.rownames,
-                colnames=ds.full.colnames,
+                rownames=ds['full'].rownames,
+                colnames=ds['full'].colnames,
                 folder=args.outputdir,
                 dtype=dtype)
 
