@@ -477,9 +477,6 @@ def train_em(model_dict, loss_dict, model, loss,
         if train_ret['early_stop']:
             break
 
-    pred = model(**{k: Variable(v) for k, v in dataset.inputs.items()})
-    ret['memberships'] = loss.zero_memberships(**pred,
-                                               target=Variable(dataset.outputs['target'])).data.numpy()
     ret['model'] = model
 
     return ret

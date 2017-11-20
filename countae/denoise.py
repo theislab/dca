@@ -74,14 +74,14 @@ def denoise_with_args(args):
     Y = ds.train.matrix[:]
     dtype = 'cuda' if args.gpu else 'float'
 
-    ret = net.train(X=X, Y=Y,
-                    epochs=args.epochs,
-                    batch_size=args.batchsize,
-                    l2=args.l2,
-                    l2_enc=args.l2enc,
-                    l2_out=args.l2out,
-                    optimizer=args.optimizer,
-                    dtype=dtype)
+    net.train(X=X, Y=Y,
+              epochs=args.epochs,
+              batch_size=args.batchsize,
+              l2=args.l2,
+              l2_enc=args.l2enc,
+              l2_out=args.l2out,
+              optimizer=args.optimizer,
+              dtype=dtype)
 
     X = io.normalize(ds['full'].matrix[:], ds['full'].size_factors, norm_options)
     net.predict(X,
