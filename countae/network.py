@@ -182,7 +182,7 @@ class Autoencoder():
               l2_enc=0.0, l2_out=0.0, optimizer='RMSprop', optimizer_args={},
               val_split=0.1, grad_clip=5.0, dtype='float', shuffle=True):
 
-        self.model = model.train()
+        self.model = self.model.train()
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args, l2, l2_enc, l2_out)
         if dtype == 'cuda':
@@ -347,6 +347,8 @@ class ZINBEMAutoencoder(ZINBAutoencoder):
     def train(self, X, Y, epochs=300, m_epochs=1, batch_size=32, l2=0, l2_enc=0, l2_out=0,
               optimizer='RMSprop', optimizer_args={}, dtype='float', val_split=0.1,
               grad_clip=5.0, shuffle=True):
+
+        self.model = self.model.train()
 
         optimizer = self.setup_optimizer(optimizer, optimizer_args, l2, l2_enc, l2_out)
         if dtype == 'cuda':
