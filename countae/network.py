@@ -226,8 +226,8 @@ class Autoencoder():
 
         X = Variable(torch.from_numpy(X))
         if dtype == 'cuda':
-            X = X.cuda()
-            model = self.model.cuda()
+            X = X.float().cuda()
+            model = self.model.float().cuda()
         elif dtype == 'float':
             X = X.float()
             model = self.model.float()
@@ -237,7 +237,7 @@ class Autoencoder():
 
         model.eval()
         preds = model(X)
-        preds = {k: v.data.numpy() for k, v in preds.items()}
+        preds = {k: v.data.cpu().numpy() for k, v in preds.items()}
         os.makedirs(folder, exist_ok=True)
 
         for name, mat in preds.items():
@@ -376,7 +376,7 @@ class ZINBEMAutoencoder(ZINBAutoencoder):
 
         mem_path = os.path.join(kwargs['folder'], 'memberships.tsv')
         print("Saving %s file..." % mem_path)
-        write_text_matrix(memberships.numpy(), mem_path,
+        write_text_matrix(memberships.cpu().numpy(), mem_path,
                           rownames=kwargs['rownames'],
                           colnames=kwargs['colnames'])
 

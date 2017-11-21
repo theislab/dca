@@ -105,7 +105,7 @@ class Lgamma(Function):
     def backward(self, grad_output):
         input, = self.saved_tensors
 
-        res = Variable(torch.from_numpy(digamma(input.numpy())).type_as(input))
+        res = Variable(torch.from_numpy(digamma(input.cpu().numpy())).type_as(input))
         return grad_output*res
 lgamma = Lgamma.apply
 
@@ -351,7 +351,7 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
                 pred = model(**modeld)
                 if not isinstance(pred, dict): pred = {'input': pred}
                 l = loss(**pred, **lossd)
-                train_batch_losses.append(l.data.numpy()[0]*(cur_batch_size/batch_size))
+                train_batch_losses.append(l.data.cpu().numpy()[0]*(cur_batch_size/batch_size))
                 l.backward()
                 if grad_clip:
                     for pg in optimizer.param_groups:
@@ -370,7 +370,7 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
                 pred = model(**modeld)
                 if not isinstance(pred, dict): pred = {'input': pred}
                 l = loss(**pred, **lossd)
-                result.setdefault('val_loss', []).append(l.data.numpy()[0])
+                result.setdefault('val_loss', []).append(l.data.cpu().numpy()[0])
 
         if verbose:
             text = 'Epoch: %s training loss: %s val loss: %s' % ((epoch+1), result['loss'][-1],
