@@ -210,7 +210,7 @@ class ZINBLoss(torch.nn.Module):
         result = zero_mask*zero_case + nb_mask*nb_case
 
         if self.pi_ridge:
-            ridge = self.pi_ridge*tf.square(pi)
+            ridge = self.pi_ridge*pi.pow(2)
             result += ridge
 
         return result.mean()
@@ -256,7 +256,7 @@ class ZINBEMLoss(torch.nn.Module):
         result = -(zero_comp + nb_comp)
 
         if self.pi_ridge:
-            ridge = self.pi_ridge*tf.square(pi)
+            ridge = self.pi_ridge*pi.pow(2)
             result += ridge
 
         return result.mean()
