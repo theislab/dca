@@ -351,7 +351,7 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
                 pred = model(**modeld)
                 if not isinstance(pred, dict): pred = {'input': pred}
                 l = loss(**pred, **lossd)
-                train_batch_losses.append(l.data.cpu().numpy()[0]*(cur_batch_size/batch_size))
+                train_batch_losses.append(l.data.cpu().numpy()[0]*cur_batch_size)
                 l.backward()
                 if grad_clip:
                     for pg in optimizer.param_groups:
@@ -360,16 +360,17 @@ def train(model_dict, loss_dict, model, loss, optimizer, epochs=1,
 
             optimizer.step(closure)
 
-        result['loss'].append(np.array(train_batch_losses).mean())
+        result['loss'].append(np.array(train_batch_losses).sum()/len(train_data))
 
         if val_data:
             for modeld, lossd in val_loader:
                 modeld = {k: Variable(v) for k, v in modeld.items()}
                 lossd  = {k: Variable(v) for k, v in lossd.items()}
-
+                model.eval()
                 pred = model(**modeld)
                 if not isinstance(pred, dict): pred = {'input': pred}
                 l = loss(**pred, **lossd)
+                model.train()
                 result.setdefault('val_loss', []).append(l.data.cpu().numpy()[0])
 
         if verbose:
