@@ -275,9 +275,9 @@ class NBConstantDispAutoencoder(Autoencoder):
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
 
-            write_text_matrix(res['dispersion'],
+            write_text_matrix(res['dispersion'].reshape(1, -1),
                               os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames)
+                              colnames=colnames)
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
                               rownames=rownames, colnames=colnames)
@@ -315,7 +315,7 @@ class NBAutoencoder(Autoencoder):
             self.encoder = self.get_encoder()
 
     def predict(self, mat, **kwargs):
-        res = super().predict(count_matrix, **kwargs)
+        res = super().predict(mat, **kwargs)
 
         rownames = mat.rownames
         colnames = mat.colnames
@@ -545,9 +545,9 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
 
-            write_text_matrix(res['dispersion'],
+            write_text_matrix(res['dispersion'].reshape(1, -1),
                               os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames)
+                              colnames=colnames)
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
                               rownames=rownames, colnames=colnames)
