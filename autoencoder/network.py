@@ -18,6 +18,7 @@ import pickle
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
+import keras
 from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
 from keras.models import Model
 from keras.regularizers import l1_l2
@@ -116,7 +117,10 @@ class Autoencoder():
 
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
-            last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
+            try:
+                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
+            except ValueError:  # fallback to advanced activations
+                last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
 
             if hid_drop > 0.0:
                 last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
@@ -142,9 +146,10 @@ class Autoencoder():
 
 
     def save(self):
-        os.makedirs(self.file_path, exist_ok=True)
-        with open(os.path.join(self.file_path, 'model.pickle'), 'wb') as f:
-            pickle.dump(self, f)
+        if self.file_path:
+            os.makedirs(self.file_path, exist_ok=True)
+            with open(os.path.join(self.file_path, 'model.pickle'), 'wb') as f:
+                pickle.dump(self, f)
 
     def load_weights(self, filename):
         self.model.load_weights(filename)
