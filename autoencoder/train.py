@@ -98,7 +98,11 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
 
 
 def train_with_args(args):
-    ds = io.Dataset(args.trainingset)
+    ds = io.create_dataset(args.input,
+                           output_file=os.path.join(args.outputdir, 'input.zarr'),
+                           transpose=args.transpose,
+                           test_split=args.testsplit,
+                           size_factors=args.normtype)
 
     hidden_size = [int(x) for x in args.hiddensize.split(',')]
     hidden_dropout = [float(x) for x in args.dropoutrate.split(',')]
@@ -134,8 +138,6 @@ def train_with_args(args):
                    save_weights=args.saveweights)
 
     net.predict(ds.full,
-                dimreduce=args.dimreduce,
-                reconstruct=args.reconstruct,
                 size_factors=args.sizefactors,
                 normalize_input=args.norminput,
                 logtrans_input=args.loginput)

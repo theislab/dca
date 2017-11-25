@@ -84,8 +84,7 @@ class Dataset:
             self.test = Matrix(self._root.test)
 
 
-def text_to_zarr(input_file, output_file, transpose=False,
-                 test_split=True, size_factors='zheng'):
+def create_dataset(input_file, output_file, transpose=False, test_split=True, size_factors='zheng'):
 
     root = zarr.open_group(output_file, 'w')
     matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
@@ -129,7 +128,7 @@ def text_to_zarr(input_file, output_file, transpose=False,
         root['train/colnames'] = colnames
         root['test/colnames'] = colnames
 
-    return root
+    return Dataset(output_file)
 
 
 def read_text_matrix(inputfile, type=np.float, transpose=False):
@@ -196,11 +195,3 @@ def normalize(x, sf, logtrans=True, sfnorm=True, zeromean=True):
         x = x - x.mean(axis=0)
 
     return x
-
-
-def preprocess_with_args(args):
-    text_to_zarr(args.input,
-                 output_file=args.output,
-                 transpose=args.transpose,
-                 test_split=args.testsplit,
-                 size_factors=args.normtype)
