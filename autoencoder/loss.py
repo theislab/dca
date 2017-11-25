@@ -89,16 +89,16 @@ class NB(object):
             t5 = -(y_true * (tf.log(y_pred+eps)))
             t6 = (theta+y_true) * tf.log(theta+y_pred+eps)
 
-            assert_ops = [
-                    tf.verify_tensor_all_finite(y_pred, 'y_pred has inf/nans'),
-                    tf.verify_tensor_all_finite(t1, 't1 has inf/nans'),
-                    tf.verify_tensor_all_finite(t2, 't2 has inf/nans'),
-                    tf.verify_tensor_all_finite(t3, 't3 has inf/nans'),
-                    tf.verify_tensor_all_finite(t4, 't4 has inf/nans'),
-                    tf.verify_tensor_all_finite(t5, 't5 has inf/nans'),
-                    tf.verify_tensor_all_finite(t6, 't6 has inf/nans')]
-
             if self.debug:
+                assert_ops = [
+                        tf.verify_tensor_all_finite(y_pred, 'y_pred has inf/nans'),
+                        tf.verify_tensor_all_finite(t1, 't1 has inf/nans'),
+                        tf.verify_tensor_all_finite(t2, 't2 has inf/nans'),
+                        tf.verify_tensor_all_finite(t3, 't3 has inf/nans'),
+                        tf.verify_tensor_all_finite(t4, 't4 has inf/nans'),
+                        tf.verify_tensor_all_finite(t5, 't5 has inf/nans'),
+                        tf.verify_tensor_all_finite(t6, 't6 has inf/nans')]
+
                 tf.summary.histogram('t1', t1)
                 tf.summary.histogram('t2', t2)
                 tf.summary.histogram('t3', t3)
