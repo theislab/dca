@@ -69,8 +69,7 @@ for (dropout in c(0, 1, 3, 5)) {
       sim <- splatSimulate(params, group.prob=group.prob, nGenes=nGenes,
                            dropout.present=(dropout!=0), dropout.shape=-1,
                            dropout.mid=dropout, seed=42, method=method,
-                           bcv.common=1) # limit disp to get
-      # fewer true zeros
+                           bcv.common=1) # limit disp to get fewer true zeros
       save.sim(sim, dirname)
 
 
