@@ -140,25 +140,31 @@ def read_text_matrix(inputfile, type=np.float, transpose=False):
     if transpose:
         df = df.transpose()
 
-    colnames = df.columns
-    rownames = df.index
+    cellnames = df.columns
+    genenames = df.index
 
     # filter out all zero features and samples
-    colnames = colnames[df.sum(0) > 0]
+    cellnames = cellnames[df.sum(0) > 0]
     df = df.loc[:, df.sum(0) > 0]
 
-    rownames = rownames[df.sum(1) > 0]
+    genenames = genenames[df.sum(1) > 0]
     df = df.loc[df.sum(1) > 0, :]
 
     matrix = df.as_matrix()
-    matrix = matrix.astype(type)
 
-    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(colnames), len(rownames)))
+    # input matrix is gene x cell but our internal representation must be cell x gene
+    matrix = np.ascontiguousarray(matrix.astype(type).T)
 
-    return matrix, list(rownames), list(colnames)
+    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(genenames), len(cellnames)))
+
+    return matrix, list(cellnames), list(genenames)
 
 
-def write_text_matrix(matrix, filename, rownames=None, colnames=None):
+def write_text_matrix(matrix, filename, rownames=None, colnames=None, transpose=False):
+    if transpose:
+        matrix = matrix.T
+        rownames, colnames = colnames, rownames
+
     pd.DataFrame(matrix, index=rownames, columns=colnames).to_csv(filename,
                                                                   sep='\t',
                                                                   index=(rownames is not None),
