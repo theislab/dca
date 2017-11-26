@@ -32,7 +32,8 @@ from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
 from .io import write_text_matrix, estimate_size_factors, normalize
 
 
-ClippedExp = lambda x: K.minimum(K.exp(x), 1e6)
+MeanAct = lambda x: tf.clip_by_value(K.exp(x), 1e-5, 1e6)
+DispAct = lambda x: tf.clip_by_value(K.exp(x), 1e-3, 1e4)
 
 class Autoencoder():
     def __init__(self,
@@ -133,7 +134,7 @@ class Autoencoder():
     def build_output(self):
 
         self.loss = mean_squared_error
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
@@ -229,7 +230,7 @@ class Autoencoder():
 class PoissonAutoencoder(Autoencoder):
 
     def build_output(self):
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
@@ -246,7 +247,7 @@ class PoissonAutoencoder(Autoencoder):
 class NBConstantDispAutoencoder(Autoencoder):
 
     def build_output(self):
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
 
@@ -298,13 +299,13 @@ class NBConstantDispAutoencoder(Autoencoder):
 class NBAutoencoder(Autoencoder):
 
     def build_output(self):
-        disp = Dense(self.output_size, activation=ClippedExp,
+        disp = Dense(self.output_size, activation=DispAct,
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef,
                                self.l2_coef),
                            name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
@@ -365,13 +366,13 @@ class NBAutoencoder(Autoencoder):
 class NBSharedAutoencoder(NBAutoencoder):
 
     def build_output(self):
-        disp = Dense(1, activation=ClippedExp,
+        disp = Dense(1, activation=DispAct,
                      kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef,
                                               self.l2_coef),
                      name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
@@ -396,12 +397,12 @@ class ZINBAutoencoder(Autoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='pi')(self.decoder_output)
 
-        disp = Dense(self.output_size, activation=ClippedExp,
+        disp = Dense(self.output_size, activation=DispAct,
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
@@ -469,13 +470,13 @@ class ZINBSharedAutoencoder(ZINBAutoencoder):
                    kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                    name='pi')(self.decoder_output)
 
-        disp = Dense(1, activation=ClippedExp,
+        disp = Dense(1, activation=DispAct,
                      kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef,
                                               self.l2_coef),
                      name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
@@ -501,7 +502,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
                    kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                    name='pi')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
 
@@ -649,12 +650,12 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='pi')(self.last_hidden_pi)
 
-        disp = Dense(self.output_size, activation=ClippedExp,
+        disp = Dense(self.output_size, activation=DispAct,
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.last_hidden_disp)
 
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
@@ -745,12 +746,12 @@ class NBForkAutoencoder(NBAutoencoder):
 
     def build_output(self):
 
-        disp = Dense(self.output_size, activation=ClippedExp,
+        disp = Dense(self.output_size, activation=DispAct,
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.last_hidden_disp)
 
-        mean = Dense(self.output_size, activation=ClippedExp, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
