@@ -213,16 +213,16 @@ class Autoencoder():
 
             write_text_matrix(res['reduced'],
                               os.path.join(self.file_path, 'reduced.tsv'),
-                              rownames=rownames)
+                              rownames=rownames, transpose=True)
 
             #write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
             write_text_matrix(res['mean'],
                               os.path.join(self.file_path, 'mean.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
 
             write_text_matrix(res['mean_norm'],
                               os.path.join(self.file_path, 'mean_norm.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
 
         return res
 
@@ -285,13 +285,13 @@ class NBConstantDispAutoencoder(Autoencoder):
 
             write_text_matrix(res['dispersion'].reshape(1, -1),
                               os.path.join(self.file_path, 'dispersion.tsv'),
-                              colnames=colnames)
+                              colnames=colnames, transpose=True)
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             write_text_matrix(res['error'],
                               os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
 
         return res
 
@@ -352,13 +352,13 @@ class NBAutoencoder(Autoencoder):
 
             write_text_matrix(res['dispersion'],
                               os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             write_text_matrix(res['error'],
                               os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
 
         return res
 
@@ -451,13 +451,13 @@ class ZINBAutoencoder(Autoencoder):
 
             write_text_matrix(res['dispersion'],
                               os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             write_text_matrix(res['pi'],
                               os.path.join(self.file_path, 'pi.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             #write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
 
         return res
@@ -555,16 +555,16 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
             write_text_matrix(res['dispersion'].reshape(1, -1),
                               os.path.join(self.file_path, 'dispersion.tsv'),
-                              colnames=colnames)
+                              colnames=colnames, transpose=True)
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             write_text_matrix(res['pi'],
                               os.path.join(self.file_path, 'pi.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
             write_text_matrix(res['error'],
                               os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames)
+                              rownames=rownames, colnames=colnames, transpose=True)
 
         return res
 
