@@ -6,6 +6,8 @@ from keras import backend as K
 def _nan2zero(x):
     return tf.where(tf.is_nan(x), tf.zeros_like(x), x)
 
+def _nan2inf(x):
+    return tf.where(tf.is_nan(x), tf.zeros_like(x)+np.inf, x)
 
 def _nelem(x):
     nelem = tf.reduce_sum(tf.cast(~tf.is_nan(x), tf.float32))
@@ -85,9 +87,8 @@ class NB(object):
             t1 = -tf.lgamma(y_true+theta+eps)
             t2 = tf.lgamma(theta+eps)
             t3 = tf.lgamma(y_true+1.0)
-            t4 = -(theta * (tf.log(theta+eps)))
-            t5 = -(y_true * (tf.log(y_pred+eps)))
-            t6 = (theta+y_true) * tf.log(theta+y_pred+eps)
+            t4 = (-(theta * (tf.log(theta+eps))) -(y_true * (tf.log(y_pred+eps))) +
+                  ((theta+y_true) * tf.log(theta+y_pred+eps)))
 
             if self.debug:
                 assert_ops = [
@@ -95,22 +96,20 @@ class NB(object):
                         tf.verify_tensor_all_finite(t1, 't1 has inf/nans'),
                         tf.verify_tensor_all_finite(t2, 't2 has inf/nans'),
                         tf.verify_tensor_all_finite(t3, 't3 has inf/nans'),
-                        tf.verify_tensor_all_finite(t4, 't4 has inf/nans'),
-                        tf.verify_tensor_all_finite(t5, 't5 has inf/nans'),
-                        tf.verify_tensor_all_finite(t6, 't6 has inf/nans')]
+                        tf.verify_tensor_all_finite(t4, 't4 has inf/nans')]
 
                 tf.summary.histogram('t1', t1)
                 tf.summary.histogram('t2', t2)
                 tf.summary.histogram('t3', t3)
                 tf.summary.histogram('t4', t4)
-                tf.summary.histogram('t5', t5)
-                tf.summary.histogram('t6', t6)
 
                 with tf.control_dependencies(assert_ops):
-                    final = t1 + t2 + t3 + t4 + t5 + t6
+                    final = t1 + t2 + t3 + t4
 
             else:
-                final = t1 + t2 + t3 + t4 + t5 + t6
+                final = t1 + t2 + t3 + t4
+
+            final = _nan2inf(final)
 
             if mean:
                 if self.masking:
@@ -152,6 +151,8 @@ class ZINB(NB):
                     result = _reduce_mean(result)
                 else:
                     result = tf.reduce_mean(result)
+
+            result = _nan2inf(result)
 
             if self.debug:
                 tf.summary.histogram('nb_case', nb_case)
