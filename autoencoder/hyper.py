@@ -25,13 +25,16 @@ def hyper(args):
                 },
             "model": {
                 "lr": hp.loguniform("m_lr", np.log(1e-4), np.log(1e-2)), # 0.0001 - 0.01
+                "hidden_size": hp.choice("m_hiddensize", ((64,32,64), (32,16,32),
+                                                          (64,64), (32,32), (16,16),
+                                                          (16,), (32,), (64,), (128,))),
                 "activation": hp.choice("m_activation", ('relu', 'selu', 'elu',
                                                          'PReLU', 'linear', 'LeakyReLU')),
                 "batchnorm": hp.choice("m_batchnorm", (True, False)),
                 "dropout": hp.uniform("m_do", 0, 0.7),
                 },
             "fit": {
-                "epochs": 20
+                "epochs": 40
                 }
     }
 
@@ -51,9 +54,9 @@ def hyper(args):
 
         return (x_train, y_train),
 
-    def model_fn(train_data, lr, activation, batchnorm, dropout):
+    def model_fn(train_data, lr, hidden_size, activation, batchnorm, dropout):
         net = AE_types[args.type](train_data[1].shape[1],
-                hidden_size=(64,32,64),
+                hidden_size=hidden_size,
                 l2_coef=0.0,
                 l1_coef=0.0,
                 l2_enc_coef=0.0,
