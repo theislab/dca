@@ -92,13 +92,20 @@ def parse_args():
             action='store_true', help="Save weights (default: False)")
     parser.add_argument('--no-saveweights', dest='saveweights',
             action='store_false', help="Do not save weights")
+    parser.add_argument('--hyper', dest='hyper',
+            action='store_true', help="Optimizer hyperparameters (default: False)")
+    parser.add_argument('--debug', dest='debug',
+            action='store_true', help="Enable debugging. Checks whether every term in "
+                                      "loss functions is finite. (default: False)")
 
     parser.set_defaults(func=train.train_with_args,
-                              saveweights=False,
-                              sizefactors=True,
-                              batchnorm=True,
-                              norminput=True,
-                              loginput=True)
+                        saveweights=False,
+                        sizefactors=True,
+                        batchnorm=True,
+                        norminput=True,
+                        hyper=False,
+                        debug=False,
+                        loginput=True)
 
     return parser.parse_args()
 

@@ -21,6 +21,7 @@ import os
 
 from . import io
 from .network import AE_types
+from .hyper import hyper
 
 import numpy as np
 import keras.optimizers as opt
@@ -98,6 +99,12 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
 
 
 def train_with_args(args):
+
+    # do hyperpar optimzation and exit
+    if args.hyper:
+        hyper(args)
+        return
+
     ds = io.create_dataset(args.input,
                            output_file=os.path.join(args.outputdir, 'input.zarr'),
                            transpose=args.transpose,
@@ -122,6 +129,7 @@ def train_with_args(args):
             batchnorm=args.batchnorm,
             activation=args.activation,
             init=args.init,
+            debug=args.debug,
             file_path=args.outputdir)
     net.save()
     net.build()

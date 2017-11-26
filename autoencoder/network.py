@@ -32,7 +32,7 @@ from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
 from .io import write_text_matrix, estimate_size_factors, normalize
 
 
-ClippedExp = lambda x: K.minimum(K.exp(x), 1e7)
+ClippedExp = lambda x: K.minimum(K.exp(x), 1e6)
 
 class Autoencoder():
     def __init__(self,
@@ -48,7 +48,8 @@ class Autoencoder():
                  batchnorm=True,
                  activation='elu',
                  init='glorot_uniform',
-                 file_path=None):
+                 file_path=None,
+                 debug=False):
 
         self.input_size = input_size
         self.output_size = output_size
@@ -70,6 +71,7 @@ class Autoencoder():
         self.decoder = None
         self.input_layer = None
         self.sf_layer = None
+        self.debug = debug
 
         self.ae = True if self.output_size is None else False
         if self.output_size is None:
@@ -308,7 +310,7 @@ class NBAutoencoder(Autoencoder):
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
-        nb = NB(theta=disp, debug=False)
+        nb = NB(theta=disp, debug=self.debug)
         self.loss = nb.loss
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
@@ -375,7 +377,7 @@ class NBSharedAutoencoder(NBAutoencoder):
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
-        nb = NB(theta=disp, debug=False)
+        nb = NB(theta=disp, debug=self.debug)
         self.loss = nb.loss
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
@@ -405,7 +407,7 @@ class ZINBAutoencoder(Autoencoder):
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
-        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=False)
+        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
         self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
@@ -479,7 +481,7 @@ class ZINBSharedAutoencoder(ZINBAutoencoder):
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
-        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=False)
+        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
         self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
@@ -509,7 +511,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
 
-        zinb = ZINB(pi, theta=disp.theta_exp, ridge_lambda=self.ridge, debug=False)
+        zinb = ZINB(pi, theta=disp.theta_exp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
         self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
         self.extra_models['dispersion'] = lambda :K.function([], [zinb.theta])([])[0].squeeze()
@@ -659,7 +661,7 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
-        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=False)
+        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
         self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
@@ -755,7 +757,7 @@ class NBForkAutoencoder(NBAutoencoder):
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
-        nb = NB(theta=disp, debug=False)
+        nb = NB(theta=disp, debug=self.debug)
         self.loss = nb.loss
         self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
