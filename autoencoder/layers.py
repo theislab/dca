@@ -17,7 +17,7 @@ class ConstantDispersionLayer(Layer):
                                      initializer='zeros',
                                      trainable=True,
                                      name='theta')
-        self.theta_exp = K.minimum(K.exp(self.theta), 1e12)
+        self.theta_exp = tf.clip_by_value(K.exp(self.theta), 1e-3, 1e4)
         super().build(input_shape)
 
     def call(self, x):
