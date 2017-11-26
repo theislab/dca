@@ -84,30 +84,23 @@ class NB(object):
             # Clip theta
             theta = tf.minimum(self.theta, 1e6)
 
-            t1 = -tf.lgamma(y_true+theta+eps)
-            t2 = tf.lgamma(theta+eps)
-            t3 = tf.lgamma(y_true+1.0)
-            t4 = (-(theta * (tf.log(theta+eps))) -(y_true * (tf.log(y_pred+eps))) +
-                  ((theta+y_true) * tf.log(theta+y_pred+eps)))
+            t1 = tf.lgamma(theta+eps) + tf.lgamma(y_true+1.0) - tf.lgamma(y_true+theta+eps)
+            t2 = (theta+y_true) * tf.log(1.0 + (y_pred/(theta+eps))) + (y_true * (tf.log(theta+eps) - tf.log(y_pred+eps)))
 
             if self.debug:
                 assert_ops = [
                         tf.verify_tensor_all_finite(y_pred, 'y_pred has inf/nans'),
                         tf.verify_tensor_all_finite(t1, 't1 has inf/nans'),
-                        tf.verify_tensor_all_finite(t2, 't2 has inf/nans'),
-                        tf.verify_tensor_all_finite(t3, 't3 has inf/nans'),
-                        tf.verify_tensor_all_finite(t4, 't4 has inf/nans')]
+                        tf.verify_tensor_all_finite(t2, 't2 has inf/nans')]
 
                 tf.summary.histogram('t1', t1)
                 tf.summary.histogram('t2', t2)
-                tf.summary.histogram('t3', t3)
-                tf.summary.histogram('t4', t4)
 
                 with tf.control_dependencies(assert_ops):
-                    final = t1 + t2 + t3 + t4
+                    final = t1 + t2
 
             else:
-                final = t1 + t2 + t3 + t4
+                final = t1 + t2
 
             final = _nan2inf(final)
 
