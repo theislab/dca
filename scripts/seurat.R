@@ -1,4 +1,15 @@
 suppressMessages(library(Seurat, quietly = T))
+suppressMessages(library(ggplot2, quietly = T))
+suppressMessages(library(Rtsne, quietly = T))
+
+normalize <- function(x) {
+  sf <- rowSums(x)
+  sf <- sf / median(sf)
+  x <- x / sf
+  x <- log(x+1)
+  scale(x, center = T, scale = F)
+}
+
 
 `%+%` <- paste0
 args <- commandArgs(trailingOnly = T)
@@ -15,7 +26,18 @@ for (cnt.file in files) {
   print('Visualizing ' %+% cnt.file)
 
   output.dir <- dirname(cnt.file)
-  tbl <- read.table(cnt.file, header = T, sep = '\t')
+  tbl <- read.table(cnt.file, header = T)
+
+# Load labels if available ------------------------------------------------
+
+  if (file.exists(output.dir %+% '/info_cellinfo.tsv')) {
+    labels <- read.table(output.dir %+% '/info_cellinfo.tsv', header=T)$Group
+  } else if (file.exists('../' %+% output.dir %+% '/info_cellinfo.tsv')) {
+    labels <- read.table('../' %+% output.dir %+% '/info_cellinfo.tsv', header=T)$Group
+  }
+  else labels <-
+
+# Seurat PCA and tSNE -----------------------------------------------------
 
   s <- CreateSeuratObject(tbl, min.cells = 1, min.genes = 1)
   print(s)
@@ -47,4 +69,35 @@ for (cnt.file in files) {
   write.table(data.frame(label=unname(s@ident), cell=names(s@ident)),
               output.dir %+% '/seurat_cluster_labels.tsv',
               row.names = F, quote = F)
+
+
+  # PCA and tSNE with sf and lognorm ----------------------------------------
+
+  if (!is.null(labels)) {
+    counts <- t(tbl)
+    counts <- counts[, colSums(counts)>0]
+    norm.counts <- normalize(counts)
+
+    pca.counts <- prcomp(norm.counts, rank. = 2)$x
+    qplot(pca.counts[,1], pca.counts[,2], color=labels, xlab='PC1', ylab='PC2')
+    ggsave(output.dir %+% '/seurat_plot_pca_simplepre.png')
+
+    tsne.counts <- Rtsne(norm.counts)$Y
+    qplot(tsne.counts[,1], tsne.counts[,2], color=labels, xlab='tsne1', ylab='tsne2')
+    ggsave(output.dir %+% '/seurat_plot_tsne_simplepre.png')
+
+    if (file.exists(output.dir %+% '/info_truecounts.tsv')) {
+
+      tr <- t(read.table(output.dir %+% '/info_truecounts.tsv'))
+      tr.norm <- normalize(tr)
+      pca.tr <- prcomp(tr.norm, rank. = 2)$x
+      ggsave(output.dir %+% '/seurat_plot_TRUECOUNT_pca_simplepre.png')
+
+      tsne.tr <- Rtsne(tr.norm)$Y
+      qplot(tsne.tr[,1], tsne.tr[,2], color=labels, xlab='tsne1', ylab='tsne2')
+      ggsave(output.dir %+% '/seurat_plot_TRUECOUNT_tsne_simplepre.png')
+
+    }
+  }
+
 }
