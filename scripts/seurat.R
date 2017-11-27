@@ -35,7 +35,7 @@ for (cnt.file in files) {
   } else if (file.exists('../' %+% output.dir %+% '/info_cellinfo.tsv')) {
     labels <- read.table('../' %+% output.dir %+% '/info_cellinfo.tsv', header=T)$Group
   }
-  else labels <-
+  else labels <- NULL
 
 # Seurat PCA and tSNE -----------------------------------------------------
 
@@ -91,6 +91,7 @@ for (cnt.file in files) {
       tr <- t(read.table(output.dir %+% '/info_truecounts.tsv'))
       tr.norm <- normalize(tr)
       pca.tr <- prcomp(tr.norm, rank. = 2)$x
+      qplot(pca.tr[,1], pca.tr[,2], color=labels, xlab='pca1', ylab='pca2')
       ggsave(output.dir %+% '/seurat_plot_TRUECOUNT_pca_simplepre.png')
 
       tsne.tr <- Rtsne(tr.norm)$Y
