@@ -32,8 +32,8 @@ for (cnt.file in files) {
 
   if (file.exists(output.dir %+% '/info_cellinfo.tsv')) {
     labels <- read.table(output.dir %+% '/info_cellinfo.tsv', header=T)$Group
-  } else if (file.exists('../' %+% output.dir %+% '/info_cellinfo.tsv')) {
-    labels <- read.table('../' %+% output.dir %+% '/info_cellinfo.tsv', header=T)$Group
+  } else if (file.exists(output.dir %+% '/../info_cellinfo.tsv')) {
+    labels <- read.table(output.dir %+% '/../info_cellinfo.tsv', header=T)$Group
   }
   else labels <- NULL
 
@@ -70,6 +70,7 @@ for (cnt.file in files) {
               output.dir %+% '/seurat_cluster_labels.tsv',
               row.names = F, quote = F)
 
+  saveRDS(s, output.dir %+% '/seurat.Rds')
 
   # PCA and tSNE with sf and lognorm ----------------------------------------
 
