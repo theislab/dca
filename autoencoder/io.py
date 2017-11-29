@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 import zarr
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import scale
 
 
 class Matrix:
@@ -198,6 +199,6 @@ def normalize(x, sf, logtrans=True, sfnorm=True, zeromean=True):
         x = np.log1p(x)
 
     if zeromean:
-        x = x - x.mean(axis=0)
+        x = scale(x)
 
     return x
