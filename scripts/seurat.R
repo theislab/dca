@@ -50,9 +50,16 @@ for (cnt.file in files) {
   print('Number of clusters: ' %+% length(levels(s@ident)))
 
   DimPlot(s)
-  ggsave(output.dir %+% '/seurat_plot_pca_allgenes.png')
+  ggsave(output.dir %+% '/seurat_PCA_all_CL.png')
   DimPlot(s, reduction.use = 'tsne')
-  ggsave(output.dir %+% '/seurat_plot_tsne_allgenes.png')
+  ggsave(output.dir %+% '/seurat_tSNE_all_CL.png')
+  if (!is.null(labels)) {
+    s@meta.data$ground.truth <- labels
+    DimPlot(s, group.by='ground.truth')
+    ggsave(output.dir %+% '/seurat_PCA_all_GT.png')
+    DimPlot(s, reduction.use = 'tsne', group.by='ground.truth')
+    ggsave(output.dir %+% '/seurat_tSNE_all_GT.png')
+  }
 
   s <- FindVariableGenes(s, do.plot = F, display.progress = F)
   print('Number of variable genes: ' %+% length(s@var.genes))
@@ -62,9 +69,15 @@ for (cnt.file in files) {
   print('Number of clusters: ' %+% length(levels(s@ident)))
 
   DimPlot(s)
-  ggsave(output.dir %+% '/seurat_plot_pca_vargenes.png')
+  ggsave(output.dir %+% '/seurat_PCA_var_CL.png')
   DimPlot(s, reduction.use = 'tsne')
-  ggsave(output.dir %+% '/seurat_plot_tsne_vargenes.png')
+  ggsave(output.dir %+% '/seurat_tSNE_var_CL.png')
+  if (!is.null(labels)) {
+    DimPlot(s, group.by='ground.truth')
+    ggsave(output.dir %+% '/seurat_PCA_var_GT.png')
+    DimPlot(s, reduction.use = 'tsne', group.by='ground.truth')
+    ggsave(output.dir %+% '/seurat_tSNE_var_GT.png')
+  }
 
   write.table(data.frame(label=unname(s@ident), cell=names(s@ident)),
               output.dir %+% '/seurat_cluster_labels.tsv',
@@ -81,11 +94,11 @@ for (cnt.file in files) {
 
     pca.counts <- prcomp(norm.counts, rank. = 2)$x
     qplot(pca.counts[,1], pca.counts[,2], color=labels, xlab='PC1', ylab='PC2')
-    ggsave(output.dir %+% '/seurat_plot_pca_simplepre.png')
+    ggsave(output.dir %+% '/seurat_PCA_all_simplepre_GT.png')
 
     tsne.counts <- Rtsne(norm.counts)$Y
     qplot(tsne.counts[,1], tsne.counts[,2], color=labels, xlab='tsne1', ylab='tsne2')
-    ggsave(output.dir %+% '/seurat_plot_tsne_simplepre.png')
+    ggsave(output.dir %+% '/seurat_tSNE_all_simplepre_GT.png')
 
     if (file.exists(output.dir %+% '/info_truecounts.tsv')) {
 
@@ -93,11 +106,11 @@ for (cnt.file in files) {
       tr.norm <- normalize(tr)
       pca.tr <- prcomp(tr.norm, rank. = 2)$x
       qplot(pca.tr[,1], pca.tr[,2], color=labels, xlab='pca1', ylab='pca2')
-      ggsave(output.dir %+% '/seurat_plot_TRUECOUNT_pca_simplepre.png')
+      ggsave(output.dir %+% '/seurat_TRUECOUNT_PCA_all_simplepre_GT.png')
 
       tsne.tr <- Rtsne(tr.norm)$Y
       qplot(tsne.tr[,1], tsne.tr[,2], color=labels, xlab='tsne1', ylab='tsne2')
-      ggsave(output.dir %+% '/seurat_plot_TRUECOUNT_tsne_simplepre.png')
+      ggsave(output.dir %+% '/seurat_TRUECOUNT_tSNE_all_simplepre_GT.png')
 
     }
   }
