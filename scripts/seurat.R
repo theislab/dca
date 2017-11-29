@@ -7,7 +7,7 @@ normalize <- function(x) {
   sf <- sf / median(sf)
   x <- x / sf
   x <- log(x+1)
-  scale(x, center = T, scale = F)
+  scale(x, center = T, scale = T)
 }
 
 
@@ -103,6 +103,7 @@ for (cnt.file in files) {
     if (file.exists(output.dir %+% '/info_truecounts.tsv')) {
 
       tr <- t(read.table(output.dir %+% '/info_truecounts.tsv'))
+      tr<- tr[, colSums(tr)>0]
       tr.norm <- normalize(tr)
       pca.tr <- prcomp(tr.norm, rank. = 2)$x
       qplot(pca.tr[,1], pca.tr[,2], color=labels, xlab='pca1', ylab='pca2')
