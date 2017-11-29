@@ -24,7 +24,9 @@ def hyper(args):
                 "norm_input_sf": hp.choice('d_norm_sf', (True, False)),
                 },
             "model": {
-                "lr": hp.loguniform("m_lr", np.log(1e-4), np.log(1e-2)), # 0.0001 - 0.01
+                "lr": hp.loguniform("m_lr", np.log(1e-3), np.log(1e-2)),
+                "ridge": hp.loguniform("m_ridge", np.log(1e-5), np.log(1e-2)),
+                "l1_enc_coef": hp.loguniform("m_l1_enc_coef", np.log(1e-5), np.log(1e-2)),
                 "hidden_size": hp.choice("m_hiddensize", ((64,32,64), (32,16,32),
                                                           (64,64), (32,32), (16,16),
                                                           (16,), (32,), (64,), (128,))),
@@ -34,7 +36,7 @@ def hyper(args):
                 "dropout": hp.uniform("m_do", 0, 0.7),
                 },
             "fit": {
-                "epochs": 40
+                "epochs": 50
                 }
     }
 
@@ -54,14 +56,15 @@ def hyper(args):
 
         return (x_train, y_train),
 
-    def model_fn(train_data, lr, hidden_size, activation, batchnorm, dropout):
+    def model_fn(train_data, lr, hidden_size, activation, batchnorm,
+                 dropout, ridge, l1_enc_coef):
         net = AE_types[args.type](train_data[1].shape[1],
                 hidden_size=hidden_size,
                 l2_coef=0.0,
                 l1_coef=0.0,
                 l2_enc_coef=0.0,
-                l1_enc_coef=0.0,
-                ridge=0.0,
+                l1_enc_coef=l1_enc_coef,
+                ridge=ridge,
                 hidden_dropout=dropout,
                 batchnorm=batchnorm,
                 activation=activation,
@@ -89,7 +92,7 @@ def hyper(args):
     test_fn(objective, hyper_params, save_model=None)
 
     trials = Trials()
-    best = fmin(objective, hyper_params, trials=trials, algo=tpe.suggest, max_evals=200)
+    best = fmin(objective, hyper_params, trials=trials, algo=tpe.suggest, max_evals=1000)
 
     with open(os.path.join(output_dir, 'trials.pickle'), 'wb') as f:
         pickle.dump(trials, f)
