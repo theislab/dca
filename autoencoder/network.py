@@ -46,6 +46,7 @@ class Autoencoder():
                  l1_enc_coef=0.,
                  ridge=0.,
                  hidden_dropout=0.,
+                 input_dropout=0.,
                  batchnorm=True,
                  activation='elu',
                  init='glorot_uniform',
@@ -61,6 +62,7 @@ class Autoencoder():
         self.l1_enc_coef = l1_enc_coef
         self.ridge = ridge
         self.hidden_dropout = hidden_dropout
+        self.input_dropout = input_dropout
         self.batchnorm = batchnorm
         self.activation = activation
         self.init = init
@@ -88,6 +90,9 @@ class Autoencoder():
         self.input_layer = Input(shape=(self.input_size,), name='count')
         self.sf_layer = Input(shape=(1,), name='size_factors')
         last_hidden = self.input_layer
+
+        if self.input_dropout > 0.0:
+            last_hidden = Dropout(self.input_dropout, name='input_dropout')(last_hidden)
 
         for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
             center_idx = int(np.floor(len(self.hidden_size) / 2.0))
@@ -577,6 +582,9 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
         self.sf_layer = Input(shape=(1,), name='size_factors')
         last_hidden = self.input_layer
 
+        if self.input_dropout > 0.0:
+            last_hidden = Dropout(self.input_dropout, name='input_dropout')(last_hidden)
+
         for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
             center_idx = int(np.floor(len(self.hidden_size) / 2.0))
             if i == center_idx:
@@ -681,6 +689,9 @@ class NBForkAutoencoder(NBAutoencoder):
         self.input_layer = Input(shape=(self.input_size,), name='count')
         self.sf_layer = Input(shape=(1,), name='size_factors')
         last_hidden = self.input_layer
+
+        if self.input_dropout > 0.0:
+            last_hidden = Dropout(self.input_dropout, name='input_dropout')(last_hidden)
 
         for i, (hid_size, hid_drop) in enumerate(zip(self.hidden_size, self.hidden_dropout)):
             center_idx = int(np.floor(len(self.hidden_size) / 2.0))

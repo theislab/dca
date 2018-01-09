@@ -86,6 +86,8 @@ def parse_args():
             "in loss occurs (default: 10)")
     parser.add_argument('-s', '--hiddensize', type=str, default='64,32,64',
             help="Size of hidden layers (default: 64,32,64)")
+    parser.add_argument('--inputdropout', type=str, default=0.0,
+            help="Input layer dropout probability"),
     parser.add_argument('-r', '--learningrate', type=float, default=None,
             help="Learning rate (default: 0.001)")
     parser.add_argument('--saveweights', dest='saveweights',
