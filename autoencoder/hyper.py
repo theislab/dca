@@ -37,7 +37,7 @@ def hyper(args):
                 "input_dropout": hp.uniform("m_input_do", 0, 0.8),
                 },
             "fit": {
-                "epochs": 50
+                "epochs": 100
                 }
     }
 
