@@ -33,10 +33,10 @@ def parse_args():
             action='store_true', help="Use one fold as a test set (default: False)")
 
     # training options
-    parser.add_argument('--type', type=str, default='zinb-conddisp',
+    parser.add_argument('--type', type=str, default='zinb',
             help="Type of autoencoder. Possible values: normal, poisson, nb, "
-                 "nb-shared, nb-conddisp, nb-fork, zinb, "
-                 "zinb-shared, zinb-conddisp(default) zinb-fork")
+                 "nb-shared, nb-conddisp, nb-fork, zinb(default), "
+                 "zinb-shared, zinb-conddisp zinb-fork")
     parser.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
     parser.add_argument('--sizefactors', dest='sizefactors',
