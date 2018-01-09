@@ -126,6 +126,7 @@ def train_with_args(args):
             l1_enc_coef=args.l1enc,
             ridge=args.ridge,
             hidden_dropout=hidden_dropout,
+            input_dropout=args.inputdropout,
             batchnorm=args.batchnorm,
             activation=args.activation,
             init=args.init,

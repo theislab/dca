@@ -34,6 +34,7 @@ def hyper(args):
                                                          'PReLU', 'linear', 'LeakyReLU')),
                 "batchnorm": hp.choice("m_batchnorm", (True, False)),
                 "dropout": hp.uniform("m_do", 0, 0.7),
+                "input_dropout": hp.uniform("m_input_do", 0, 0.8),
                 },
             "fit": {
                 "epochs": 50
@@ -57,7 +58,7 @@ def hyper(args):
         return (x_train, y_train),
 
     def model_fn(train_data, lr, hidden_size, activation, batchnorm,
-                 dropout, ridge, l1_enc_coef):
+                 dropout, input_dropout, ridge, l1_enc_coef):
         net = AE_types[args.type](train_data[1].shape[1],
                 hidden_size=hidden_size,
                 l2_coef=0.0,
@@ -66,6 +67,7 @@ def hyper(args):
                 l1_enc_coef=l1_enc_coef,
                 ridge=ridge,
                 hidden_dropout=dropout,
+                input_dropout=input_dropout,
                 batchnorm=batchnorm,
                 activation=activation,
                 init='glorot_uniform',
