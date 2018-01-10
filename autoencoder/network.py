@@ -33,7 +33,7 @@ from .io import write_text_matrix, estimate_size_factors, normalize
 
 
 MeanAct = lambda x: tf.clip_by_value(K.exp(x), 1e-5, 1e6)
-DispAct = lambda x: tf.clip_by_value(K.exp(x), 1e-3, 1e4)
+DispAct = lambda x: tf.clip_by_value(tf.nn.softplus(x), 1e-4, 1e4)
 
 class Autoencoder():
     def __init__(self,
