@@ -4,7 +4,7 @@ A deep count autoencoder network to remove the dropout effect from scRNA-seq dat
 
 ### Installation
 
-pip install git+https://github.com/gokceneraslan/autoencoder
+pip install git+https://github.com/gokceneraslan/countae
 
 ### Hyperparameter optimization
 
