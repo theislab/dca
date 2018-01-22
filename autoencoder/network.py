@@ -225,6 +225,10 @@ class Autoencoder():
                               os.path.join(self.file_path, 'mean.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)
 
+            write_anndata(res['mean'],
+                          os.path.join(self.file_path, 'mean.h5ad'),
+                          rownames=rownames, colnames=colnames)
+
             write_text_matrix(res['mean_norm'],
                               os.path.join(self.file_path, 'mean_norm.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)

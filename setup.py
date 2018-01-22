@@ -22,6 +22,7 @@ setup(
                       'h5py',
                       'six>=1.10.0',
                       'scikit-learn',
+                      'anndata',
                       'zarr',
                       'pandas' #for preprocessing
                       ],

@@ -19,7 +19,7 @@ from . import train
 def parse_args():
     parser = argparse.ArgumentParser(description='Autoencoder')
 
-    parser.add_argument('input', type=str, help='Input in TSV/CSV format. '
+    parser.add_argument('input', type=str, help='Input in TSV/CSV or H5AD (anndata)format. '
                         'Row/col names are mandatory')
     parser.add_argument('outputdir', type=str, help='The path of the output directory')
 

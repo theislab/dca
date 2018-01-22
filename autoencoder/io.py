@@ -23,6 +23,7 @@ import pickle, os, numbers
 import numpy as np
 import pandas as pd
 import zarr
+import anndata
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
 
@@ -88,7 +89,16 @@ class Dataset:
 def create_dataset(input_file, output_file, transpose=False, test_split=True, size_factors='zheng'):
 
     root = zarr.open_group(output_file, 'w')
-    matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
+
+    _, extension = os.path.splitext(input_file)
+    extension = extension.lower()
+
+    if extension == '.h5ad':
+        matrix, rownames, colnames = read_anndata(input_file, transpose=transpose)
+    elif extension in ('txt', 'tsv', 'csv'):
+        matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
+    else:
+        raise NotImplementedError
 
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
@@ -132,6 +142,15 @@ def create_dataset(input_file, output_file, transpose=False, test_split=True, si
     return Dataset(output_file)
 
 
+def read_anndata(inputfile, type=np.float, transpose=False):
+    adata = anndata.read(inputfile)
+    if transpose: adata = adata.transpose()
+
+    matrix, cellnames, genenames = adata.X, adata.obs_names, adata.var_names
+    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(genenames), len(cellnames)))
+    return matrix.astype(type), list(cellnames), list(genenames)
+
+
 def read_text_matrix(inputfile, type=np.float, transpose=False):
     df = pd.read_csv(inputfile, sep=None, header=0, index_col=0, engine='python')
 
@@ -172,6 +191,17 @@ def write_text_matrix(matrix, filename, rownames=None, colnames=None, transpose=
                                                                   header=(colnames is not None),
                                                                   float_format='%.6f')
 
+def write_anndata(matrix, filename, rownames=None, colnames=None, transpose=False):
+    if transpose:
+        matrix = matrix.T
+        rownames, colnames = colnames, rownames
+
+    adata = anndata.AnnData(matrix,
+                            obs=pd.DataFrame(index=rownames),
+                            var=pd.DataFrame(index=colnames))
+    adata.write(filename)
+
+
 def read_pickle(inputfile):
     return pickle.load(open(inputfile, "rb"))
 
@@ -187,7 +217,7 @@ def estimate_size_factors(x, normtype='zheng'):
         s = np.sum(x, 1)
         return s/np.median(s, 0)
     else:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 def normalize(x, sf, logtrans=True, sfnorm=True, zeromean=True):
