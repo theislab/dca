@@ -94,7 +94,12 @@ def hyper(args):
     test_fn(objective, hyper_params, save_model=None)
 
     trials = Trials()
-    best = fmin(objective, hyper_params, trials=trials, algo=tpe.suggest, max_evals=1000)
+    best = fmin(objective,
+                hyper_params,
+                trials=trials,
+                algo=tpe.suggest,
+                max_evals=1000,
+                catch_eval_exceptions=True)
 
     with open(os.path.join(output_dir, 'trials.pickle'), 'wb') as f:
         pickle.dump(trials, f)
