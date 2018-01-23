@@ -33,9 +33,10 @@ from keras.preprocessing.image import Iterator
 def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
           aetype=None, epochs=200, reduce_lr=20, size_factors=True, normalize_input=True,
           logtrans_input=True, early_stop=25, batch_size=32, clip_grad=5., save_weights=True,
-          **kwargs):
+          tensorboard=True, **kwargs):
     model = network.model
     loss = network.loss
+    os.makedirs(output_dir, exist_ok=True)
 
     if learning_rate is None:
         optimizer = opt.__dict__[optimizer](clipvalue=clip_grad)
@@ -50,29 +51,24 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
                                    save_weights_only=True,
                                    save_best_only=True)
     es_cb = EarlyStopping(monitor='val_loss', patience=early_stop, verbose=1)
-    es_cb_train = EarlyStopping(monitor='train_loss', patience=early_stop, verbose=1)
 
     lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr, verbose=1)
-    lr_cb_train = ReduceLROnPlateau(monitor='train_loss', patience=reduce_lr, verbose=1)
-
-    callbacks = []
-    callbacks_train = []
-
-    if save_weights:
-        callbacks.append(checkpointer)
-        callbacks_train.append(checkpointer)
-    if reduce_lr:
-        callbacks.append(lr_cb)
-        callbacks_train.append(lr_cb_train)
-    if early_stop:
-        callbacks.append(es_cb)
-        callbacks_train.append(es_cb_train)
-
-    os.makedirs(output_dir, exist_ok=True)
-    model.summary()
 
     tb_log_dir = os.path.join(output_dir, 'tb')
     tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1, write_grads=True)
+
+    callbacks = []
+
+    if save_weights:
+        callbacks.append(checkpointer)
+    if reduce_lr:
+        callbacks.append(lr_cb)
+    if early_stop:
+        callbacks.append(es_cb)
+    if tensorboard:
+        callbacks.append(tb_cb)
+
+    model.summary()
 
     if size_factors:
         sf_mat = ds.train.size_factors[:]
@@ -89,7 +85,7 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
                      epochs=epochs,
                      batch_size=batch_size,
                      shuffle=True,
-                     callbacks=callbacks + [tb_cb],
+                     callbacks=callbacks,
                      validation_split=0.1,
                      **kwargs)
     # https://github.com/tensorflow/tensorflow/issues/3388
