@@ -88,7 +88,7 @@ def hyper(args):
                           valid_split=.2,
                           save_model=None,
                           save_results=True,
-                          use_tensorboard=True,
+                          use_tensorboard=False,
                           save_dir=output_dir)
 
     test_fn(objective, hyper_params, save_model=None)
