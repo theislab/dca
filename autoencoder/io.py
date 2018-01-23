@@ -95,7 +95,7 @@ def create_dataset(input_file, output_file, transpose=False, test_split=True, si
 
     if extension == '.h5ad':
         matrix, rownames, colnames = read_anndata(input_file, transpose=transpose)
-    elif extension in ('txt', 'tsv', 'csv'):
+    elif extension in ('.txt', '.tsv', '.csv'):
         matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
     else:
         raise NotImplementedError
