@@ -69,8 +69,8 @@ def parse_args():
             help="L2 regularization coefficient for dropout probabilities (default: 0.0)")
     parser.add_argument('--gradclip', type=float, default=5.0,
             help="Clip grad values (default: 5.0)")
-    parser.add_argument('--activation', type=str, default='elu',
-            help="Activation function of hidden units (default: elu)")
+    parser.add_argument('--activation', type=str, default='relu',
+            help="Activation function of hidden units (default: relu)")
     parser.add_argument('--optimizer', type=str, default='rmsprop',
             help="Optimization method (default: rmsprop)")
     parser.add_argument('--init', type=str, default='glorot_uniform',
@@ -86,7 +86,7 @@ def parse_args():
             "in loss occurs (default: 10)")
     parser.add_argument('-s', '--hiddensize', type=str, default='64,32,64',
             help="Size of hidden layers (default: 64,32,64)")
-    parser.add_argument('--inputdropout', type=str, default=0.0,
+    parser.add_argument('--inputdropout', type=float, default=0.0,
             help="Input layer dropout probability"),
     parser.add_argument('-r', '--learningrate', type=float, default=None,
             help="Learning rate (default: 0.001)")
