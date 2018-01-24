@@ -14,7 +14,6 @@
 # ==============================================================================
 
 import os, sys, argparse
-from . import train
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Autoencoder')
@@ -100,8 +99,7 @@ def parse_args():
             action='store_true', help="Enable debugging. Checks whether every term in "
                                       "loss functions is finite. (default: False)")
 
-    parser.set_defaults(func=train.train_with_args,
-                        saveweights=False,
+    parser.set_defaults(saveweights=False,
                         sizefactors=True,
                         batchnorm=True,
                         norminput=True,
@@ -114,4 +112,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-    args.func(args)
+
+    # import tf and the rest after parse_args() to make argparse help faster
+    from . import train
+
+    train.train_with_args(args)
