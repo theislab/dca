@@ -29,7 +29,7 @@ import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
 from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
-from .io import write_text_matrix, estimate_size_factors, normalize
+from .io import write_text_matrix, write_anndata, estimate_size_factors, normalize
 
 
 MeanAct = lambda x: tf.clip_by_value(K.exp(x), 1e-5, 1e6)
