@@ -1,5 +1,6 @@
 import os
 import pickle
+import json
 
 import numpy as np
 from kopt import CompileFN, test_fn
@@ -98,10 +99,16 @@ def hyper(args):
                 hyper_params,
                 trials=trials,
                 algo=tpe.suggest,
-                max_evals=1000,
+                max_evals=args.hypern,
                 catch_eval_exceptions=True)
 
     with open(os.path.join(output_dir, 'trials.pickle'), 'wb') as f:
         pickle.dump(trials, f)
 
+    #TODO: map indices in "best" back to choice-based hyperpars before saving
+    with open(os.path.join(output_dir, 'best.json'), 'wt') as f:
+        json.dump(best, f, sort_keys=True, indent=4)
+
     print(best)
+
+    #TODO: not just save the best conf but also train the model with these params

@@ -100,6 +100,9 @@ def parse_args():
             action='store_false', help="Do not save weights")
     parser.add_argument('--hyper', dest='hyper',
             action='store_true', help="Optimizer hyperparameters (default: False)")
+    parser.add_argument('--hypern', dest='hypern', type=int, default=1000,
+            help="Number of samples drawn from hyperparameter distributions during optimization. "
+                 "(default: 1000)")
     parser.add_argument('--debug', dest='debug',
             action='store_true', help="Enable debugging. Checks whether every term in "
                                       "loss functions is finite. (default: False)")
