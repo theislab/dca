@@ -33,7 +33,7 @@ from keras.preprocessing.image import Iterator
 def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
           aetype=None, epochs=200, reduce_lr=20, size_factors=True, normalize_input=True,
           logtrans_input=True, early_stop=25, batch_size=32, clip_grad=5., save_weights=True,
-          tensorboard=True, **kwargs):
+          tensorboard=False, **kwargs):
     model = network.model
     loss = network.loss
     os.makedirs(output_dir, exist_ok=True)
@@ -140,7 +140,8 @@ def train_with_args(args):
                    normalize_input=args.norminput,
                    optimizer=args.optimizer,
                    clip_grad=args.gradclip,
-                   save_weights=args.saveweights)
+                   save_weights=args.saveweights,
+                   tensorboard=args.tensorboard)
 
     net.predict(ds.full,
                 size_factors=args.sizefactors,

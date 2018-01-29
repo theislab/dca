@@ -103,6 +103,9 @@ def parse_args():
     parser.add_argument('--debug', dest='debug',
             action='store_true', help="Enable debugging. Checks whether every term in "
                                       "loss functions is finite. (default: False)")
+    parser.add_argument('--tensorboard', dest='tensorboard',
+            action='store_true', help="Use tensorboard for saving weight distributions and "
+                                      "visualization. (default: False)")
 
     parser.set_defaults(saveweights=False,
                         sizefactors=True,
@@ -110,6 +113,7 @@ def parse_args():
                         norminput=True,
                         hyper=False,
                         debug=False,
+                        tensorboard=False,
                         loginput=True)
 
     return parser.parse_args()
