@@ -287,7 +287,7 @@ class NBConstantDispAutoencoder(Autoencoder):
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
-        res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
+        #res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
 
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
@@ -298,9 +298,9 @@ class NBConstantDispAutoencoder(Autoencoder):
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)
-            write_text_matrix(res['error'],
-                              os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
+            #write_text_matrix(res['error'],
+            #                  os.path.join(self.file_path, 'error.tsv'),
+            #                  rownames=rownames, colnames=colnames, transpose=True)
 
         return res
 
@@ -354,7 +354,7 @@ class NBAutoencoder(Autoencoder):
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
-        res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
+        #res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
 
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
@@ -365,9 +365,9 @@ class NBAutoencoder(Autoencoder):
             write_text_matrix(res['mode'],
                               os.path.join(self.file_path, 'mode.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)
-            write_text_matrix(res['error'],
-                              os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
+            #write_text_matrix(res['error'],
+            #                  os.path.join(self.file_path, 'error.tsv'),
+            #                  rownames=rownames, colnames=colnames, transpose=True)
 
         return res
 
@@ -557,7 +557,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
         res['mode'][res['mode'] < 0] = 0
-        res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
+        #res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
 
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
@@ -571,9 +571,9 @@ class ZINBConstantDispAutoencoder(Autoencoder):
             write_text_matrix(res['pi'],
                               os.path.join(self.file_path, 'pi.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)
-            write_text_matrix(res['error'],
-                              os.path.join(self.file_path, 'error.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
+            #write_text_matrix(res['error'],
+            #                  os.path.join(self.file_path, 'error.tsv'),
+            #                  rownames=rownames, colnames=colnames, transpose=True)
 
         return res
 
