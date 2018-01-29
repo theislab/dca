@@ -18,8 +18,13 @@ import os, sys, argparse
 def parse_args():
     parser = argparse.ArgumentParser(description='Autoencoder')
 
-    parser.add_argument('input', type=str, help='Input in TSV/CSV or H5AD (anndata)format. '
-                        'Row/col names are mandatory')
+    parser.add_argument('input', type=str, help='Input is raw count data in TSV/CSV '
+                        'or H5AD (anndata) format. '
+                        'Row/col names are mandatory. Note that TSV/CSV files must be in '
+                        'gene x cell layout where rows are genes and cols are cells (scRNA-seq '
+                        'convention).'
+                        'Use the -t/--transpose option if your count matrix in cell x gene layout. '
+                        'H5AD files must be in cell x gene format (stats and scanpy convention).')
     parser.add_argument('outputdir', type=str, help='The path of the output directory')
 
     # IO and norm options
