@@ -76,7 +76,6 @@ class Autoencoder():
         self.sf_layer = None
         self.debug = debug
 
-        self.ae = True if self.output_size is None else False
         if self.output_size is None:
             self.output_size = input_size
 
@@ -149,8 +148,7 @@ class Autoencoder():
         self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
 
     def save(self):
@@ -161,9 +159,8 @@ class Autoencoder():
 
     def load_weights(self, filename):
         self.model.load_weights(filename)
-        if self.ae:
-            self.encoder = self.get_encoder()
-            self.decoder = None  # get_decoder()
+        self.encoder = self.get_encoder()
+        self.decoder = None  # get_decoder()
 
     def get_decoder(self):
         i = 0
@@ -184,13 +181,9 @@ class Autoencoder():
                         outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, mat, setname='full', dimreduce=True, reconstruct=True,
+    def predict(self, count_matrix, rownames, colnames, dimreduce=True, reconstruct=True,
                 size_factors=True, normalize_input=True, logtrans_input=True,
                 error=True):
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
 
         res = {}
         if size_factors:
@@ -249,8 +242,7 @@ class PoissonAutoencoder(Autoencoder):
         self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
 
 class NBConstantDispAutoencoder(Autoencoder):
@@ -273,15 +265,10 @@ class NBConstantDispAutoencoder(Autoencoder):
         self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
-    def predict(self, mat, **kwargs):
-        res = super().predict(mat, **kwargs)
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
+    def predict(self, count_matrix, rownames, colnames, **kwargs):
+        res = super().predict(count_matrix, rownames, colnames, **kwargs)
 
         res['dispersion'] = self.extra_models['dispersion']()
         m, d = res['mean'], res['dispersion']
@@ -328,15 +315,10 @@ class NBAutoencoder(Autoencoder):
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
-    def predict(self, mat, **kwargs):
-        res = super().predict(mat, **kwargs)
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
+    def predict(self, count_matrix, rownames, colnames, **kwargs):
+        res = super().predict(count_matrix, rownames, colnames, **kwargs)
 
         if kwargs['size_factors']:
             sf_mat = estimate_size_factors(count_matrix)
@@ -395,8 +377,7 @@ class NBSharedAutoencoder(NBAutoencoder):
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
 
 class ZINBAutoencoder(Autoencoder):
@@ -426,15 +407,10 @@ class ZINBAutoencoder(Autoencoder):
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
-    def predict(self, mat, **kwargs):
-        res = super().predict(mat, **kwargs)
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
+    def predict(self, count_matrix, rownames, colnames, **kwargs):
+        res = super().predict(count_matrix, rownames, colnames, **kwargs)
 
         if kwargs['size_factors']:
             sf_mat = estimate_size_factors(count_matrix)
@@ -500,8 +476,7 @@ class ZINBSharedAutoencoder(ZINBAutoencoder):
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
 
 class ZINBConstantDispAutoencoder(Autoencoder):
@@ -530,15 +505,10 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
-    def predict(self, mat, **kwargs):
-        res = super().predict(mat, **kwargs)
-
-        rownames = mat.rownames
-        colnames = mat.colnames
-        count_matrix = mat.matrix[:]
+    def predict(self, count_matrix, rownames, colnames, **kwargs):
+        res = super().predict(count_matrix, rownames, colnames, **kwargs)
 
         if kwargs['size_factors']:
             sf_mat = estimate_size_factors(count_matrix)
@@ -682,8 +652,7 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
 
 class NBForkAutoencoder(NBAutoencoder):
@@ -780,8 +749,7 @@ class NBForkAutoencoder(NBAutoencoder):
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
 
-        if self.ae:
-            self.encoder = self.get_encoder()
+        self.encoder = self.get_encoder()
 
 
 AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,

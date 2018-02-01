@@ -109,6 +109,10 @@ def parse_args():
     parser.add_argument('--tensorboard', dest='tensorboard',
             action='store_true', help="Use tensorboard for saving weight distributions and "
                                       "visualization. (default: False)")
+    parser.add_argument('--denoisesubset', dest='denoisesubset', type=str,
+                        help='Perform denoising only for the subset of genes '
+                             'in the given file. Gene names should be line '
+                             'separated.')
 
     parser.set_defaults(saveweights=False,
                         sizefactors=True,

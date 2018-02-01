@@ -31,9 +31,9 @@ from keras.preprocessing.image import Iterator
 
 
 def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
-          aetype=None, epochs=200, reduce_lr=20, size_factors=True, normalize_input=True,
-          logtrans_input=True, early_stop=25, batch_size=32, clip_grad=5., save_weights=True,
-          tensorboard=False, **kwargs):
+          aetype=None, epochs=200, reduce_lr=20, size_factors=True, output_subset=None,
+          normalize_input=True, logtrans_input=True, early_stop=25, batch_size=32,
+          clip_grad=5., save_weights=True, tensorboard=False, **kwargs):
     model = network.model
     loss = network.loss
     os.makedirs(output_dir, exist_ok=True)
@@ -76,12 +76,19 @@ def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_o
         sf_mat = np.ones((ds.train.matrix.shape[0], 1),
                          dtype=np.float32)
 
-    loss = model.fit({'count': io.normalize(ds.train.matrix[:],
+    inputs = {'count': io.normalize(ds.train.matrix[:],
                                             sf_mat, logtrans=logtrans_input,
                                             sfnorm=size_factors,
                                             zeromean=normalize_input),
-                      'size_factors': sf_mat},
-                     ds.train.matrix[:],
+              'size_factors': sf_mat}
+
+    if output_subset:
+        gene_idx = [np.where(ds.train.colnames == x)[0][0] for x in output_subset]
+        output = ds.train.matrix[:][:, gene_idx]
+    else:
+        output = ds.train.matrix[:]
+
+    loss = model.fit(inputs, output,
                      epochs=epochs,
                      batch_size=batch_size,
                      shuffle=True,
@@ -107,14 +114,25 @@ def train_with_args(args):
                            test_split=args.testsplit,
                            size_factors=args.normtype)
 
+    if args.denoisesubset:
+        genelist = list(set(io.read_genelist(args.denoisesubset)))
+        assert len(set(genelist) - set(ds.train.colnames)) == 0, \
+               'Gene list is not overlapping with genes from the dataset'
+        output_size = len(genelist)
+    else:
+        genelist = None
+        output_size = ds.train.shape[1]
+
     hidden_size = [int(x) for x in args.hiddensize.split(',')]
     hidden_dropout = [float(x) for x in args.dropoutrate.split(',')]
     if len(hidden_dropout) == 1:
         hidden_dropout = hidden_dropout[0]
 
     assert args.type in AE_types, 'loss type not supported'
+    input_size = ds.train.shape[1]
 
-    net = AE_types[args.type](input_size=ds.train.shape[1],
+    net = AE_types[args.type](input_size=input_size,
+            output_size=output_size,
             hidden_size=hidden_size,
             l2_coef=args.l2,
             l1_coef=args.l1,
@@ -137,13 +155,21 @@ def train_with_args(args):
                    early_stop=args.earlystop,
                    reduce_lr=args.reducelr,
                    size_factors=args.sizefactors,
+                   output_subset=genelist,
                    normalize_input=args.norminput,
                    optimizer=args.optimizer,
                    clip_grad=args.gradclip,
                    save_weights=args.saveweights,
                    tensorboard=args.tensorboard)
 
-    net.predict(ds.full,
+    if genelist:
+        predict_columns = ds.full.colnames[[np.where(ds.full.colnames==x)[0][0] for x in genelist]]
+    else:
+        predict_columns = ds.full.colnames
+
+    net.predict(ds.full.matrix[:],
+                ds.full.rownames,
+                predict_columns,
                 size_factors=args.sizefactors,
                 normalize_input=args.norminput,
                 logtrans_input=args.loginput)

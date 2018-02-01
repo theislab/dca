@@ -151,6 +151,14 @@ def read_anndata(inputfile, type=np.float, transpose=False):
     return matrix.astype(type), list(cellnames), list(genenames)
 
 
+def read_genelist(filename):
+    genelist = list(set(open(filename, 'rt').read().strip().split('\n')))
+    assert len(genelist) > 0, 'No genes detected in genelist file'
+    print('### Autoencoder: Subset of {} genes will be denoised.'.format(len(genelist)))
+
+    return genelist
+
+
 def read_text_matrix(inputfile, type=np.float, transpose=False):
     df = pd.read_csv(inputfile, sep=None, header=0, index_col=0, engine='python')
 
