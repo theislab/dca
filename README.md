@@ -1,5 +1,7 @@
 ## Deep count autoencoder for denoising scRNA-seq data
 
+<img src="figure1.png" alt="Count autoencoder comparison" width="400px">
+
 A deep count autoencoder network to denoise scRNA-seq data and remove the dropout effect by taking the count structure, overdispersed nature and sparsity of the data into account using a deep autoencoder with zero-inflated negative binomial (ZINB) loss function.
 
 ### Installation
