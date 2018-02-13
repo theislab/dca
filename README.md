@@ -14,7 +14,7 @@ You can run the autoencoder from the command line:
 
 `autoencoder matrix.csv results`
 
-where `matrix.csv` is a CSV/TSV-formatted raw count matrix with cells in rows and genes in columns. Cell and gene labels are mandatory. Results folder contains dropout, mean and dispersion matrices in TSV format. `mean.tsv` is the main output of the method.
+where `matrix.csv` is a CSV/TSV-formatted raw count matrix with genes in rows and cells in columns. Cell and gene labels are mandatory. Results folder contains dropout, mean and dispersion matrices in TSV format. `mean.tsv` is the main output of the method.
 
 Use `-h` option to see all available parameters and defaults.
 
