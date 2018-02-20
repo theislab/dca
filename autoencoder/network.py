@@ -211,7 +211,7 @@ class Autoencoder():
 
             write_text_matrix(res['reduced'],
                               os.path.join(self.file_path, 'reduced.tsv'),
-                              rownames=rownames, transpose=True)
+                              rownames=rownames, transpose=False)
 
             #write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
             write_text_matrix(res['mean'],
