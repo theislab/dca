@@ -33,7 +33,7 @@ def hyper(args):
                                                           (16,), (32,), (64,), (128,))),
                 "activation": hp.choice("m_activation", ('relu', 'selu', 'elu',
                                                          'PReLU', 'linear', 'LeakyReLU')),
-                "aetype": hp.choice("m_aetype", ('zinb', 'zinb-conddisp', 'zinb-fork')),
+                "aetype": hp.choice("m_aetype", ('zinb', 'zinb-conddisp')),
                 "batchnorm": hp.choice("m_batchnorm", (True, False)),
                 "dropout": hp.uniform("m_do", 0, 0.7),
                 "input_dropout": hp.uniform("m_input_do", 0, 0.8),
