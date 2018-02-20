@@ -33,6 +33,7 @@ def hyper(args):
                                                           (16,), (32,), (64,), (128,))),
                 "activation": hp.choice("m_activation", ('relu', 'selu', 'elu',
                                                          'PReLU', 'linear', 'LeakyReLU')),
+                "aetype": hp.choice("m_aetype", ('zinb', 'zinb-conddisp', 'zinb-fork')),
                 "batchnorm": hp.choice("m_batchnorm", (True, False)),
                 "dropout": hp.uniform("m_do", 0, 0.7),
                 "input_dropout": hp.uniform("m_input_do", 0, 0.8),
@@ -58,9 +59,9 @@ def hyper(args):
 
         return (x_train, y_train),
 
-    def model_fn(train_data, lr, hidden_size, activation, batchnorm,
+    def model_fn(train_data, lr, hidden_size, activation, aetype, batchnorm,
                  dropout, input_dropout, ridge, l1_enc_coef):
-        net = AE_types[args.type](train_data[1].shape[1],
+        net = AE_types[aetype](train_data[1].shape[1],
                 hidden_size=hidden_size,
                 l2_coef=0.0,
                 l1_coef=0.0,
