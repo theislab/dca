@@ -8,6 +8,25 @@ A deep count autoencoder network to denoise scRNA-seq data and remove the dropou
 
 `pip install git+https://github.com/gokceneraslan/countae`
 
+or you have `git` installed:
+
+`git clone https://github.com/gokceneraslan/countae.git`
+
+and then
+
+`pip install -r requirements.txt -e .`
+
+### Requirements
+
+`Hyperopt` (from github master branch) and `kopt` packages are also required. Please run following commands as well:
+
+`pip install git+https://github.com/hyperopt/hyperopt`
+
+and
+
+`pip install git+https://github.com/Avsecz/keras-hyperopt`
+
+
 ### Usage
 
 You can run the autoencoder from the command line:
@@ -19,13 +38,5 @@ where `matrix.csv` is a CSV/TSV-formatted raw count matrix with genes in rows an
 Use `-h` option to see all available parameters and defaults.
 
 ### Hyperparameter optimization
-
-`Hyperopt` (from github master branch) and `kopt` packages are required for hyperparameter optimization:
-
-`pip install git+https://github.com/hyperopt/hyperopt`
-
-and
-
-`pip install git+https://github.com/Avsecz/keras-hyperopt`
 
 Then run autoencoder with `--hyper` option do perform hyperparameter search.
