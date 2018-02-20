@@ -103,12 +103,10 @@ def create_dataset(input_file, output_file, transpose=False, test_split=True, si
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
 
-    logmatrix = np.log1p(matrix)
     root['full/shape'] = matrix.shape
     root['full/rownames'] = rownames
     root['full/colnames'] = colnames
     root.create_dataset('full/matrix', data=matrix, chunks=(128, None))
-    root.create_dataset('full/logmatrix', data=logmatrix, chunks=(128, None))
     sf = estimate_size_factors(matrix, normtype=size_factors)
     root['full/size_factors'] = sf
 
@@ -119,10 +117,8 @@ def create_dataset(input_file, output_file, transpose=False, test_split=True, si
         root['train/colnames'] = colnames
     else:
         mat_train, mat_test, \
-            logmat_train, logmat_test, \
             sf_train, sf_test,\
             rownames_train, rownames_test = train_test_split(matrix,
-                                                             logmatrix,
                                                              sf,
                                                              rownames,
                                                              test_size=0.1,
@@ -130,8 +126,6 @@ def create_dataset(input_file, output_file, transpose=False, test_split=True, si
 
         root['train/matrix'] = mat_train
         root['test/matrix'] = mat_test
-        root['train/logmatrix'] = logmat_train
-        root['test/logmatrix'] = logmat_test
         root['train/size_factors'] = sf_train
         root['test/size_factors'] = sf_test
         root['train/rownames'] = rownames_train
