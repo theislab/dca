@@ -35,6 +35,8 @@ from .io import write_text_matrix, write_anndata, estimate_size_factors, normali
 MeanAct = lambda x: tf.clip_by_value(K.exp(x), 1e-5, 1e6)
 DispAct = lambda x: tf.clip_by_value(tf.nn.softplus(x), 1e-4, 1e4)
 
+advanced_activations = ('PReLU', 'LeakyReLU')
+
 class Autoencoder():
     def __init__(self,
                  input_size,
@@ -124,10 +126,10 @@ class Autoencoder():
 
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
-            try:
-                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
-            except ValueError:  # fallback to advanced activations
+            if self.activation in advanced_activations:
                 last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+            else:
+                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
             if hid_drop > 0.0:
                 last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
@@ -619,7 +621,10 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
 
                 # Use separate act. layers to give user the option to get pre-activations
                 # of layers when requested
-                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
+                if self.activation in advanced_activations:
+                    last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                else:
+                    last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
                 if hid_drop > 0.0:
                     last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
@@ -720,7 +725,10 @@ class NBForkAutoencoder(NBAutoencoder):
 
                 # Use separate act. layers to give user the option to get pre-activations
                 # of layers when requested
-                last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
+                if self.activation in advanced_activations:
+                    last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                else:
+                    last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
                 if hid_drop > 0.0:
                     last_hidden = Dropout(hid_drop, name='%s_drop'%layer_name)(last_hidden)
