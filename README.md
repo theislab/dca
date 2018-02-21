@@ -34,4 +34,4 @@ Use `-h` option to see all available parameters and defaults.
 
 ### Hyperparameter optimization
 
-Then run autoencoder with `--hyper` option do perform hyperparameter search.
+You can run the autoencoder with `--hyper` option do perform hyperparameter search.
