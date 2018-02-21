@@ -8,24 +8,19 @@ A deep count autoencoder network to denoise scRNA-seq data and remove the dropou
 
 `pip install git+https://github.com/gokceneraslan/countae`
 
-or you have `git` installed:
+and then install kopt and hyperopt which are the requirements for count autoencoder:
+
+`pip install git+https://github.com/hyperopt/hyperopt git+https://github.com/Avsecz/keras-hyperopt`
+
+Alternatively, if you have `git` installed, you can clone the repo:
 
 `git clone https://github.com/gokceneraslan/countae.git`
 
-and then
+and then run
 
-`pip install -r requirements.txt -e .`
+`cd countae; pip install -r requirements.txt -e .`
 
-### Requirements
-
-`Hyperopt` (from github master branch) and `kopt` packages are also required. Please run following commands as well:
-
-`pip install git+https://github.com/hyperopt/hyperopt`
-
-and
-
-`pip install git+https://github.com/Avsecz/keras-hyperopt`
-
+to install the count autoencoder and the required packages.
 
 ### Usage
 
