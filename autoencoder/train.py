@@ -157,6 +157,7 @@ def train_with_args(args):
                    size_factors=args.sizefactors,
                    output_subset=genelist,
                    normalize_input=args.norminput,
+                   logtrans_input=args.loginput,
                    optimizer=args.optimizer,
                    clip_grad=args.gradclip,
                    save_weights=args.saveweights,
