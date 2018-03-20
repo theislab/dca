@@ -26,8 +26,8 @@ def hyper(args):
                 },
             "model": {
                 "lr": hp.loguniform("m_lr", np.log(1e-3), np.log(1e-2)),
-                "ridge": hp.loguniform("m_ridge", np.log(1e-5), np.log(1e-2)),
-                "l1_enc_coef": hp.loguniform("m_l1_enc_coef", np.log(1e-5), np.log(1e-2)),
+                "ridge": hp.loguniform("m_ridge", np.log(1e-7), np.log(1e-1)),
+                "l1_enc_coef": hp.loguniform("m_l1_enc_coef", np.log(1e-7), np.log(1e-1)),
                 "hidden_size": hp.choice("m_hiddensize", ((64,32,64), (32,16,32),
                                                           (64,64), (32,32), (16,16),
                                                           (16,), (32,), (64,), (128,))),
