@@ -41,7 +41,7 @@ class Autoencoder():
     def __init__(self,
                  input_size,
                  output_size=None,
-                 hidden_size=(256,),
+                 hidden_size=(64, 32, 64),
                  l2_coef=0.,
                  l1_coef=0.,
                  l2_enc_coef=0.,
@@ -50,7 +50,7 @@ class Autoencoder():
                  hidden_dropout=0.,
                  input_dropout=0.,
                  batchnorm=True,
-                 activation='elu',
+                 activation='relu',
                  init='glorot_uniform',
                  file_path=None,
                  debug=False):

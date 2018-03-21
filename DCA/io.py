@@ -90,8 +90,8 @@ def create_dataset(dataset, output_file, transpose=False, test_split=True, size_
 
     root = zarr.open_group(output_file, 'w')
 
-    if isinstance(dataset, anndata.AnnData):
-        matrix, rownames, colnames = read_anndata(datasaet, transpose=transpose)
+    if isinstance(dataset, (anndata.AnnData, anndata.base.Raw)):
+        matrix, rownames, colnames = read_anndata(dataset, transpose=transpose)
     else:
         input_file = dataset
 
@@ -143,7 +143,7 @@ def create_dataset(dataset, output_file, transpose=False, test_split=True, size_
 
 def read_anndata(adata, type=np.float, transpose=False):
 
-    if isinstance(adata, anndata.AnnData):
+    if isinstance(adata, (anndata.AnnData, anndata.base.Raw)):
         pass
     elif isinstance(adata, str):
         adata = anndata.read(adata)

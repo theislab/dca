@@ -30,10 +30,10 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 
 
-def train(ds, network, output_dir, optimizer='Adam', learning_rate=None, train_on_full=False,
-          aetype=None, epochs=200, reduce_lr=20, size_factors=True, output_subset=None,
-          normalize_input=True, logtrans_input=True, early_stop=25, batch_size=32,
-          clip_grad=5., save_weights=True, tensorboard=False, **kwargs):
+def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, train_on_full=False,
+          aetype=None, epochs=300, reduce_lr=10, size_factors=True, output_subset=None,
+          normalize_input=True, logtrans_input=True, early_stop=15, batch_size=32,
+          clip_grad=5., save_weights=False, tensorboard=False, **kwargs):
     model = network.model
     loss = network.loss
     os.makedirs(output_dir, exist_ok=True)

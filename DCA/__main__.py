@@ -37,7 +37,7 @@ def parse_args():
             action='store_true', help="Use one fold as a test set (default: False)")
 
     # training options
-    parser.add_argument('--type', type=str, default='zinb',
+    parser.add_argument('--type', type=str, default='zinb-conddisp',
             help="Type of autoencoder. Possible values: normal, poisson, nb, "
                  "nb-shared, nb-conddisp, nb-fork, zinb(default), "
                  "zinb-shared, zinb-conddisp zinb-fork")
