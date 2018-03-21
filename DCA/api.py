@@ -15,7 +15,7 @@ def autoencode(adata,
                net_kwargs={},
                training_kwargs={}):
 
-    assert isinstance(adata, (anndata.AnnData, anndata.base.Raw)), 'adata must be an AnnData or Raw instance'
+    assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
 
     temp = False
 
