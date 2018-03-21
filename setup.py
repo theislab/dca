@@ -10,12 +10,12 @@ except (CalledProcessError, FileNotFoundError, OSError):
 
 
 setup(
-    name='autoencoder',
+    name='DCA',
     version='0.1',
-    description='An autoencoder implementation',
+    description='Count autoencoder for scRNA-seq denoising',
     author='Gokcen Eraslan',
     author_email="goekcen.eraslan@helmholtz-muenchen.de",
-    packages=['autoencoder'],
+    packages=['DCA'],
     install_requires=[tf,
                       'numpy>=1.7',
                       'keras>=2.0.8',
@@ -26,14 +26,13 @@ setup(
                       'zarr',
                       'pandas' #for preprocessing
                       ],
-    url='https://github.com/gokceneraslan/autoencoder',
+    url='https://github.com/gokceneraslan/countae',
     entry_points={
         'console_scripts': [
-            'autoencoder = autoencoder.__main__:main'
+            'dca = DCA.__main__:main'
     ]},
     license='Apache License 2.0',
     classifiers=['License :: OSI Approved :: Apache Software License',
                 'Topic :: Scientific/Engineering :: Artificial Intelligence',
-                 'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3.5'],
 )
