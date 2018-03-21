@@ -1,51 +1,55 @@
-import os
+import os, tempfile, shutil
+import anndata
 
-from .io import Dataset, write_text_matrix
+import io
 from .train import train
 from .network import AE_types
 
 
-def autoencode(count_matrix,
-               output_dir,
-               kfold=None,
-               dimreduce=True,
-               reconstruct=True,
-               mask=None,
-               size_factors=False,
-               type='normal',
-               activation='relu',
-               test_split=False,
-               optimizer='Adam',
-               learning_rate=None,
-               hidden_size=(256,64,256),
-               l2_coef=0.,
-               hidden_dropout=0.0,
-               epochs=200,
-               batch_size=32,
-               init='glorot_uniform',
-               **kwargs):
+def autoencode(adata,
+               output_dir=None,
+               size_factors=True,
+               normalize_inputs=True,
+               logtrans_input=True,
+               net_kwargs={},
+               training_kwargs={}):
 
-    x = Dataset()
-    x.import_from_text(count_matrix, test_split=test_split)
+    assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
 
-    net = AE_types[type](x['shape'][1],
-              hidden_size=hidden_size,
-              l2_coef=l2_coef,
-              hidden_dropout=hidden_dropout,
-              activation=activation,
-              init=init,
-              masking=(mask is not None))
+    temp = False
+
+    if output_dir is None:
+        temp = True
+        output_dir = tempfile.mkdtemp()
+
+    ds = io.create_dataset(adata,
+                           output_file=os.path.join(output_dir, 'input.zarr'),
+                           transpose=False,
+                           test_split=False)
+
+    input_size = output_size = ds.train.shape[1]
+    net = AE_types[type](input_size=input_size,
+                         output_size=output_size,
+                         **net_kwargs)
+    net.save()
     net.build()
 
-    losses = train(x, net, output_dir=output_dir,
-                   learning_rate=learning_rate,
-                   epochs=epochs, batch_size=batch_size,
-                   optimizer=optimizer, size_factors=size_factors,
-                   **kwargs)
+    losses = train(ds, net, output_dir=output_dir,
+                   size_factors=size_factors,
+                   normalize_inputs=normalize_inputs,
+                   logtrans_input=logtrans_input,
+                   **training_kwargs)
 
-    res = net.predict(count_matrix, size_factors=size_factors,
-                      dimreduce=dimreduce, reconstruct=reconstruct)
+    res = net.predict(ds.full.matrix[:],
+                      ds.full.rownames,
+                      size_factors=size_factors,
+                      normalize_inputs=normalize_inputs,
+                      logtrans_input=logtrans_input)
 
     res['losses'] = losses
+    res['net'] = net
 
-    return net, res
+    if temp:
+        shutil.rmtree(output_dir, ignore_errors=True)
+
+    return res

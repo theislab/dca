@@ -86,19 +86,24 @@ class Dataset:
             self.test = Matrix(self._root.test)
 
 
-def create_dataset(input_file, output_file, transpose=False, test_split=True, size_factors='zheng'):
+def create_dataset(dataset, output_file, transpose=False, test_split=True, size_factors='zheng'):
 
     root = zarr.open_group(output_file, 'w')
 
-    _, extension = os.path.splitext(input_file)
-    extension = extension.lower()
-
-    if extension == '.h5ad':
-        matrix, rownames, colnames = read_anndata(input_file, transpose=transpose)
-    elif extension in ('.txt', '.tsv', '.csv'):
-        matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
+    if isinstance(dataset, anndata.AnnData):
+        matrix, rownames, colnames = read_anndata(datasaet, transpose=transpose)
     else:
-        raise NotImplementedError
+        input_file = dataset
+
+        _, extension = os.path.splitext(input_file)
+        extension = extension.lower()
+
+        if extension == '.h5ad':
+            matrix, rownames, colnames = read_anndata(input_file, transpose=transpose)
+        elif extension in ('.txt', '.tsv', '.csv'):
+            matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
+        else:
+            raise NotImplementedError
 
     if matrix.dtype != np.float:
         matrix = matrix.astype(np.float)
@@ -136,8 +141,15 @@ def create_dataset(input_file, output_file, transpose=False, test_split=True, si
     return Dataset(output_file)
 
 
-def read_anndata(inputfile, type=np.float, transpose=False):
-    adata = anndata.read(inputfile)
+def read_anndata(adata, type=np.float, transpose=False):
+
+    if isinstance(adata, anndata.AnnData):
+        pass
+    elif isinstance(adata, str):
+        adata = anndata.read(adata)
+    else:
+        raise NotImplemented
+
     if transpose: adata = adata.transpose()
 
     matrix, cellnames, genenames = adata.X, adata.obs_names, adata.var_names
