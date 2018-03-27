@@ -33,7 +33,7 @@ from keras.preprocessing.image import Iterator
 def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, train_on_full=False,
           aetype=None, epochs=300, reduce_lr=10, size_factors=True, output_subset=None,
           normalize_input=True, logtrans_input=True, early_stop=15, batch_size=32,
-          clip_grad=5., save_weights=False, tensorboard=False, **kwargs):
+          clip_grad=5., save_weights=False, tensorboard=False, verbose=True, **kwargs):
     model = network.model
     loss = network.loss
     os.makedirs(output_dir, exist_ok=True)
@@ -47,12 +47,12 @@ def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, trai
 
     # Callbacks
     checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % output_dir,
-                                   verbose=1,
+                                   verbose=verbose,
                                    save_weights_only=True,
                                    save_best_only=True)
-    es_cb = EarlyStopping(monitor='val_loss', patience=early_stop, verbose=1)
+    es_cb = EarlyStopping(monitor='val_loss', patience=early_stop, verbose=verbose)
 
-    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr, verbose=1)
+    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr, verbose=verbose)
 
     tb_log_dir = os.path.join(output_dir, 'tb')
     tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1, write_grads=True)
@@ -68,7 +68,7 @@ def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, trai
     if tensorboard:
         callbacks.append(tb_cb)
 
-    model.summary()
+    if verbose: model.summary()
 
     if size_factors:
         sf_mat = ds.train.size_factors[:]
@@ -94,6 +94,7 @@ def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, trai
                      shuffle=True,
                      callbacks=callbacks,
                      validation_split=0.1,
+                     verbose=verbose,
                      **kwargs)
     # https://github.com/tensorflow/tensorflow/issues/3388
     # K.clear_session()
