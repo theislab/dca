@@ -1,5 +1,7 @@
 import os, tempfile, shutil
 import anndata
+import numpy as np
+import tensorflow as tf
 
 from .io import create_dataset
 from .train import train
@@ -17,8 +19,11 @@ def autoencode(adata,
 
     assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
 
-    temp = False
+    # set seed for reproducibility
+    np.random.seed(42)
+    tf.set_random_seed(42)
 
+    temp = False
     if output_dir is None:
         temp = True
         output_dir = tempfile.mkdtemp()

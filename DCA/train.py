@@ -24,6 +24,7 @@ from .network import AE_types
 from .hyper import hyper
 
 import numpy as np
+import tensorflow as tf
 import keras.optimizers as opt
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras import backend as K
@@ -103,6 +104,10 @@ def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, trai
 
 
 def train_with_args(args):
+
+    # set seed for reproducibility
+    np.random.seed(42)
+    tf.set_random_seed(42)
 
     # do hyperpar optimzation and exit
     if args.hyper:
