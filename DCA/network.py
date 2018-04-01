@@ -186,9 +186,12 @@ class Autoencoder():
                         outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, adata, dimreduce=True, reconstruct=True, error=True):
+    def predict(self, adata, colnames=None, dimreduce=True, reconstruct=True, error=True):
 
         res = {}
+        colnames = adata.var_names.values if colnames is None else colnames
+        rownames = adata.obs_names.values
+
         print('Calculating low dimensional representations...')
 
         res['reduced'] = self.encoder.predict({'count': adata.X,
@@ -259,8 +262,10 @@ class NBConstantDispAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, **kwargs):
-        res = super().predict(adata, **kwargs)
+    def predict(self, adata, colnames=None, **kwargs):
+        colnames = adata.var_names.values if colnames is None else colnames
+        rownames = adata.obs_names.values
+        res = super().predict(adata, colnames=colnames, **kwargs)
 
         res['dispersion'] = self.extra_models['dispersion']()
         m, d = res['mean'], res['dispersion']
@@ -309,8 +314,11 @@ class NBAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, **kwargs):
-        res = super().predict(adata, **kwargs)
+    def predict(self, adata, colnames, **kwargs):
+        colnames = adata.var_names.values if colnames is None else colnames
+        rownames = adata.obs_names.values
+        res = super().predict(adata, colnames=colnames, **kwargs)
+
         res['dispersion'] = self.extra_models['dispersion'].predict(adata.X)
 
         m, d = res['mean'], res['dispersion']
@@ -389,8 +397,11 @@ class ZINBAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, **kwargs):
-        res = super().predict(adata, **kwargs)
+    def predict(self, adata, colnames=None, **kwargs):
+        colnames = adata.var_names.values if colnames is None else colnames
+        rownames = adata.obs_names.values
+        res = super().predict(adata, colnames=colnames, **kwargs)
+
         res['pi'] = self.extra_models['pi'].predict(adata.X)
         res['dispersion'] = self.extra_models['dispersion'].predict(adata.X)
 
@@ -475,8 +486,10 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, **kwargs):
-        res = super().predict(adata, **kwargs)
+    def predict(self, adata, colnames=None, **kwargs):
+        colnames = adata.var_names.values if colnames is None else colnames
+        rownames = adata.obs_names.values
+        res = super().predict(adata, colnames=colnames, **kwargs)
 
         res['pi'] = self.extra_models['pi'].predict(adata.X)
         res['dispersion'] = self.extra_models['dispersion']()

@@ -104,13 +104,13 @@ def train_with_args(args):
         return
 
     adata = io.read_dataset(args.input,
-                            transpose=args.transpose,
+                            transpose=~args.transpose, # assume gene x cell by default
                             test_split=args.testsplit)
 
-    adata = io.preprocess(adata,
-                          size_factors=args.sizefactors,
-                          logtrans_input=args.loginput,
-                          normalize_input=args.norminput)
+    adata = io.normalize(adata,
+                         size_factors=args.sizefactors,
+                         logtrans_input=args.loginput,
+                         normalize_input=args.norminput)
 
     if args.denoisesubset:
         genelist = list(set(io.read_genelist(args.denoisesubset)))
@@ -127,7 +127,7 @@ def train_with_args(args):
         hidden_dropout = hidden_dropout[0]
 
     assert args.type in AE_types, 'loss type not supported'
-    input_size = adata_n_vars
+    input_size = adata.n_vars
 
     net = AE_types[args.type](input_size=input_size,
             output_size=output_size,
@@ -165,6 +165,4 @@ def train_with_args(args):
     else:
         predict_columns = adata.var_names
 
-    net.predict(adata.X,
-                adata.obs_names,
-                predict_columns)
+    net.predict(adata, predict_columns)
