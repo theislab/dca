@@ -18,6 +18,8 @@ import pickle
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
+import scanpy.api as sc
+
 import keras
 from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
 from keras.models import Model
@@ -25,11 +27,12 @@ from keras.regularizers import l1_l2
 from keras.objectives import mean_squared_error
 from keras.initializers import Constant
 from keras import backend as K
+
 import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
 from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
-from .io import write_text_matrix, write_anndata, estimate_size_factors, normalize
+from .io import write_text_matrix
 
 
 MeanAct = lambda x: tf.clip_by_value(K.exp(x), 1e-5, 1e6)
@@ -183,29 +186,19 @@ class Autoencoder():
                         outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, count_matrix, rownames, colnames, dimreduce=True, reconstruct=True,
-                size_factors=True, normalize_input=True, logtrans_input=True,
-                error=True):
+    def predict(self, adata, dimreduce=True, reconstruct=True, error=True):
 
         res = {}
-        if size_factors:
-            sf_mat = estimate_size_factors(count_matrix)
-        else:
-            sf_mat = np.ones((count_matrix.shape[0],))
-
-        norm_count_matrix = normalize(count_matrix, sf_mat, logtrans=logtrans_input,
-                                      sfnorm=size_factors, zeromean=normalize_input)
-
         print('Calculating low dimensional representations...')
-        res['reduced'] = self.encoder.predict({'count': norm_count_matrix,
-                                               'size_factors': sf_mat})
-        #res['decoded'] = self.extra_models['decoded'].predict(norm_count_matrix)
+
+        res['reduced'] = self.encoder.predict({'count': adata.X,
+                                               'size_factors': adata.obs.size_factors})
 
         print('Calculating reconstructions...')
-        res['mean'] = self.model.predict({'count': norm_count_matrix,
-                                          'size_factors': sf_mat})
+        res['mean'] = self.model.predict({'count': adata.X,
+                                          'size_factors': adata.obs.size_factors})
 
-        res['mean_norm'] = self.extra_models['mean_norm'].predict(norm_count_matrix)
+        res['mean_norm'] = self.extra_models['mean_norm'].predict(adata.X)
 
         if self.file_path:
             print('Saving files...')
@@ -220,10 +213,7 @@ class Autoencoder():
                               os.path.join(self.file_path, 'mean.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)
 
-            write_anndata(res['mean'],
-                          os.path.join(self.file_path, 'mean.h5ad'),
-                          rownames=rownames, colnames=colnames)
-
+            sc.write(os.path.join(self.file_path, 'output'))
             write_text_matrix(res['mean_norm'],
                               os.path.join(self.file_path, 'mean_norm.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)
@@ -269,8 +259,8 @@ class NBConstantDispAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, rownames, colnames, **kwargs):
-        res = super().predict(count_matrix, rownames, colnames, **kwargs)
+    def predict(self, adata, **kwargs):
+        res = super().predict(adata, **kwargs)
 
         res['dispersion'] = self.extra_models['dispersion']()
         m, d = res['mean'], res['dispersion']
@@ -319,21 +309,9 @@ class NBAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, rownames, colnames, **kwargs):
-        res = super().predict(count_matrix, rownames, colnames, **kwargs)
-
-        if kwargs['size_factors']:
-            sf_mat = estimate_size_factors(count_matrix)
-        else:
-            sf_mat = np.ones((count_matrix.shape[0],))
-
-        norm_count_matrix = normalize(count_matrix,
-                                      sf_mat,
-                                      logtrans=kwargs['logtrans_input'],
-                                      sfnorm=kwargs['size_factors'],
-                                      zeromean=kwargs['normalize_input'])
-
-        res['dispersion'] = self.extra_models['dispersion'].predict(norm_count_matrix)
+    def predict(self, adata, **kwargs):
+        res = super().predict(adata, **kwargs)
+        res['dispersion'] = self.extra_models['dispersion'].predict(adata.X)
 
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
@@ -411,22 +389,10 @@ class ZINBAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, rownames, colnames, **kwargs):
-        res = super().predict(count_matrix, rownames, colnames, **kwargs)
-
-        if kwargs['size_factors']:
-            sf_mat = estimate_size_factors(count_matrix)
-        else:
-            sf_mat = np.ones((count_matrix.shape[0],))
-
-        norm_count_matrix = normalize(count_matrix,
-                                      sf_mat,
-                                      logtrans=kwargs['logtrans_input'],
-                                      sfnorm=kwargs['size_factors'],
-                                      zeromean=kwargs['normalize_input'])
-
-        res['pi'] = self.extra_models['pi'].predict(norm_count_matrix)
-        res['dispersion'] = self.extra_models['dispersion'].predict(norm_count_matrix)
+    def predict(self, adata, **kwargs):
+        res = super().predict(adata, **kwargs)
+        res['pi'] = self.extra_models['pi'].predict(adata.X)
+        res['dispersion'] = self.extra_models['dispersion'].predict(adata.X)
 
         m, d = res['mean'], res['dispersion']
         res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
@@ -509,21 +475,10 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, count_matrix, rownames, colnames, **kwargs):
-        res = super().predict(count_matrix, rownames, colnames, **kwargs)
+    def predict(self, adata, **kwargs):
+        res = super().predict(adata, **kwargs)
 
-        if kwargs['size_factors']:
-            sf_mat = estimate_size_factors(count_matrix)
-        else:
-            sf_mat = np.ones((count_matrix.shape[0],))
-
-        norm_count_matrix = normalize(count_matrix,
-                                      sf_mat,
-                                      logtrans=kwargs['logtrans_input'],
-                                      sfnorm=kwargs['size_factors'],
-                                      zeromean=kwargs['normalize_input'])
-
-        res['pi'] = self.extra_models['pi'].predict(norm_count_matrix)
+        res['pi'] = self.extra_models['pi'].predict(adata.X)
         res['dispersion'] = self.extra_models['dispersion']()
 
         m, d = res['mean'], res['dispersion']

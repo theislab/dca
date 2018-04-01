@@ -22,41 +22,13 @@ import pickle, os, numbers
 
 import numpy as np
 import pandas as pd
-import zarr
-import anndata
+import scanpy.api as sc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
 
 
-class Matrix:
-    def __init__(self, grp):
-        self._group = grp
-
-    @property
-    def shape(self):
-        return self._group.matrix.shape[:]
-
-    @property
-    def rownames(self):
-        return self._group.rownames[:]
-
-    @property
-    def colnames(self):
-        return self._group.colnames[:]
-
-    @property
-    def size_factors(self):
-        return self._group.size_factors[:]
-
-    @property
-    def matrix(self):
-        return self._group.matrix
-
-    def get_sequence(self, batch_size):
-        return ZarrSequence(self.matrix, self.size_factors, batch_size)
-
-
-class ZarrSequence:
+#TODO: Fix this
+class AnnSequence:
     def __init__(self, matrix, batch_size, sf=None):
         self.matrix = matrix
         if sf is None:
@@ -77,85 +49,51 @@ class ZarrSequence:
         return {'count': batch, 'size_factors': batch_sf}, batch
 
 
-class Dataset:
-    def __init__(self, filename):
-        self._root = zarr.open_group(filename, mode='r')
-        self.train = Matrix(self._root.train)
-        self.full = Matrix(self._root.train)
-        if 'test' in self._root:
-            self.test = Matrix(self._root.test)
+def read_dataset(adata, transpose=False, test_split=False):
 
-
-def create_dataset(dataset, output_file, transpose=False, test_split=True, size_factors='zheng'):
-
-    root = zarr.open_group(output_file, 'w')
-
-    if isinstance(dataset, anndata.AnnData):
-        matrix, rownames, colnames = read_anndata(dataset, transpose=transpose)
-    else:
-        input_file = dataset
-
-        _, extension = os.path.splitext(input_file)
-        extension = extension.lower()
-
-        if extension == '.h5ad':
-            matrix, rownames, colnames = read_anndata(input_file, transpose=transpose)
-        elif extension in ('.txt', '.tsv', '.csv'):
-            matrix, rownames, colnames = read_text_matrix(input_file, transpose=transpose)
-        else:
-            raise NotImplementedError
-
-    if matrix.dtype != np.float:
-        matrix = matrix.astype(np.float)
-
-    root['full/shape'] = matrix.shape
-    root['full/rownames'] = rownames
-    root['full/colnames'] = colnames
-    root.create_dataset('full/matrix', data=matrix, chunks=(128, None))
-    sf = estimate_size_factors(matrix, normtype=size_factors)
-    root['full/size_factors'] = sf
-
-    if not test_split:
-        root['train/matrix'] = matrix
-        root['train/size_factors'] = sf
-        root['train/rownames'] = rownames
-        root['train/colnames'] = colnames
-    else:
-        mat_train, mat_test, \
-            sf_train, sf_test,\
-            rownames_train, rownames_test = train_test_split(matrix,
-                                                             sf,
-                                                             rownames,
-                                                             test_size=0.1,
-                                                             random_state=42)
-
-        root['train/matrix'] = mat_train
-        root['test/matrix'] = mat_test
-        root['train/size_factors'] = sf_train
-        root['test/size_factors'] = sf_test
-        root['train/rownames'] = rownames_train
-        root['test/rownames'] = rownames_test
-        root['train/colnames'] = colnames
-        root['test/colnames'] = colnames
-
-    return Dataset(output_file)
-
-
-def read_anndata(adata, type=np.float, transpose=False):
-
-    if isinstance(adata, anndata.AnnData):
-        pass
+    if isinstance(adata, sc.AnnData):
+        adata = adata.copy()
     elif isinstance(adata, str):
-        adata = anndata.read(adata)
+        adata = sc.read(adata)
     else:
         raise NotImplemented
 
+    assert np.all(adata.X.astype(int) == adata.X) and 'n_count' not in adata.obs, 'Make sure that the dataset (adata.X) contains unnormalized count data.'
+
     if transpose: adata = adata.transpose()
 
-    matrix, cellnames, genenames = adata.X, adata.obs_names, adata.var_names
-    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(genenames), len(cellnames)))
-    return matrix.astype(type), list(cellnames), list(genenames)
+    if test_split:
+        train_idx, test_idx = train_test_split(np.arange(adata.n_obs), test_size=0.1, random_state=42)
+        adata.obs['DCA_split'] = 'test'
+        adata.obs.ix[train_idx, 'DCA_split'] = 'train'
+    else:
+        adata.obs['DCA_split'] = 'train'
 
+    adata.obs['DCA_split'] = adata.obs['DCA_split'].astype('category')
+    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(adata.n_vars, adata.n_obs))
+
+    return adata
+
+
+def normalize(adata, size_factors=True, normalize_input=True, logtrans_input=True):
+
+    sc.pp.filter_genes(adata, min_counts=1)
+    sc.pp.filter_cells(adata, min_counts=1)
+    adata.raw = adata.copy()
+
+    if size_factors:
+        sc.pp.normalize_per_cell(adata)
+        adata.obs['size_factors'] = adata.obs.n_counts / np.median(adata.obs.n_counts)
+    else:
+        adata.obs['size_factors'] = 1.0
+
+    if logtrans_input:
+        sc.pp.log1p(adata)
+
+    if normalize_input:
+        sc.pp.scale(adata)
+
+    return adata
 
 def read_genelist(filename):
     genelist = list(set(open(filename, 'rt').read().strip().split('\n')))
@@ -163,36 +101,6 @@ def read_genelist(filename):
     print('### Autoencoder: Subset of {} genes will be denoised.'.format(len(genelist)))
 
     return genelist
-
-
-def read_text_matrix(inputfile, type=np.float, transpose=False):
-    df = pd.read_csv(inputfile, sep=None, header=0, index_col=0, engine='python')
-
-    assert len(df.index) == len(df.index.unique()), 'Rownames are not unique. Please add unique rownames'
-    assert len(df.columns) == len(df.columns.unique()), 'Colnames are not unique. Please add unique colnames'
-
-    if transpose:
-        df = df.transpose()
-
-    cellnames = df.columns
-    genenames = df.index
-
-    # filter out all zero features and samples
-    cellnames = cellnames[df.sum(0) > 0]
-    df = df.loc[:, df.sum(0) > 0]
-
-    genenames = genenames[df.sum(1) > 0]
-    df = df.loc[df.sum(1) > 0, :]
-
-    matrix = df.as_matrix()
-
-    # input matrix is gene x cell but our internal representation must be cell x gene
-    matrix = np.ascontiguousarray(matrix.astype(type).T)
-
-    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(len(genenames), len(cellnames)))
-
-    return matrix, list(cellnames), list(genenames)
-
 
 def write_text_matrix(matrix, filename, rownames=None, colnames=None, transpose=False):
     if transpose:
@@ -204,45 +112,5 @@ def write_text_matrix(matrix, filename, rownames=None, colnames=None, transpose=
                                                                   index=(rownames is not None),
                                                                   header=(colnames is not None),
                                                                   float_format='%.6f')
-
-def write_anndata(matrix, filename, rownames=None, colnames=None, transpose=False):
-    if transpose:
-        matrix = matrix.T
-        rownames, colnames = colnames, rownames
-
-    adata = anndata.AnnData(matrix,
-                            obs=pd.DataFrame(index=rownames),
-                            var=pd.DataFrame(index=colnames))
-    adata.write(filename)
-
-
 def read_pickle(inputfile):
     return pickle.load(open(inputfile, "rb"))
-
-
-def estimate_size_factors(x, normtype='zheng'):
-    assert normtype in ['deseq', 'zheng']
-
-    if normtype == 'deseq':
-        loggeommeans = np.mean(np.log1p(x), 0)
-        return np.exp(np.median(np.log1p(x) - loggeommeans, 1))
-    elif normtype == 'zheng':
-        x = x[:, np.sum(x, 0) >= 1]  # filter out all-zero genes
-        s = np.sum(x, 1)
-        return s/np.median(s, 0)
-    else:
-        raise NotImplementedError
-
-
-def normalize(x, sf, logtrans=True, sfnorm=True, zeromean=True):
-    if sfnorm:
-        assert len(sf.shape) == 1
-        x = x / (sf[:, None]+1e-8)  # colwise div
-
-    if logtrans:
-        x = np.log1p(x)
-
-    if zeromean:
-        x = scale(x)
-
-    return x

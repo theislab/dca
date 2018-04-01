@@ -31,13 +31,15 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 
 
-def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, train_on_full=False,
-          aetype=None, epochs=300, reduce_lr=10, size_factors=True, output_subset=None,
-          normalize_input=True, logtrans_input=True, early_stop=15, batch_size=32,
-          clip_grad=5., save_weights=False, tensorboard=False, verbose=True, **kwargs):
+def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=None, train_on_full=False,
+          aetype=None, epochs=300, reduce_lr=10, output_subset=None,
+          early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
+          tensorboard=False, verbose=True, **kwargs):
+
     model = network.model
     loss = network.loss
-    os.makedirs(output_dir, exist_ok=True)
+    if output_dir is not None:
+        os.makedirs(output_dir, exist_ok=True)
 
     if learning_rate is None:
         optimizer = opt.__dict__[optimizer](clipvalue=clip_grad)
@@ -47,47 +49,34 @@ def train(ds, network, output_dir, optimizer='rmsprop', learning_rate=None, trai
     model.compile(loss=loss, optimizer=optimizer)
 
     # Callbacks
-    checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % output_dir,
-                                   verbose=verbose,
-                                   save_weights_only=True,
-                                   save_best_only=True)
-    es_cb = EarlyStopping(monitor='val_loss', patience=early_stop, verbose=verbose)
-
-    lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr, verbose=verbose)
-
-    tb_log_dir = os.path.join(output_dir, 'tb')
-    tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1, write_grads=True)
-
     callbacks = []
 
-    if save_weights:
+    if save_weights and output_dir is not None:
+        checkpointer = ModelCheckpoint(filepath="%s/weights.hdf5" % output_dir,
+                                       verbose=verbose,
+                                       save_weights_only=True,
+                                       save_best_only=True)
         callbacks.append(checkpointer)
     if reduce_lr:
+        lr_cb = ReduceLROnPlateau(monitor='val_loss', patience=reduce_lr, verbose=verbose)
         callbacks.append(lr_cb)
     if early_stop:
+        es_cb = EarlyStopping(monitor='val_loss', patience=early_stop, verbose=verbose)
         callbacks.append(es_cb)
     if tensorboard:
+        tb_log_dir = os.path.join(output_dir, 'tb')
+        tb_cb = TensorBoard(log_dir=tb_log_dir, histogram_freq=1, write_grads=True)
         callbacks.append(tb_cb)
 
     if verbose: model.summary()
 
-    if size_factors:
-        sf_mat = ds.train.size_factors[:]
-    else:
-        sf_mat = np.ones((ds.train.matrix.shape[0], 1),
-                         dtype=np.float32)
-
-    inputs = {'count': io.normalize(ds.train.matrix[:],
-                                            sf_mat, logtrans=logtrans_input,
-                                            sfnorm=size_factors,
-                                            zeromean=normalize_input),
-              'size_factors': sf_mat}
+    inputs = {'count': adata.X, 'size_factors': adata.obs.size_factors}
 
     if output_subset:
-        gene_idx = [np.where(ds.train.colnames == x)[0][0] for x in output_subset]
-        output = ds.train.matrix[:][:, gene_idx]
+        gene_idx = [np.where(adata.raw.var_names == x)[0][0] for x in output_subset]
+        output = adata.raw.X[:, gene_idx]
     else:
-        output = ds.train.matrix[:]
+        output = adata.raw.X
 
     loss = model.fit(inputs, output,
                      epochs=epochs,
@@ -109,25 +98,28 @@ def train_with_args(args):
     np.random.seed(42)
     tf.set_random_seed(42)
 
-    # do hyperpar optimzation and exit
+    # do hyperpar optimization and exit
     if args.hyper:
         hyper(args)
         return
 
-    ds = io.create_dataset(args.input,
-                           output_file=os.path.join(args.outputdir, 'input.zarr'),
-                           transpose=args.transpose,
-                           test_split=args.testsplit,
-                           size_factors=args.normtype)
+    adata = io.read_dataset(args.input,
+                            transpose=args.transpose,
+                            test_split=args.testsplit)
+
+    adata = io.preprocess(adata,
+                          size_factors=args.sizefactors,
+                          logtrans_input=args.loginput,
+                          normalize_input=args.norminput)
 
     if args.denoisesubset:
         genelist = list(set(io.read_genelist(args.denoisesubset)))
-        assert len(set(genelist) - set(ds.train.colnames)) == 0, \
+        assert len(set(genelist) - set(adata.var_names.values)) == 0, \
                'Gene list is not overlapping with genes from the dataset'
         output_size = len(genelist)
     else:
         genelist = None
-        output_size = ds.train.shape[1]
+        output_size = adata.n_vars
 
     hidden_size = [int(x) for x in args.hiddensize.split(',')]
     hidden_dropout = [float(x) for x in args.dropoutrate.split(',')]
@@ -135,7 +127,7 @@ def train_with_args(args):
         hidden_dropout = hidden_dropout[0]
 
     assert args.type in AE_types, 'loss type not supported'
-    input_size = ds.train.shape[1]
+    input_size = adata_n_vars
 
     net = AE_types[args.type](input_size=input_size,
             output_size=output_size,
@@ -152,31 +144,27 @@ def train_with_args(args):
             init=args.init,
             debug=args.debug,
             file_path=args.outputdir)
+
     net.save()
     net.build()
 
-    losses = train(ds, net, output_dir=args.outputdir,
+    losses = train(adata[adata.obs.DCA_split == 'train'], net,
+                   output_dir=args.outputdir,
                    learning_rate=args.learningrate,
                    epochs=args.epochs, batch_size=args.batchsize,
                    early_stop=args.earlystop,
                    reduce_lr=args.reducelr,
-                   size_factors=args.sizefactors,
                    output_subset=genelist,
-                   normalize_input=args.norminput,
-                   logtrans_input=args.loginput,
                    optimizer=args.optimizer,
                    clip_grad=args.gradclip,
                    save_weights=args.saveweights,
                    tensorboard=args.tensorboard)
 
     if genelist:
-        predict_columns = ds.full.colnames[[np.where(ds.full.colnames==x)[0][0] for x in genelist]]
+        predict_columns = adata.var_names[[np.where(adata.var_names==x)[0][0] for x in genelist]]
     else:
-        predict_columns = ds.full.colnames
+        predict_columns = adata.var_names
 
-    net.predict(ds.full.matrix[:],
-                ds.full.rownames,
-                predict_columns,
-                size_factors=args.sizefactors,
-                normalize_input=args.norminput,
-                logtrans_input=args.loginput)
+    net.predict(adata.X,
+                adata.obs_names,
+                predict_columns)

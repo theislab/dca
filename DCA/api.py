@@ -3,17 +3,17 @@ import anndata
 import numpy as np
 import tensorflow as tf
 
-from .io import create_dataset
+from .io import read_dataset, normalize
 from .train import train
 from .network import AE_types
 
 
 def autoencode(adata,
-               output_dir=None,
                aetype='zinb-conddisp',
                size_factors=True,
                normalize_input=True,
                logtrans_input=True,
+               test_split=False,
                net_kwargs={},
                training_kwargs={}):
 
@@ -23,40 +23,31 @@ def autoencode(adata,
     np.random.seed(42)
     tf.set_random_seed(42)
 
-    temp = False
-    if output_dir is None:
-        temp = True
-        output_dir = tempfile.mkdtemp()
+    adata = read_dataset(adata,
+                         transpose=False,
+                         test_split=test_split)
 
-    ds = create_dataset(adata,
-                        output_file=os.path.join(output_dir, 'input.zarr'),
-                        transpose=False,
-                        test_split=False)
-
-    input_size = output_size = ds.train.shape[1]
-    net = AE_types[aetype](input_size=input_size,
-                         output_size=output_size,
-                         **net_kwargs)
-    net.save()
-    net.build()
-
-    losses = train(ds, net, output_dir=output_dir,
-                   size_factors=size_factors,
-                   normalize_input=normalize_input,
-                   logtrans_input=logtrans_input,
-                   **training_kwargs)
-
-    res = net.predict(ds.full.matrix[:],
-                      ds.full.rownames,
-                      ds.full.colnames,
+    adata = normalize(adata,
                       size_factors=size_factors,
                       normalize_input=normalize_input,
                       logtrans_input=logtrans_input)
 
-    res['losses'] = losses
-    res['net'] = net
+    input_size = output_size = adata.n_vars
+    net = AE_types[aetype](input_size=input_size,
+                           output_size=output_size,
+                           **net_kwargs)
+    net.save()
+    net.build()
 
-    if temp:
-        shutil.rmtree(output_dir, ignore_errors=True)
+    losses = train(adata[adata.obs.DCA_split == 'train'], net, **training_kwargs)
+    res = net.predict(adata)
 
-    return res
+    adata.obsm['X_dca'] = res['mean_norm']
+    adata.obsm['X_dca_mean'] = res['mean']
+    adata.obsm['X_dca_hidden'] = res['reduced']
+    adata.obsm['X_dca_dropout'] = res['pi']
+    adata.obsm['X_dca_dispersion'] = res['dispersion']
+
+    adata.uns['DCA_losses'] = losses
+
+    return adata

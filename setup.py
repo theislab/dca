@@ -22,8 +22,7 @@ setup(
                       'h5py',
                       'six>=1.10.0',
                       'scikit-learn',
-                      'anndata',
-                      'zarr',
+                      'scanpy',
                       'pandas' #for preprocessing
                       ],
     url='https://github.com/gokceneraslan/countae',
