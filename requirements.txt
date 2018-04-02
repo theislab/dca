@@ -1,2 +1,0 @@
-git+git://github.com/Avsecz/keras-hyperopt.git@master#egg=kopt-0
-git+git://github.com/hyperopt/hyperopt.git@master#egg=hyperopt-0

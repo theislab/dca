@@ -23,6 +23,7 @@ setup(
                       'six>=1.10.0',
                       'scikit-learn',
                       'scanpy',
+                      'kopt',
                       'pandas' #for preprocessing
                       ],
     url='https://github.com/gokceneraslan/countae',
