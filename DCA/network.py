@@ -315,7 +315,7 @@ class NBAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, colnames, **kwargs):
+    def predict(self, adata, colnames=None, **kwargs):
         colnames = adata.var_names.values if colnames is None else colnames
         rownames = adata.obs_names.values
         res = super().predict(adata, colnames=colnames, **kwargs)

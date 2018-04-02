@@ -45,8 +45,18 @@ def autoencode(adata,
     adata.obsm['X_dca'] = res['mean_norm']
     adata.obsm['X_dca_mean'] = res['mean']
     adata.obsm['X_dca_hidden'] = res['reduced']
-    adata.obsm['X_dca_dropout'] = res['pi']
-    adata.obsm['X_dca_dispersion'] = res['dispersion']
+
+    if 'pi' in res:
+        if res['pi'].ndim > 1:
+            adata.obsm['X_dca_dropout'] = res['pi']
+        else: # non-conditional case
+            adata.var['X_dca_dropout'] = res['pi']
+
+    if 'dispersion' in res:
+        if res['dispersion'].ndim > 1:
+            adata.obsm['X_dca_dispersion'] = res['dispersion']
+        else:
+            adata.var['X_dca_dispersion'] = res['dispersion']
 
     adata.uns['DCA_losses'] = losses
 

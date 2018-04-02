@@ -21,6 +21,7 @@ from __future__ import print_function
 import pickle, os, numbers
 
 import numpy as np
+import scipy as sp
 import pandas as pd
 import scanpy.api as sc
 from sklearn.model_selection import train_test_split
@@ -58,7 +59,10 @@ def read_dataset(adata, transpose=False, test_split=False):
     else:
         raise NotImplemented
 
-    assert np.all(adata.X.astype(int) == adata.X) and 'n_count' not in adata.obs, 'Make sure that the dataset (adata.X) contains unnormalized count data.'
+    if sp.sparse.issparse(adata.X):
+        assert (adata.X.astype(int) != adata.X).nnz == 0, 'Make sure that the dataset is not normalized'
+    else:
+        assert np.all(adata.X.astype(int) == adata.X) and 'n_count' not in adata.obs, 'Make sure that the dataset (adata.X) contains unnormalized count data.'
 
     if transpose: adata = adata.transpose()
 
