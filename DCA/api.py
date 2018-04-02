@@ -15,7 +15,8 @@ def autoencode(adata,
                logtrans_input=True,
                test_split=False,
                net_kwargs={},
-               training_kwargs={}):
+               training_kwargs={},
+               copy=False):
 
     assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
 
@@ -25,7 +26,8 @@ def autoencode(adata,
 
     adata = read_dataset(adata,
                          transpose=False,
-                         test_split=test_split)
+                         test_split=test_split,
+                         copy=copy)
 
     adata = normalize(adata,
                       size_factors=size_factors,

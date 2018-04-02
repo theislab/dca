@@ -50,26 +50,31 @@ class AnnSequence:
         return {'count': batch, 'size_factors': batch_sf}, batch
 
 
-def read_dataset(adata, transpose=False, test_split=False):
+def read_dataset(adata, transpose=False, test_split=False, copy=False):
 
     if isinstance(adata, sc.AnnData):
-        adata = adata.copy()
+        if copy:
+            adata = adata.copy()
     elif isinstance(adata, str):
         adata = sc.read(adata)
     else:
-        raise NotImplemented
+        raise NotImplementedError
 
-    if sp.sparse.issparse(adata.X):
-        assert (adata.X.astype(int) != adata.X).nnz == 0, 'Make sure that the dataset is not normalized'
-    else:
-        assert np.all(adata.X.astype(int) == adata.X) and 'n_count' not in adata.obs, 'Make sure that the dataset (adata.X) contains unnormalized count data.'
+    norm_error = 'Make sure that the dataset (adata.X) contains unnormalized count data.'
+    assert 'n_count' not in adata.obs, norm_error
+
+    if adata.X.size < 50e6: # check if adata.X is integer only if array is small
+        if sp.sparse.issparse(adata.X):
+            assert (adata.X.astype(int) != adata.X).nnz == 0, norm_error
+        else:
+            assert np.all(adata.X.astype(int) == adata.X), norm_error
 
     if transpose: adata = adata.transpose()
 
     if test_split:
         train_idx, test_idx = train_test_split(np.arange(adata.n_obs), test_size=0.1, random_state=42)
-        adata.obs['DCA_split'] = 'test'
-        adata.obs.ix[train_idx, 'DCA_split'] = 'train'
+        adata.obs['DCA_split'] = 'train'
+        adata.obs.ix[test_idx, 'DCA_split'] = 'test'
     else:
         adata.obs['DCA_split'] = 'train'
 
@@ -83,7 +88,11 @@ def normalize(adata, size_factors=True, normalize_input=True, logtrans_input=Tru
 
     sc.pp.filter_genes(adata, min_counts=1)
     sc.pp.filter_cells(adata, min_counts=1)
-    adata.raw = adata.copy()
+    
+    if size_factors or normalize_input or logtrans_input:
+        adata.raw = adata.copy()
+    else:
+        adata.raw = adata
 
     if size_factors:
         sc.pp.normalize_per_cell(adata)
