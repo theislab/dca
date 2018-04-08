@@ -73,8 +73,9 @@ def read_dataset(adata, transpose=False, test_split=False, copy=False):
 
     if test_split:
         train_idx, test_idx = train_test_split(np.arange(adata.n_obs), test_size=0.1, random_state=42)
-        adata.obs['DCA_split'] = 'train'
-        adata.obs.ix[test_idx, 'DCA_split'] = 'test'
+        spl = pd.Series(['train'] * adata.n_obs)
+        spl.iloc[test_idx] = 'test'
+        adata.obs['DCA_split'] = spl.values
     else:
         adata.obs['DCA_split'] = 'train'
 
@@ -88,7 +89,7 @@ def normalize(adata, size_factors=True, normalize_input=True, logtrans_input=Tru
 
     sc.pp.filter_genes(adata, min_counts=1)
     sc.pp.filter_cells(adata, min_counts=1)
-    
+
     if size_factors or normalize_input or logtrans_input:
         adata.raw = adata.copy()
     else:
