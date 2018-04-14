@@ -14,7 +14,7 @@ Alternatively, if you have `git` installed, you can clone the repo:
 
 and then run
 
-`cd countae; pip install -e .`
+`cd dca; pip install -e .`
 
 to install the count autoencoder and the required packages.
 
