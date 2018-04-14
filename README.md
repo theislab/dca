@@ -6,11 +6,11 @@ See the [tutorial](tutorial.ipynb) for more details.
 
 ### Installation
 
-`pip install git+https://github.com/gokceneraslan/countae`
+`pip install git+https://github.com/theislab/dca`
 
 Alternatively, if you have `git` installed, you can clone the repo:
 
-`git clone https://github.com/gokceneraslan/countae.git`
+`git clone https://github.com/theislab/dca.git`
 
 and then run
 
