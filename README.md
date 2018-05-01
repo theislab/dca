@@ -6,17 +6,13 @@ See the [tutorial](tutorial.ipynb) for more details.
 
 ### Installation
 
-`pip install git+https://github.com/theislab/dca`
+Use
 
-Alternatively, if you have `git` installed, you can clone the repo:
+```
+pip install dca
+```
 
-`git clone https://github.com/theislab/dca.git`
-
-and then run
-
-`cd dca; pip install -e .`
-
-to install the count autoencoder and the required packages.
+command to install the count autoencoder and the required packages.
 
 ### Usage
 
@@ -30,4 +26,4 @@ Use `-h` option to see all available parameters and defaults.
 
 ### Hyperparameter optimization
 
-You can run the autoencoder with `--hyper` option do perform hyperparameter search.
+You can run the autoencoder with `--hyper` option to perform hyperparameter search.
