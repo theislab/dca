@@ -12,11 +12,9 @@ from .network import AE_types
 
 
 def hyper(args):
-    ds = io.create_dataset(args.input,
-                           output_file=os.path.join(args.outputdir, 'input.zarr'),
-                           transpose=args.transpose,
-                           test_split=args.testsplit,
-                           size_factors=args.normtype)
+    adata = io.read_dataset(args.input,
+                            transpose=args.transpose,
+                            test_split=False)
 
     hyper_params = {
             "data": {
@@ -39,28 +37,26 @@ def hyper(args):
                 "input_dropout": hp.uniform("m_input_do", 0, 0.8),
                 },
             "fit": {
-                "epochs": 100
+                "epochs": args.hyperepoch
                 }
     }
 
     def data_fn(norm_input_log, norm_input_zeromean, norm_input_sf):
-        if norm_input_sf:
-            sf_mat = ds.train.size_factors[:]
-        else:
-            sf_mat = np.ones((ds.train.matrix.shape[0], 1),
-                             dtype=np.float32)
 
-        x_train = {'count': io.normalize(ds.train.matrix[:],
-                                         sf_mat, logtrans=norm_input_log,
-                                         sfnorm=norm_input_sf,
-                                         zeromean=norm_input_zeromean),
-                    'size_factors': sf_mat}
-        y_train = ds.train.matrix[:]
+        ad = adata.copy()
+        ad = io.normalize(ad,
+                          size_factors=norm_input_sf,
+                          logtrans_input=norm_input_log,
+                          normalize_input=norm_input_zeromean)
+
+        x_train = {'count': ad.X, 'size_factors': ad.obs.size_factors}
+        y_train = ad.raw.X
 
         return (x_train, y_train),
 
     def model_fn(train_data, lr, hidden_size, activation, aetype, batchnorm,
                  dropout, input_dropout, ridge, l1_enc_coef):
+
         net = AE_types[aetype](train_data[1].shape[1],
                 hidden_size=hidden_size,
                 l2_coef=0.0,
@@ -75,6 +71,7 @@ def hyper(args):
                 init='glorot_uniform',
                 debug=args.debug)
         net.build()
+        net.model.summary()
 
         optimizer = opt.__dict__['rmsprop'](lr=lr, clipvalue=5.0)
         net.model.compile(loss=net.loss, optimizer=optimizer)

@@ -103,6 +103,9 @@ def parse_args():
     parser.add_argument('--hypern', dest='hypern', type=int, default=1000,
             help="Number of samples drawn from hyperparameter distributions during optimization. "
                  "(default: 1000)")
+    parser.add_argument('--hyperepoch', dest='hyperepoch', type=int, default=100,
+            help="Number of epochs used in each hyperpar optimization iteration. "
+                 "(default: 100)")
     parser.add_argument('--debug', dest='debug',
             action='store_true', help="Enable debugging. Checks whether every term in "
                                       "loss functions is finite. (default: False)")
