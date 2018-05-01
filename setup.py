@@ -16,7 +16,7 @@ setup(
                       'kopt',
                       'pandas' #for preprocessing
                       ],
-    url='https://github.com/gokceneraslan/countae',
+    url='https://github.com/theislab/dca',
     entry_points={
         'console_scripts': [
             'dca = DCA.__main__:main'
