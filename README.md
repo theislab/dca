@@ -2,7 +2,7 @@
 
 A deep count autoencoder network to denoise scRNA-seq data and remove the dropout effect by taking the count structure, overdispersed nature and sparsity of the data into account using a deep autoencoder with zero-inflated negative binomial (ZINB) loss function.
 
-See the [tutorial](tutorial.ipynb) for more details.
+See our [bioRxiv manuscript](https://www.biorxiv.org/content/early/2018/04/13/300681) and [tutorial](tutorial.ipynb) for more details.
 
 ### Installation
 
