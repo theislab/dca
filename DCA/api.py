@@ -9,13 +9,16 @@ from .network import AE_types
 
 
 def autoencode(adata,
-               aetype='zinb-conddisp',
+               ae_type='zinb-conddisp',
                size_factors=True,
                normalize_input=True,
                logtrans_input=True,
                test_split=False,
-               net_kwargs={},
-               training_kwargs={},
+               network_kwds={},
+               training_kwds={},
+               return_dropout=False,
+               return_dispersion=False,
+               return_losses=False,
                copy=False):
 
     assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
@@ -35,9 +38,9 @@ def autoencode(adata,
                       logtrans_input=logtrans_input)
 
     input_size = output_size = adata.n_vars
-    net = AE_types[aetype](input_size=input_size,
-                           output_size=output_size,
-                           **net_kwargs)
+    net = AE_types[ae_type](input_size=input_size,
+                            output_size=output_size,
+                            **net_kwargs)
     net.save()
     net.build()
 
@@ -48,18 +51,19 @@ def autoencode(adata,
     adata.obsm['X_dca_mean'] = res['mean']
     adata.obsm['X_dca_hidden'] = res['reduced']
 
-    if 'pi' in res:
+    if 'pi' in res and return_dropout:
         if res['pi'].ndim > 1:
             adata.obsm['X_dca_dropout'] = res['pi']
         else: # non-conditional case
             adata.var['X_dca_dropout'] = res['pi']
 
-    if 'dispersion' in res:
+    if 'dispersion' in res and return_dispersion:
         if res['dispersion'].ndim > 1:
             adata.obsm['X_dca_dispersion'] = res['dispersion']
         else:
             adata.var['X_dca_dispersion'] = res['dispersion']
 
-    adata.uns['DCA_losses'] = losses
+    if return_losses:
+        adata.uns['dca_loss_history'] = losses
 
     return adata

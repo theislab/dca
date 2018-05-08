@@ -85,10 +85,11 @@ def read_dataset(adata, transpose=False, test_split=False, copy=False):
     return adata
 
 
-def normalize(adata, size_factors=True, normalize_input=True, logtrans_input=True):
+def normalize(adata, filter_min_counts=True, size_factors=True, normalize_input=True, logtrans_input=True):
 
-    sc.pp.filter_genes(adata, min_counts=1)
-    sc.pp.filter_cells(adata, min_counts=1)
+    if filter_min_counts:
+        sc.pp.filter_genes(adata, min_counts=1)
+        sc.pp.filter_cells(adata, min_counts=1)
 
     if size_factors or normalize_input or logtrans_input:
         adata.raw = adata.copy()
