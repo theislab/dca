@@ -40,11 +40,11 @@ def autoencode(adata,
     input_size = output_size = adata.n_vars
     net = AE_types[ae_type](input_size=input_size,
                             output_size=output_size,
-                            **net_kwargs)
+                            **network_kwds)
     net.save()
     net.build()
 
-    losses = train(adata[adata.obs.DCA_split == 'train'], net, **training_kwargs)
+    losses = train(adata[adata.obs.DCA_split == 'train'], net, **training_kwds)
     res = net.predict(adata)
 
     adata.obsm['X_dca'] = res['mean_norm']
