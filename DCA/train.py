@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import random
 
 from . import io
 from .network import AE_types
@@ -95,6 +96,7 @@ def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=No
 def train_with_args(args):
 
     # set seed for reproducibility
+    random.seed(42)
     np.random.seed(42)
     tf.set_random_seed(42)
 

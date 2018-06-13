@@ -1,4 +1,4 @@
-import os, tempfile, shutil
+import os, tempfile, shutil, random
 import anndata
 import numpy as np
 import tensorflow as tf
@@ -24,6 +24,7 @@ def autoencode(adata,
     assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
 
     # set seed for reproducibility
+    random.seed(42)
     np.random.seed(42)
     tf.set_random_seed(42)
 
