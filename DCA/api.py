@@ -34,6 +34,7 @@ def autoencode(adata,
     random.seed(42)
     np.random.seed(42)
     tf.set_random_seed(42)
+    os.environ['PYTHONHASHSEED'] = '0'
 
     adata = read_dataset(adata,
                          transpose=False,

@@ -99,6 +99,7 @@ def train_with_args(args):
     random.seed(42)
     np.random.seed(42)
     tf.set_random_seed(42)
+    os.environ['PYTHONHASHSEED'] = '0'
 
     # do hyperpar optimization and exit
     if args.hyper:
