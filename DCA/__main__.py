@@ -117,7 +117,9 @@ def parse_args():
                              'in the given file. Gene names should be line '
                              'separated.')
 
-    parser.set_defaults(saveweights=False,
+    parser.set_defaults(transpose=False,
+                        testsplit=False,
+                        saveweights=False,
                         sizefactors=True,
                         batchnorm=True,
                         norminput=True,

@@ -104,7 +104,7 @@ def train_with_args(args):
         return
 
     adata = io.read_dataset(args.input,
-                            transpose=~args.transpose, # assume gene x cell by default
+                            transpose=(not args.transpose), # assume gene x cell by default
                             test_split=args.testsplit)
 
     adata = io.normalize(adata,
