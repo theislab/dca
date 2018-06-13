@@ -134,6 +134,13 @@ def parse_args():
 def main():
     args = parse_args()
 
+    try:
+        import tensorflow as tf
+    except ImportError:
+        raise ImportError('DCA requires tensorflow. Please follow instructions'
+                          ' at https://www.tensorflow.org/install/ to install'
+                          ' it.')
+
     # import tf and the rest after parse_args() to make argparse help faster
     from . import train
 

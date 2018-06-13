@@ -1,7 +1,14 @@
 import os, tempfile, shutil, random
 import anndata
 import numpy as np
-import tensorflow as tf
+
+try:
+    import tensorflow as tf
+except ImportError:
+    raise ImportError('DCA requires tensorflow. Please follow instructions'
+                      ' at https://www.tensorflow.org/install/ to install'
+                      ' it.')
+
 
 from .io import read_dataset, normalize
 from .train import train
