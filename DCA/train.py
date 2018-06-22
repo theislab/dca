@@ -32,11 +32,13 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 
 
+
 def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=None, train_on_full=False,
           aetype=None, epochs=300, reduce_lr=10, output_subset=None,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
-          tensorboard=False, verbose=True, **kwargs):
+          tensorboard=False, verbose=True, threads=8, **kwargs):
 
+    K.set_session(K.tf.Session(config=K.tf.ConfigProto(intra_op_parallelism_threads=threads, inter_op_parallelism_threads=threads)))
     model = network.model
     loss = network.loss
     if output_dir is not None:
@@ -95,6 +97,7 @@ def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=No
 
 def train_with_args(args):
 
+    K.set_session(K.tf.Session(config=K.tf.ConfigProto(intra_op_parallelism_threads=args.threads, inter_op_parallelism_threads=args.threads)))
     # set seed for reproducibility
     random.seed(42)
     np.random.seed(42)

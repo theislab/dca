@@ -41,6 +41,8 @@ def parse_args():
             help="Type of autoencoder. Possible values: normal, poisson, nb, "
                  "nb-shared, nb-conddisp, nb-fork, zinb, "
                  "zinb-shared, zinb-conddisp(default) zinb-fork")
+    parser.add_argument('--threads', type=int, default=8,
+            help='Number of threads for training (default:8)')
     parser.add_argument('-b', '--batchsize', type=int, default=32,
             help="Batch size (default:32)")
     parser.add_argument('--sizefactors', dest='sizefactors',
