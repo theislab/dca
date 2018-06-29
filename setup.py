@@ -6,7 +6,7 @@ setup(
     description='Count autoencoder for scRNA-seq denoising',
     author='Gokcen Eraslan',
     author_email="gokcen.eraslan@gmail.com",
-    packages=['DCA'],
+    packages=['dca'],
     install_requires=['numpy>=1.7',
                       'keras>=2.0.8',
                       'h5py',
@@ -19,7 +19,7 @@ setup(
     url='https://github.com/theislab/dca',
     entry_points={
         'console_scripts': [
-            'dca = DCA.__main__:main'
+            'dca = dca.__main__:main'
     ]},
     license='Apache License 2.0',
     classifiers=['License :: OSI Approved :: Apache Software License',

@@ -15,29 +15,29 @@ from .train import train
 from .network import AE_types
 
 
-def autoencode(adata,
-               mode='denoise',
-               ae_type='zinb-conddisp',
-               normalize_per_cell=True,
-               scale=True,
-               log1p=True,
-               hidden_size=(64, 32, 64), # network args
-               hidden_dropout=0.,
-               batchnorm=True,
-               activation='relu',
-               init='glorot_uniform',
-               epochs=300,               # training args
-               reduce_lr=10,
-               early_stop=15,
-               batch_size=32,
-               optimizer='rmsprop',
-               random_state=0,
-               network_kwds={},
-               training_kwds={},
-               verbose=False,
-               return_model=False,
-               copy=False
-               ):
+def dca(adata,
+        mode='denoise',
+        ae_type='zinb-conddisp',
+        normalize_per_cell=True,
+        scale=True,
+        log1p=True,
+        hidden_size=(64, 32, 64), # network args
+        hidden_dropout=0.,
+        batchnorm=True,
+        activation='relu',
+        init='glorot_uniform',
+        epochs=300,               # training args
+        reduce_lr=10,
+        early_stop=15,
+        batch_size=32,
+        optimizer='rmsprop',
+        random_state=0,
+        network_kwds={},
+        training_kwds={},
+        verbose=False,
+        return_model=False,
+        copy=False
+        ):
     """Deep count autoencoder(DCA) API.
 
     Fits a count autoencoder to the count data given in the anndata object
