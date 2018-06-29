@@ -26,7 +26,7 @@ where `matrix.csv` is a CSV/TSV-formatted raw count matrix with genes in rows an
 
 Output folder contains the main output file (representing the mean parameter of ZINB distribution) as well as some additional matrices in TSV format:
 
-- `mean.tsv` is the main output of the method which represents the mean parameter of the ZINB distribution. This file has the same dimensions as the input file (except that the zero-expression genes or cells are excluded). It is formatted as a `gene x cell` matrix. Additionally, `mean_norm.tsv` file contains the library size-normalized expressions of each cell and gene.
+- `mean.tsv` is the main output of the method which represents the mean parameter of the ZINB distribution. This file has the same dimensions as the input file (except that the zero-expression genes or cells are excluded). It is formatted as a `gene x cell` matrix. Additionally, `mean_norm.tsv` file contains the library size-normalized expressions of each cell and gene. See `normalize_per_cell` function from [Scanpy](https://scanpy.readthedocs.io/en/latest/api/scanpy.api.pp.normalize_per_cell.html#scanpy.api.pp.normalize_per_cell) for the details about the default library size normalization method used in DCA.
 
 - `pi.tsv` and `dispersion.tsv` files represent dropout probabilities and dispersion for each cell and gene. Matrix dimensions are same as `mean.tsv` and the input file.
 
