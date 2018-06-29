@@ -1,6 +1,7 @@
 import os, tempfile, shutil, random
 import anndata
 import numpy as np
+import scanpy.api as sc
 
 try:
     import tensorflow as tf
@@ -138,6 +139,10 @@ def dca(adata,
                          transpose=False,
                          test_split=False,
                          copy=copy)
+
+    # check for zero genes
+    nonzero_genes, _ = sc.pp.filter_genes(adata.X, min_counts=1)
+    assert nonzero_genes.all(), 'Please remove all-zero genes before using DCA.'
 
     adata = normalize(adata,
                       filter_min_counts=False, # no filtering, keep cell and gene idxs same
