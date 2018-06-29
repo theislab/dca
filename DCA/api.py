@@ -17,6 +17,7 @@ from .network import AE_types
 
 def autoencode(adata,
                ae_type='zinb-conddisp',
+               filter_min_counts=True,
                size_factors=True,
                normalize_input=True,
                logtrans_input=True,
@@ -42,6 +43,7 @@ def autoencode(adata,
                          copy=copy)
 
     adata = normalize(adata,
+                      filter_min_counts=filter_min_counts,
                       size_factors=size_factors,
                       normalize_input=normalize_input,
                       logtrans_input=logtrans_input)
