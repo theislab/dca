@@ -60,14 +60,13 @@ def read_dataset(adata, transpose=False, test_split=False, copy=False):
     else:
         raise NotImplementedError
 
+    # check if observations are unnormalized using first 10
+    X_subset = adata.X[:10]
     norm_error = 'Make sure that the dataset (adata.X) contains unnormalized count data.'
-    assert 'n_count' not in adata.obs, norm_error
-
-    if adata.X.size < 50e6: # check if adata.X is integer only if array is small
-        if sp.sparse.issparse(adata.X):
-            assert (adata.X.astype(int) != adata.X).nnz == 0, norm_error
-        else:
-            assert np.all(adata.X.astype(int) == adata.X), norm_error
+    if sp.sparse.issparse(X_subset):
+        assert (X_subset.astype(int) != X_subset).nnz == 0, norm_error
+    else:
+        assert np.all(X_subset.astype(int) == X_subset), norm_error
 
     if transpose: adata = adata.transpose()
 
@@ -80,7 +79,7 @@ def read_dataset(adata, transpose=False, test_split=False, copy=False):
         adata.obs['DCA_split'] = 'train'
 
     adata.obs['DCA_split'] = adata.obs['DCA_split'].astype('category')
-    print('### Autoencoder: Successfully preprocessed {} genes and {} cells.'.format(adata.n_vars, adata.n_obs))
+    print('DCA: Successfully preprocessed {} genes and {} cells.'.format(adata.n_vars, adata.n_obs))
 
     return adata
 
@@ -113,7 +112,7 @@ def normalize(adata, filter_min_counts=True, size_factors=True, normalize_input=
 def read_genelist(filename):
     genelist = list(set(open(filename, 'rt').read().strip().split('\n')))
     assert len(genelist) > 0, 'No genes detected in genelist file'
-    print('### Autoencoder: Subset of {} genes will be denoised.'.format(len(genelist)))
+    print('DCA: Subset of {} genes will be denoised.'.format(len(genelist)))
 
     return genelist
 
