@@ -96,6 +96,8 @@ def autoencode(adata,
         Number of samples in the batch used for SGD.
     optimizer : `str`, optional. Default: "rmsprop".
         Type of optimization method used for training.
+    random_state : `int`, optional. Default: 0.
+        Seed for python, numpy and tensorflow.
     network_kwds : `dict`, optional.
         Additional keyword arguments for the autoencoder.
     training_kwds : `dict`, optional.
