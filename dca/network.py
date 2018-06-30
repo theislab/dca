@@ -217,7 +217,7 @@ class Autoencoder():
                               rownames=rownames, colnames=colnames, transpose=True)
 
             sc.settings.writedir = self.file_path + '/'
-            sc.write('output', adata)
+            sc.write('output.h5ad', adata)
             write_text_matrix(res['mean_norm'],
                               os.path.join(self.file_path, 'mean_norm.tsv'),
                               rownames=rownames, colnames=colnames, transpose=True)
