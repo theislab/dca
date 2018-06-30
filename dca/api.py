@@ -27,15 +27,16 @@ def dca(adata,
         batchnorm=True,
         activation='relu',
         init='glorot_uniform',
+        network_kwds={},
         epochs=300,               # training args
         reduce_lr=10,
         early_stop=15,
         batch_size=32,
         optimizer='rmsprop',
         random_state=0,
-        network_kwds={},
-        training_kwds={},
+        threads=None,
         verbose=False,
+        training_kwds={},
         return_model=False,
         copy=False
         ):
@@ -87,6 +88,8 @@ def dca(adata,
         Activation function of hidden layers.
     init : `str`, optional. Default: `glorot_uniform`.
         Initialization method used to initialize weights.
+    network_kwds : `dict`, optional.
+        Additional keyword arguments for the autoencoder.
     epochs : `int`, optional. Default: 300.
         Number of total epochs in training.
     reduce_lr : `int`, optional. Default: 10.
@@ -99,12 +102,12 @@ def dca(adata,
         Type of optimization method used for training.
     random_state : `int`, optional. Default: 0.
         Seed for python, numpy and tensorflow.
-    network_kwds : `dict`, optional.
-        Additional keyword arguments for the autoencoder.
-    training_kwds : `dict`, optional.
-        Additional keyword arguments for the training process.
+    threads : `int` or None, optional. Default: None
+        Number of threads to use in training. All cores are used by default.
     verbose : `bool`, optional. Default: `False`.
         If true, prints additional information about training and architecture.
+    training_kwds : `dict`, optional.
+        Additional keyword arguments for the training process.
     return_model : `bool`, optional. Default: `False.
         If true, trained autoencoder object is returned.
     copy : `bool`, optional. Default: `False`.
@@ -171,7 +174,8 @@ def dca(adata,
         'early_stop': early_stop,
         'batch_size': batch_size,
         'optimizer': optimizer,
-        'verbose': verbose
+        'verbose': verbose,
+        'threads': threads
     }
 
     losses = train(adata[adata.obs.DCA_split == 'train'], net, **training_kwds)
