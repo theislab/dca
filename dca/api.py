@@ -38,6 +38,7 @@ def dca(adata,
         verbose=False,
         training_kwds={},
         return_model=False,
+        return_info=False,
         copy=False
         ):
     """Deep count autoencoder(DCA) API.
@@ -51,15 +52,10 @@ def dca(adata,
     ----------
     adata : :class:`~scanpy.api.AnnData`
         An anndata file with `.raw` attribute representing raw counts.
-    mode : `str`, optional. `denoise`(default), `latent` or `full`.
+    mode : `str`, optional. `denoise`(default), or `latent`.
         `denoise` overwrites `adata.X` with denoised expression values.
         In `latent` mode DCA adds `adata.obsm['X_dca']` to given adata
         object. This matrix represent latent representation of cells via DCA.
-        In `full` mode, `adata.X` is overwritten and all additional parameters
-        of DCA are stored in `adata.obsm` such as dropout
-        probabilities (obsm['X_dca_dropout']) and estimated dispersion values
-        (obsm['X_dca_dispersion']), in case that autoencoder is of type
-        zinb or zinb-conddisp.
     ae_type : `str`, optional. `zinb-conddisp`(default), `zinb`, `nb-conddisp` or `nb`.
         Type of the autoencoder. Return values and the architecture is
         determined by the type e.g. `nb` does not provide dropout
@@ -108,29 +104,41 @@ def dca(adata,
         If true, prints additional information about training and architecture.
     training_kwds : `dict`, optional.
         Additional keyword arguments for the training process.
-    return_model : `bool`, optional. Default: `False.
-        If true, trained autoencoder object is returned.
+    return_model : `bool`, optional. Default: `False`.
+        If true, trained autoencoder object is returned. See "Returns".
+    return_info : `bool`, optional. Default: `False`.
+        If true, all additional parameters of DCA are stored in `adata.obsm` such as dropout
+        probabilities (obsm['X_dca_dropout']) and estimated dispersion values
+        (obsm['X_dca_dispersion']), in case that autoencoder is of type
+        zinb or zinb-conddisp.
     copy : `bool`, optional. Default: `False`.
         If true, a copy of anndata is returned.
 
     Returns
-    =======
+    -------
+    If `copy` is true and `return_model` is false, AnnData object is returned.
 
-    If copy is true, AnnData object. In "denoise" mode, adata.X is overwritten with the main
-    output of the autoencoder. In "latent" mode, latent low dimensional representation of cells are
-    stored in adata.obsm['X_dca'] and adata.X is not modified. In "full" mode, both adata.X is
-    overwritten and latent representation is added to adata.obsm['X_dca']. In addition, other
-    estimated distribution parameters are stored in adata.obsm such as adata.obsm['X_dca_dropout']
-    which represents the mixture coefficient (pi) of the zero component in ZINB hence dropout
-    probability. Raw counts are stored as `adata.raw`.
+    In "denoise" mode, `adata.X` is overwritten with the denoised values. In "latent" mode, latent
+    low dimensional representation of cells are stored in `adata.obsm['X_dca']` and `adata.X`
+    is not modified. Note that these values are not corrected for library size effects.
 
-    If return_model is given, trained model is returned. When both copy and return_model are true
-    a tuple of anndata and model is returned in that order.
+    If `return_info` is true, all estimated distribution parameters are stored in AnnData such as:
 
+    - `.obsm["X_dca_dropout"]` which is the mixture coefficient (pi) of the zero component
+    in ZINB, i.e. dropout probability. (Only if ae_type is zinb or zinb-conddisp)
+
+    - `.obsm["X_dca_dispersion"]` which is the dispersion parameter of NB.
+
+    - `.uns["dca_loss_history"]` which stores the loss history of the training.
+
+    Finally, the raw counts are stored as `.raw`.
+
+    If `return_model` is given, trained model is returned. When both `copy` and `return_model`
+    are true, a tuple of anndata and model is returned in that order.
     """
 
     assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
-    assert mode in ('denoise', 'latent', 'full'), '%s is not a valid mode.' % mode
+    assert mode in ('denoise', 'latent'), '%s is not a valid mode.' % mode
 
     # set seed for reproducibility
     random.seed(random_state)
@@ -178,17 +186,17 @@ def dca(adata,
         'threads': threads
     }
 
-    losses = train(adata[adata.obs.DCA_split == 'train'], net, **training_kwds)
+    hist = train(adata[adata.obs.DCA_split == 'train'], net, **training_kwds)
     res = net.predict(adata)
 
     #TODO: move this part to net.predict() code
-    if mode in ('denoise', 'full'):
+    if mode == 'denoise':
         adata.X = res['mean']
 
-    if mode in ('latent', 'full'):
+    if mode == 'latent':
         adata.obsm['X_dca'] = res['reduced']
 
-    if mode == 'full':
+    if return_info:
         if 'pi' in res:
             if res['pi'].ndim > 1:
                 adata.obsm['X_dca_dropout'] = res['pi']
@@ -201,7 +209,7 @@ def dca(adata,
             else:
                 adata.var['X_dca_dispersion'] = res['dispersion']
 
-        adata.uns['dca_loss_history'] = losses
+        adata.uns['dca_loss_history'] = hist.history
 
     if return_model:
         return (adata, net) if copy else net
