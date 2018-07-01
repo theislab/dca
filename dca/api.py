@@ -146,6 +146,7 @@ def dca(adata,
     tf.set_random_seed(random_state)
     os.environ['PYTHONHASHSEED'] = '0'
 
+    # this creates adata.raw with raw counts and copies adata if copy==True
     adata = read_dataset(adata,
                          transpose=False,
                          test_split=False,
@@ -195,6 +196,7 @@ def dca(adata,
 
     if mode == 'latent':
         adata.obsm['X_dca'] = res['reduced']
+        adata.X = adata.raw.X.copy() #recover normalized expression values
 
     if return_info:
         if 'pi' in res:
