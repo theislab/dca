@@ -187,30 +187,11 @@ def dca(adata,
         'threads': threads
     }
 
-    hist = train(adata[adata.obs.DCA_split == 'train'], net, **training_kwds)
-    res = net.predict(adata)
-
-    #TODO: move this part to net.predict() code
-    if mode == 'denoise':
-        adata.X = res['mean']
-
-    if mode == 'latent':
-        adata.obsm['X_dca'] = res['reduced']
-        adata.X = adata.raw.X.copy() #recover normalized expression values
+    hist = train(adata[adata.obs.dca_split == 'train'], net, **training_kwds)
+    res = net.predict(adata, mode, return_info, copy)
+    adata = res if copy else adata
 
     if return_info:
-        if 'pi' in res:
-            if res['pi'].ndim > 1:
-                adata.obsm['X_dca_dropout'] = res['pi']
-            else: # non-conditional case
-                adata.var['X_dca_dropout'] = res['pi']
-
-        if 'dispersion' in res:
-            if res['dispersion'].ndim > 1:
-                adata.obsm['X_dca_dispersion'] = res['dispersion']
-            else:
-                adata.var['X_dca_dispersion'] = res['dispersion']
-
         adata.uns['dca_loss_history'] = hist.history
 
     if return_model:

@@ -74,12 +74,12 @@ def read_dataset(adata, transpose=False, test_split=False, copy=False):
         train_idx, test_idx = train_test_split(np.arange(adata.n_obs), test_size=0.1, random_state=42)
         spl = pd.Series(['train'] * adata.n_obs)
         spl.iloc[test_idx] = 'test'
-        adata.obs['DCA_split'] = spl.values
+        adata.obs['dca_split'] = spl.values
     else:
-        adata.obs['DCA_split'] = 'train'
+        adata.obs['dca_split'] = 'train'
 
-    adata.obs['DCA_split'] = adata.obs['DCA_split'].astype('category')
-    print('DCA: Successfully preprocessed {} genes and {} cells.'.format(adata.n_vars, adata.n_obs))
+    adata.obs['dca_split'] = adata.obs['dca_split'].astype('category')
+    print('dca: Successfully preprocessed {} genes and {} cells.'.format(adata.n_vars, adata.n_obs))
 
     return adata
 
@@ -112,7 +112,7 @@ def normalize(adata, filter_min_counts=True, size_factors=True, normalize_input=
 def read_genelist(filename):
     genelist = list(set(open(filename, 'rt').read().strip().split('\n')))
     assert len(genelist) > 0, 'No genes detected in genelist file'
-    print('DCA: Subset of {} genes will be denoised.'.format(len(genelist)))
+    print('dca: Subset of {} genes will be denoised.'.format(len(genelist)))
 
     return genelist
 

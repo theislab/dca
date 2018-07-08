@@ -154,7 +154,7 @@ def train_with_args(args):
     net.save()
     net.build()
 
-    losses = train(adata[adata.obs.DCA_split == 'train'], net,
+    losses = train(adata[adata.obs.dca_split == 'train'], net,
                    output_dir=args.outputdir,
                    learning_rate=args.learningrate,
                    epochs=args.epochs, batch_size=args.batchsize,

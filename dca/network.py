@@ -186,44 +186,47 @@ class Autoencoder():
                         outputs=self.model.get_layer('center').output)
         return ret
 
-    def predict(self, adata, colnames=None, dimreduce=True, reconstruct=True, error=True):
+    def predict(self, adata, mode='denoise', return_info=False, copy=False):
 
-        res = {}
+        assert mode in ('denoise', 'latent', 'full'), 'Unknown mode'
+
+        adata = adata.copy() if copy else adata
+
+        if mode in ('denoise', 'full'):
+            print('dca: Calculating reconstructions...')
+
+            adata.X = self.model.predict({'count': adata.X,
+                                          'size_factors': adata.obs.size_factors})
+
+        if mode in ('latent', 'full'):
+            print('dca: Calculating low dimensional representations...')
+
+            adata.obsm['X_dca'] = self.encoder.predict({'count': adata.X,
+                                                        'size_factors': adata.obs.size_factors})
+        if mode == 'latent':
+            adata.X = adata.raw.X.copy() #recover normalized expression values
+
+        return adata if copy else None
+
+    def write(self, adata, file_path, mode='denoise', colnames=None):
+
         colnames = adata.var_names.values if colnames is None else colnames
         rownames = adata.obs_names.values
 
-        print('Calculating low dimensional representations...')
+        print('dca: Saving output(s)...')
+        os.makedirs(file_path, exist_ok=True)
 
-        res['reduced'] = self.encoder.predict({'count': adata.X,
-                                               'size_factors': adata.obs.size_factors})
+        if mode in ('denoise', 'full'):
+            print('dca: Saving denoised expression...')
+            write_text_matrix(adata.X,
+                              os.path.join(file_path, 'mean.tsv'),
+                              rownames=rownames, colnames=colnames, transpose=True)
 
-        print('Calculating reconstructions...')
-        res['mean'] = self.model.predict({'count': adata.X,
-                                          'size_factors': adata.obs.size_factors})
-
-        res['mean_norm'] = self.extra_models['mean_norm'].predict(adata.X)
-
-        if self.file_path:
-            print('Saving files...')
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['reduced'],
-                              os.path.join(self.file_path, 'reduced.tsv'),
+        if mode in ('latent', 'full'):
+            print('dca: Saving latent representations...')
+            write_text_matrix(adata.obsm['X_dca'],
+                              os.path.join(file_path, 'latent.tsv'),
                               rownames=rownames, transpose=False)
-
-            #write_text_matrix(res['decoded'], os.path.join(self.file_path, 'decoded.tsv'))
-            write_text_matrix(res['mean'],
-                              os.path.join(self.file_path, 'mean.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-
-            sc.settings.writedir = self.file_path + '/'
-            sc.write('output.h5ad', adata)
-            write_text_matrix(res['mean_norm'],
-                              os.path.join(self.file_path, 'mean_norm.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-
-        return res
-
 
 class PoissonAutoencoder(Autoencoder):
 
@@ -263,31 +266,26 @@ class NBConstantDispAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, colnames=None, **kwargs):
+    def predict(self, adata, mode='denoise', return_info=False, copy=False):
+        colnames = adata.var_names.values
+        rownames = adata.obs_names.values
+        res = super().predict(adata, mode, return_info, copy)
+        adata = res if copy else adata
+
+        if return_info:
+            adata.var['X_dca_dispersion'] = self.extra_models['dispersion']()
+
+        return adata if copy else None
+
+    def write(self, adata, file_path, mode='denoise', colnames=None):
         colnames = adata.var_names.values if colnames is None else colnames
         rownames = adata.obs_names.values
-        res = super().predict(adata, colnames=colnames, **kwargs)
 
-        res['dispersion'] = self.extra_models['dispersion']()
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        #res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
-
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'].reshape(1, -1),
-                              os.path.join(self.file_path, 'dispersion.tsv'),
+        super().write(adata, file_path, mode, colnames=colnames)
+        if 'X_dca_dispersion' in adata.var_keys():
+            write_text_matrix(adata.var['X_dca_dispersion'].reshape(1, -1),
+                              os.path.join(file_path, 'dispersion.tsv'),
                               colnames=colnames, transpose=True)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            #write_text_matrix(res['error'],
-            #                  os.path.join(self.file_path, 'error.tsv'),
-            #                  rownames=rownames, colnames=colnames, transpose=True)
-
-        return res
 
 
 class NBAutoencoder(Autoencoder):
@@ -315,33 +313,28 @@ class NBAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, colnames=None, **kwargs):
+    def predict(self, adata, mode='denoise', return_info=False, copy=False):
+        colnames = adata.var_names.values
+        rownames = adata.obs_names.values
+
+        res = super().predict(adata, mode, return_info, copy)
+        adata = res if copy else adata
+
+        if return_info:
+            adata.obsm['X_dca_dispersion'] = self.extra_models['dispersion'].predict(adata.X)
+
+        return adata if copy else None
+
+    def write(self, adata, file_path, mode='denoise', colnames=None):
         colnames = adata.var_names.values if colnames is None else colnames
         rownames = adata.obs_names.values
-        res = super().predict(adata, colnames=colnames, **kwargs)
 
-        res['dispersion'] = self.extra_models['dispersion'].predict(adata.X)
+        super().write(adata, file_path, mode, colnames=colnames)
 
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        #res['error'] = K.eval(NB(theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
-
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'],
-                              os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            #write_text_matrix(res['error'],
-            #                  os.path.join(self.file_path, 'error.tsv'),
-            #                  rownames=rownames, colnames=colnames, transpose=True)
-
-        return res
-
+        if 'X_dca_dispersion' in adata.obsm_keys():
+            write_text_matrix(adata.obsm['X_dca_dispersion'],
+                              os.path.join(file_path, 'dispersion.tsv'),
+                              colnames=colnames, transpose=True)
 
 class NBSharedAutoencoder(NBAutoencoder):
 
@@ -365,7 +358,6 @@ class NBSharedAutoencoder(NBAutoencoder):
         self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
 
         self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
-
         self.encoder = self.get_encoder()
 
 
@@ -398,34 +390,31 @@ class ZINBAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, colnames=None, **kwargs):
+    def predict(self, adata, mode='denoise', return_info=False, copy=False, colnames=None):
+        res = super().predict(adata, mode, return_info, copy)
+        adata = res if copy else adata
+
+        if return_info:
+            adata.obsm['X_dca_dispersion'] = self.extra_models['dispersion'].predict(adata.X)
+            adata.obsm['X_dca_dropout']    = self.extra_models['pi'].predict(adata.X)
+
+        return adata if copy else None
+
+    def write(self, adata, file_path, mode='denoise', colnames=None):
         colnames = adata.var_names.values if colnames is None else colnames
         rownames = adata.obs_names.values
-        res = super().predict(adata, colnames=colnames, **kwargs)
 
-        res['pi'] = self.extra_models['pi'].predict(adata.X)
-        res['dispersion'] = self.extra_models['dispersion'].predict(adata.X)
+        super().write(adata, file_path, mode, colnames=colnames)
 
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        #res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
+        if 'X_dca_dispersion' in adata.obsm_keys():
+            write_text_matrix(adata.obsm['X_dca_dispersion'],
+                              os.path.join(file_path, 'dispersion.tsv'),
+                              colnames=colnames, transpose=True)
 
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'],
-                              os.path.join(self.file_path, 'dispersion.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            write_text_matrix(res['pi'],
-                              os.path.join(self.file_path, 'pi.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            #write_text_matrix(res['error'], os.path.join(self.file_path, 'error.tsv'))
-
-        return res
+        if 'X_dca_dropout' in adata.obsm_keys():
+            write_text_matrix(adata.obsm['X_dca_dropout'],
+                              os.path.join(file_path, 'dropout.tsv'),
+                              colnames=colnames, transpose=True)
 
 
 class ZINBSharedAutoencoder(ZINBAutoencoder):
@@ -487,36 +476,34 @@ class ZINBConstantDispAutoencoder(Autoencoder):
 
         self.encoder = self.get_encoder()
 
-    def predict(self, adata, colnames=None, **kwargs):
+    def predict(self, adata, mode='denoise', return_info=False, copy=False):
+        colnames = adata.var_names.values
+        rownames = adata.obs_names.values
+
+        res = super().predict(adata, mode, return_info, copy)
+        adata = res if copy else adata
+
+        if return_info:
+            adata.var['X_dca_dispersion'] = self.extra_models['dispersion']()
+            adata.obsm['X_dca_dropout']    = self.extra_models['pi'].predict(adata.X)
+
+        return adata if copy else None
+
+    def write(self, adata, file_path, mode='denoise', colnames=None):
         colnames = adata.var_names.values if colnames is None else colnames
         rownames = adata.obs_names.values
-        res = super().predict(adata, colnames=colnames, **kwargs)
 
-        res['pi'] = self.extra_models['pi'].predict(adata.X)
-        res['dispersion'] = self.extra_models['dispersion']()
+        super().write(adata, file_path, mode)
 
-        m, d = res['mean'], res['dispersion']
-        res['mode'] = np.floor(m*((d-1)/d)).astype(np.int)
-        res['mode'][res['mode'] < 0] = 0
-        #res['error'] = K.eval(ZINB(pi=res['pi'], theta=res['dispersion']).loss(count_matrix, res['mean'], mean=False))
-
-        if self.file_path:
-            os.makedirs(self.file_path, exist_ok=True)
-
-            write_text_matrix(res['dispersion'].reshape(1, -1),
-                              os.path.join(self.file_path, 'dispersion.tsv'),
+        if 'X_dca_dispersion' in adata.var_keys():
+            write_text_matrix(adata.var['X_dca_dispersion'].reshape(1, -1),
+                              os.path.join(file_path, 'dispersion.tsv'),
                               colnames=colnames, transpose=True)
-            write_text_matrix(res['mode'],
-                              os.path.join(self.file_path, 'mode.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            write_text_matrix(res['pi'],
-                              os.path.join(self.file_path, 'pi.tsv'),
-                              rownames=rownames, colnames=colnames, transpose=True)
-            #write_text_matrix(res['error'],
-            #                  os.path.join(self.file_path, 'error.tsv'),
-            #                  rownames=rownames, colnames=colnames, transpose=True)
 
-        return res
+        if 'X_dca_dropout' in adata.obsm_keys():
+            write_text_matrix(adata.obsm['X_dca_dropout'],
+                              os.path.join(file_path, 'dropout.tsv'),
+                              colnames=colnames, transpose=True)
 
 
 class ZINBForkAutoencoder(ZINBAutoencoder):
