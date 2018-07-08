@@ -171,4 +171,5 @@ def train_with_args(args):
     else:
         predict_columns = adata.var_names
 
-    net.predict(adata, predict_columns)
+    net.predict(adata, mode='full', return_info=True)
+    net.write(adata, args.outputdir, mode='full', colnames=predict_columns)
