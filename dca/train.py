@@ -32,12 +32,11 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 
 
-
 def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=None, train_on_full=False,
           aetype=None, epochs=300, reduce_lr=10, output_subset=None,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
           tensorboard=False, verbose=True, threads=None, **kwargs):
-    
+
     K.set_session(tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=threads, inter_op_parallelism_threads=threads)))
     model = network.model
     loss = network.loss

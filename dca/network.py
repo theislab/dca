@@ -155,7 +155,6 @@ class Autoencoder():
 
         self.encoder = self.get_encoder()
 
-
     def save(self):
         if self.file_path:
             os.makedirs(self.file_path, exist_ok=True)
