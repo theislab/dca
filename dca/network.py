@@ -143,7 +143,7 @@ class Autoencoder():
     def build_output(self):
 
         self.loss = mean_squared_error
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
         output = ColWiseMultLayer(name='output')([mean, self.sf_layer])

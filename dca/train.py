@@ -32,8 +32,8 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 
 
-def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=None, train_on_full=False,
-          aetype=None, epochs=300, reduce_lr=10, output_subset=None,
+def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=None,
+          epochs=300, reduce_lr=10, output_subset=None, use_raw_as_output=True,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
           tensorboard=False, verbose=True, threads=None, **kwargs):
 
@@ -76,9 +76,9 @@ def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=No
 
     if output_subset:
         gene_idx = [np.where(adata.raw.var_names == x)[0][0] for x in output_subset]
-        output = adata.raw.X[:, gene_idx]
+        output = adata.raw.X[:, gene_idx] if use_raw_as_output else adata.X[:, gene_idx]
     else:
-        output = adata.raw.X
+        output = adata.raw.X if use_raw_as_output else adata.X
 
     loss = model.fit(inputs, output,
                      epochs=epochs,
@@ -88,15 +88,14 @@ def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=No
                      validation_split=0.1,
                      verbose=verbose,
                      **kwargs)
-    # https://github.com/tensorflow/tensorflow/issues/3388
-    # K.clear_session()
 
     return loss
 
 
 def train_with_args(args):
 
-    K.set_session(tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=args.threads, inter_op_parallelism_threads=args.threads)))
+    K.set_session(tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=args.threads,
+                                                   inter_op_parallelism_threads=args.threads)))
     # set seed for reproducibility
     random.seed(42)
     np.random.seed(42)
