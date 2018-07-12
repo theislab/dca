@@ -390,13 +390,15 @@ class ZINBAutoencoder(Autoencoder):
         self.encoder = self.get_encoder()
 
     def predict(self, adata, mode='denoise', return_info=False, copy=False, colnames=None):
-        res = super().predict(adata, mode, return_info, copy)
-        adata = res if copy else adata
+
+        adata = adata.copy() if copy else adata
 
         if return_info:
             adata.obsm['X_dca_dispersion'] = self.extra_models['dispersion'].predict(adata.X)
             adata.obsm['X_dca_dropout']    = self.extra_models['pi'].predict(adata.X)
 
+        # warning! this may overwrite adata.X
+        super().predict(adata, mode, return_info, copy=False)
         return adata if copy else None
 
     def write(self, adata, file_path, mode='denoise', colnames=None):
@@ -478,14 +480,13 @@ class ZINBConstantDispAutoencoder(Autoencoder):
     def predict(self, adata, mode='denoise', return_info=False, copy=False):
         colnames = adata.var_names.values
         rownames = adata.obs_names.values
-
-        res = super().predict(adata, mode, return_info, copy)
-        adata = res if copy else adata
+        adata = adata.copy() if copy else adata
 
         if return_info:
             adata.var['X_dca_dispersion'] = self.extra_models['dispersion']()
             adata.obsm['X_dca_dropout']    = self.extra_models['pi'].predict(adata.X)
 
+        super().predict(adata, mode, return_info, copy=False)
         return adata if copy else None
 
     def write(self, adata, file_path, mode='denoise', colnames=None):
