@@ -31,7 +31,7 @@ from keras import backend as K
 import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
-from .layers import ConstantDispersionLayer, SliceLayer, ColWiseMultLayer
+from .layers import ConstantDispersionLayer, SliceLayer, ColwiseMultLayer
 from .io import write_text_matrix
 
 
@@ -146,7 +146,7 @@ class Autoencoder():
         mean = Dense(self.output_size, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
 
         # keep unscaled output as an extra model
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
@@ -236,7 +236,7 @@ class PoissonAutoencoder(Autoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
         self.loss = poisson_loss
 
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
@@ -257,7 +257,7 @@ class NBConstantDispAutoencoder(Autoencoder):
         disp = ConstantDispersionLayer(name='dispersion')
         mean = disp(mean)
 
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
 
         nb = NB(disp.theta_exp)
         self.loss = nb.loss
@@ -302,7 +302,7 @@ class NBAutoencoder(Autoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
@@ -350,7 +350,7 @@ class NBSharedAutoencoder(NBAutoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
@@ -378,7 +378,7 @@ class ZINBAutoencoder(Autoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
@@ -437,7 +437,7 @@ class ZINBSharedAutoencoder(ZINBAutoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
@@ -467,7 +467,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         disp = ConstantDispersionLayer(name='dispersion')
         mean = disp(mean)
 
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
 
         zinb = ZINB(pi, theta=disp.theta_exp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
@@ -605,7 +605,7 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
@@ -706,7 +706,7 @@ class NBForkAutoencoder(NBAutoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
-        output = ColWiseMultLayer(name='output')([mean, self.sf_layer])
+        output = ColwiseMultLayer([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
