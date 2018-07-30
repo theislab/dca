@@ -21,7 +21,7 @@ import numpy as np
 import scanpy.api as sc
 
 import keras
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
+from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
 from keras.models import Model
 from keras.regularizers import l1_l2
 from keras.objectives import mean_squared_error
@@ -31,7 +31,7 @@ from keras import backend as K
 import tensorflow as tf
 
 from .loss import poisson_loss, NB, ZINB
-from .layers import ConstantDispersionLayer, SliceLayer, ColwiseMultLayer
+from .layers import ConstantDispersionLayer, SliceLayer, ColwiseMultLayer, ElementwiseDense
 from .io import write_text_matrix
 
 
@@ -421,6 +421,47 @@ class ZINBAutoencoder(Autoencoder):
                               colnames=colnames, transpose=True)
 
 
+class ZINBAutoencoderElemPi(ZINBAutoencoder):
+    def __init__(self, sharedpi=False, **kwds):
+        super().__init__(**kwds)
+        self.sharedpi = sharedpi
+
+    def build_output(self):
+        disp = Dense(self.output_size, activation=DispAct,
+                           kernel_initializer=self.init,
+                           kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                           name='dispersion')(self.decoder_output)
+
+        mean_no_act = Dense(self.output_size, activation=None, kernel_initializer=self.init,
+                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                       name='mean_no_act')(self.decoder_output)
+
+        minus = Lambda(lambda x: -x)
+        mean_no_act = minus(mean_no_act)
+        pidim = self.output_size if not self.sharedpi else 1
+
+        pi = ElementwiseDense(pidim, activation='sigmoid', kernel_initializer=self.init,
+                       kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
+                       name='pi')(mean_no_act)
+
+        mean = Activation(MeanAct, name='mean')(mean_no_act)
+
+        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = SliceLayer(0, name='slice')([output, disp, pi])
+
+        zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
+        self.loss = zinb.loss
+        self.extra_models['pi'] = Model(inputs=self.input_layer, outputs=pi)
+        self.extra_models['dispersion'] = Model(inputs=self.input_layer, outputs=disp)
+        self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
+        self.extra_models['decoded'] = Model(inputs=self.input_layer, outputs=self.decoder_output)
+
+        self.model = Model(inputs=[self.input_layer, self.sf_layer], outputs=output)
+
+        self.encoder = self.get_encoder()
+
+
+
 class ZINBSharedAutoencoder(ZINBAutoencoder):
 
     def build_output(self):
@@ -723,5 +764,6 @@ AE_types = {'normal': Autoencoder, 'poisson': PoissonAutoencoder,
             'nb': NBConstantDispAutoencoder, 'nb-conddisp': NBAutoencoder,
             'nb-shared': NBSharedAutoencoder, 'nb-fork': NBForkAutoencoder,
             'zinb': ZINBConstantDispAutoencoder, 'zinb-conddisp': ZINBAutoencoder,
-            'zinb-shared': ZINBSharedAutoencoder, 'zinb-fork': ZINBForkAutoencoder}
+            'zinb-shared': ZINBSharedAutoencoder, 'zinb-fork': ZINBForkAutoencoder,
+            'zinb-elempi': ZINBAutoencoderElemPi}
 

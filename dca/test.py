@@ -28,6 +28,18 @@ def test_api():
     assert 'X_dca_dropout' in ret.obsm_keys()
     assert 'dca_loss_history' in ret.uns_keys()
 
+    ret = dca(adata, mode='denoise', ae_type='zinb-elempi', copy=True, epochs=epochs,
+              return_model=False, return_info=True)
+    assert not np.allclose(ret.X[:10], adata.X[:10])
+    assert 'X_dca_dropout' in ret.obsm_keys()
+    assert 'dca_loss_history' in ret.uns_keys()
+
+    ret = dca(adata, mode='denoise', ae_type='zinb-elempi', copy=True, epochs=epochs,
+              return_model=False, return_info=True, network_kwds={'sharedpi': True})
+    assert not np.allclose(ret.X[:10], adata.X[:10])
+    assert 'X_dca_dropout' in ret.obsm_keys()
+    assert 'dca_loss_history' in ret.uns_keys()
+
     # simple tests for latent
     hid_size = (10, 2, 10)
     ret = dca(adata, mode='latent', hidden_size=hid_size, copy=True, epochs=epochs)
