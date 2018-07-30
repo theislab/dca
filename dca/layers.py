@@ -54,7 +54,7 @@ class ElementwiseDense(Dense):
         assert (input_dim == self.units) or (self.units == 1), \
                "Input and output dims are not compatible"
 
-        # shape=(input_dim, ) makes this elementwise bcs of broadcasting
+        # shape=(input_units, ) makes this elementwise bcs of broadcasting
         self.kernel = self.add_weight(shape=(self.units,),
                                       initializer=self.kernel_initializer,
                                       name='kernel',
