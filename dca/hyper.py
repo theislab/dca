@@ -3,9 +3,9 @@ import pickle
 import json
 
 import numpy as np
-from kopt import CompileFN, test_fn
+#from kopt import CompileFN, test_fn
 from hyperopt import fmin, tpe, hp, Trials
-import keras.optimizers as opt
+import tensorflow.keras.optimizers as opt
 
 from . import io
 from .network import AE_types

@@ -20,13 +20,13 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import scanpy.api as sc
 
-import keras
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
-from keras.models import Model
-from keras.regularizers import l1_l2
-from keras.objectives import mean_squared_error
-from keras.initializers import Constant
-from keras import backend as K
+import tensorflow.keras as keras
+from tensorflow.keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
+from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import l1_l2
+from tensorflow.keras.losses import mean_squared_error
+from tensorflow.keras.initializers import Constant
+import tensorflow.keras.backend as K
 
 import tensorflow as tf
 
@@ -34,9 +34,6 @@ from .loss import poisson_loss, NB, ZINB
 from .layers import ConstantDispersionLayer, SliceLayer, ColwiseMultLayer, ElementwiseDense
 from .io import write_text_matrix
 
-
-MeanAct = lambda x: tf.clip_by_value(K.exp(x), 1e-5, 1e6)
-DispAct = lambda x: tf.clip_by_value(tf.nn.softplus(x), 1e-4, 1e4)
 
 advanced_activations = ('PReLU', 'LeakyReLU')
 
@@ -233,7 +230,7 @@ class Autoencoder():
 class PoissonAutoencoder(Autoencoder):
 
     def build_output(self):
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
         output = ColwiseMultLayer([mean, self.sf_layer])
@@ -249,7 +246,7 @@ class PoissonAutoencoder(Autoencoder):
 class NBConstantDispAutoencoder(Autoencoder):
 
     def build_output(self):
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
 
@@ -293,17 +290,17 @@ class NBConstantDispAutoencoder(Autoencoder):
 class NBAutoencoder(Autoencoder):
 
     def build_output(self):
-        disp = Dense(self.output_size, activation=DispAct,
+        disp = Dense(self.output_size, activation='DispAct',
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef,
                                self.l2_coef),
                            name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColwiseMultLayer([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp])
+        output = SliceLayer(index=0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
         self.loss = nb.loss
@@ -341,17 +338,17 @@ class NBAutoencoder(Autoencoder):
 class NBSharedAutoencoder(NBAutoencoder):
 
     def build_output(self):
-        disp = Dense(1, activation=DispAct,
+        disp = Dense(1, activation='DispAct',
                      kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef,
                                               self.l2_coef),
                      name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColwiseMultLayer([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp])
+        output = SliceLayer(index=0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
         self.loss = nb.loss
@@ -370,16 +367,16 @@ class ZINBAutoencoder(Autoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='pi')(self.decoder_output)
 
-        disp = Dense(self.output_size, activation=DispAct,
+        disp = Dense(self.output_size, activation='DispAct',
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColwiseMultLayer([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp, pi])
+        output = SliceLayer(index=0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
@@ -427,7 +424,7 @@ class ZINBAutoencoderElemPi(ZINBAutoencoder):
         self.sharedpi = sharedpi
 
     def build_output(self):
-        disp = Dense(self.output_size, activation=DispAct,
+        disp = Dense(self.output_size, activation='DispAct',
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.decoder_output)
@@ -444,10 +441,10 @@ class ZINBAutoencoderElemPi(ZINBAutoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='pi')(mean_no_act)
 
-        mean = Activation(MeanAct, name='mean')(mean_no_act)
+        mean = Activation('MeanAct', name='mean')(mean_no_act)
 
         output = ColwiseMultLayer([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp, pi])
+        output = SliceLayer(index=0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
@@ -469,17 +466,17 @@ class ZINBSharedAutoencoder(ZINBAutoencoder):
                    kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                    name='pi')(self.decoder_output)
 
-        disp = Dense(1, activation=DispAct,
+        disp = Dense(1, activation='DispAct',
                      kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef,
                                               self.l2_coef),
                      name='dispersion')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
         output = ColwiseMultLayer([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp, pi])
+        output = SliceLayer(index=0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
@@ -500,7 +497,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
                    kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                    name='pi')(self.decoder_output)
 
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
 
@@ -637,17 +634,17 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='pi')(self.last_hidden_pi)
 
-        disp = Dense(self.output_size, activation=DispAct,
+        disp = Dense(self.output_size, activation='DispAct',
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.last_hidden_disp)
 
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
         output = ColwiseMultLayer([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp, pi])
+        output = SliceLayer(index=0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
@@ -738,17 +735,17 @@ class NBForkAutoencoder(NBAutoencoder):
 
     def build_output(self):
 
-        disp = Dense(self.output_size, activation=DispAct,
+        disp = Dense(self.output_size, activation='DispAct',
                            kernel_initializer=self.init,
                            kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                            name='dispersion')(self.last_hidden_disp)
 
-        mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
+        mean = Dense(self.output_size, activation='MeanAct', kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
         output = ColwiseMultLayer([mean, self.sf_layer])
-        output = SliceLayer(0, name='slice')([output, disp])
+        output = SliceLayer(index=0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
         self.loss = nb.loss

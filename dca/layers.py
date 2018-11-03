@@ -1,8 +1,16 @@
-from keras.engine.topology import Layer
-from keras.layers import Lambda, Dense
-from keras.engine.base_layer import InputSpec
-from keras import backend as K
+from tensorflow.keras.layers import Layer, InputSpec, Lambda, Dense, Activation
+from tensorflow.keras.utils import get_custom_objects
+import tensorflow.keras.backend as K
 import tensorflow as tf
+
+def MeanAct(x):
+    return tf.clip_by_value(K.exp(x), 1e-5, 1e6)
+
+def DispAct(x):
+    return tf.clip_by_value(tf.nn.softplus(x), 1e-4, 1e4)
+
+get_custom_objects().update({'MeanAct': MeanAct,
+                             'DispAct': DispAct})
 
 
 class ConstantDispersionLayer(Layer):
@@ -29,8 +37,8 @@ class ConstantDispersionLayer(Layer):
 
 
 class SliceLayer(Layer):
-    def __init__(self, index, **kwargs):
-        self.index = index
+    def __init__(self, **kwargs):
+        self.index = kwargs.pop('index', 0)
         super().__init__(**kwargs)
 
     def build(self, input_shape):
