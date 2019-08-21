@@ -33,6 +33,7 @@ def dca(adata,
         early_stop=15,
         batch_size=32,
         optimizer='rmsprop',
+        learning_rate=None,
         random_state=0,
         threads=None,
         verbose=False,
@@ -94,6 +95,8 @@ def dca(adata,
         Stops training if validation loss does not improve in given number of epochs.
     batch_size : `int`, optional. Default: 32.
         Number of samples in the batch used for SGD.
+    learning_rate : `float`, optional. Default: None.
+        Learning rate to use in the training.
     optimizer : `str`, optional. Default: "rmsprop".
         Type of optimization method used for training.
     random_state : `int`, optional. Default: 0.
@@ -184,7 +187,8 @@ def dca(adata,
         'batch_size': batch_size,
         'optimizer': optimizer,
         'verbose': verbose,
-        'threads': threads
+        'threads': threads,
+        'learning_rate': learning_rate
     }
 
     hist = train(adata[adata.obs.dca_split == 'train'], net, **training_kwds)
