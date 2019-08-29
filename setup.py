@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='DCA',
-    version='0.2.2',
+    version='0.2.3',
     description='Count autoencoder for scRNA-seq denoising',
     author='Gokcen Eraslan',
     author_email="gokcen.eraslan@gmail.com",
