@@ -1,7 +1,7 @@
 import os, tempfile, shutil, random
 import anndata
 import numpy as np
-import scanpy.api as sc
+import scanpy as sc
 
 try:
     import tensorflow as tf

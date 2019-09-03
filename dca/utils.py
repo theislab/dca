@@ -1,4 +1,4 @@
-import scanpy.api as sc
+import scanpy as sc
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
