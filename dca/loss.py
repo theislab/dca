@@ -4,13 +4,13 @@ from keras import backend as K
 
 
 def _nan2zero(x):
-    return tf.where(tf.is_nan(x), tf.zeros_like(x), x)
+    return tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
 
 def _nan2inf(x):
-    return tf.where(tf.is_nan(x), tf.zeros_like(x)+np.inf, x)
+    return tf.where(tf.math.is_nan(x), tf.zeros_like(x)+np.inf, x)
 
 def _nelem(x):
-    nelem = tf.reduce_sum(tf.cast(~tf.is_nan(x), tf.float32))
+    nelem = tf.reduce_sum(tf.cast(~tf.math.is_nan(x), tf.float32))
     return tf.cast(tf.where(tf.equal(nelem, 0.), 1., nelem), x.dtype)
 
 
@@ -43,7 +43,7 @@ def poisson_loss(y_true, y_pred):
 
     # last term can be avoided since it doesn't depend on y_pred
     # however keeping it gives a nice lower bound to zero
-    ret = y_pred - y_true*tf.log(y_pred+1e-10) + tf.lgamma(y_true+1.0)
+    ret = y_pred - y_true*tf.math.log(y_pred+1e-10) + tf.math.lgamma(y_true+1.0)
 
     return tf.divide(tf.reduce_sum(ret), nelem)
 
@@ -84,8 +84,8 @@ class NB(object):
             # Clip theta
             theta = tf.minimum(self.theta, 1e6)
 
-            t1 = tf.lgamma(theta+eps) + tf.lgamma(y_true+1.0) - tf.lgamma(y_true+theta+eps)
-            t2 = (theta+y_true) * tf.log(1.0 + (y_pred/(theta+eps))) + (y_true * (tf.log(theta+eps) - tf.log(y_pred+eps)))
+            t1 = tf.math.lgamma(theta+eps) + tf.math.lgamma(y_true+1.0) - tf.math.lgamma(y_true+theta+eps)
+            t2 = (theta+y_true) * tf.math.log(1.0 + (y_pred/(theta+eps))) + (y_true * (tf.math.log(theta+eps) - tf.math.log(y_pred+eps)))
 
             if self.debug:
                 assert_ops = [
@@ -127,14 +127,14 @@ class ZINB(NB):
             # reuse existing NB neg.log.lik.
             # mean is always False here, because everything is calculated
             # element-wise. we take the mean only in the end
-            nb_case = super().loss(y_true, y_pred, mean=False) - tf.log(1.0-self.pi+eps)
+            nb_case = super().loss(y_true, y_pred, mean=False) - tf.math.log(1.0-self.pi+eps)
 
             y_true = tf.cast(y_true, tf.float32)
             y_pred = tf.cast(y_pred, tf.float32) * scale_factor
             theta = tf.minimum(self.theta, 1e6)
 
             zero_nb = tf.pow(theta/(theta+y_pred+eps), theta)
-            zero_case = -tf.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
+            zero_case = -tf.math.log(self.pi + ((1.0-self.pi)*zero_nb)+eps)
             result = tf.where(tf.less(y_true, 1e-8), zero_case, nb_case)
             ridge = self.ridge_lambda*tf.square(self.pi)
             result += ridge
