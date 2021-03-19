@@ -146,7 +146,7 @@ def dca(adata,
     # set seed for reproducibility
     random.seed(random_state)
     np.random.seed(random_state)
-    tf.set_random_seed(random_state)
+    tf.random.set_seed(random_state)
     os.environ['PYTHONHASHSEED'] = '0'
 
     # this creates adata.raw with raw counts and copies adata if copy==True
