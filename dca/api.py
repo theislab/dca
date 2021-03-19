@@ -6,7 +6,7 @@ import scanpy as sc
 try:
     import tensorflow as tf
 except ImportError:
-    raise ImportError('DCA requires tensorflow. Please follow instructions'
+    raise ImportError('DCA requires TensorFlow v2+. Please follow instructions'
                       ' at https://www.tensorflow.org/install/ to install'
                       ' it.')
 
