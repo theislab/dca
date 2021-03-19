@@ -32,13 +32,20 @@ from keras import backend as K
 from keras.preprocessing.image import Iterator
 
 
-def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=None,
+def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=None,
           epochs=300, reduce_lr=10, output_subset=None, use_raw_as_output=True,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
           validation_split=0.1, tensorboard=False, verbose=True, threads=None,
           **kwds):
 
-    K.set_session(tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=threads, inter_op_parallelism_threads=threads)))
+    tf.compat.v1.keras.backend.set_session(
+        tf.compat.v1.Session(
+            config=tf.compat.v1.ConfigProto(
+                intra_op_parallelism_threads=threads,
+                inter_op_parallelism_threads=threads,
+            )
+        )
+    )
     model = network.model
     loss = network.loss
     if output_dir is not None:
@@ -95,12 +102,18 @@ def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=No
 
 def train_with_args(args):
 
-    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(intra_op_parallelism_threads=args.threads,
-                                                   inter_op_parallelism_threads=args.threads)))
+    tf.compat.v1.keras.backend.set_session(
+        tf.compat.v1.Session(
+            config=tf.compat.v1.ConfigProto(
+                intra_op_parallelism_threads=args.threads,
+                inter_op_parallelism_threads=args.threads,
+            )
+        )
+    )
     # set seed for reproducibility
     random.seed(42)
     np.random.seed(42)
-    tf.set_random_seed(42)
+    tf.random.set_seed(42)
     os.environ['PYTHONHASHSEED'] = '0'
 
     # do hyperpar optimization and exit
@@ -133,6 +146,9 @@ def train_with_args(args):
 
     assert args.type in AE_types, 'loss type not supported'
     input_size = adata.n_vars
+
+    from tensorflow.python.framework.ops import disable_eager_execution
+    disable_eager_execution()
 
     net = AE_types[args.type](input_size=input_size,
             output_size=output_size,

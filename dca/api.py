@@ -32,7 +32,7 @@ def dca(adata,
         reduce_lr=10,
         early_stop=15,
         batch_size=32,
-        optimizer='rmsprop',
+        optimizer='RMSprop',
         learning_rate=None,
         random_state=0,
         threads=None,
@@ -97,7 +97,7 @@ def dca(adata,
         Number of samples in the batch used for SGD.
     learning_rate : `float`, optional. Default: None.
         Learning rate to use in the training.
-    optimizer : `str`, optional. Default: "rmsprop".
+    optimizer : `str`, optional. Default: "RMSprop".
         Type of optimization method used for training.
     random_state : `int`, optional. Default: 0.
         Seed for python, numpy and tensorflow.
@@ -172,6 +172,9 @@ def dca(adata,
         'activation': activation,
         'init': init
     }
+    
+    from tensorflow.python.framework.ops import disable_eager_execution
+    disable_eager_execution()
 
     input_size = output_size = adata.n_vars
     net = AE_types[ae_type](input_size=input_size,

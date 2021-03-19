@@ -77,8 +77,8 @@ def parse_args():
             help="Clip grad values (default: 5.0)")
     parser.add_argument('--activation', type=str, default='relu',
             help="Activation function of hidden units (default: relu)")
-    parser.add_argument('--optimizer', type=str, default='rmsprop',
-            help="Optimization method (default: rmsprop)")
+    parser.add_argument('--optimizer', type=str, default='RMSprop',
+            help="Optimization method (default: RMSprop)")
     parser.add_argument('--init', type=str, default='glorot_uniform',
             help="Initialization method for weights (default: glorot_uniform)")
     parser.add_argument('-e', '--epochs', type=int, default=300,

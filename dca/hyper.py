@@ -73,7 +73,7 @@ def hyper(args):
         net.build()
         net.model.summary()
 
-        optimizer = opt.__dict__['rmsprop'](lr=lr, clipvalue=5.0)
+        optimizer = opt.__dict__['RMSprop'](lr=lr, clipvalue=5.0)
         net.model.compile(loss=net.loss, optimizer=optimizer)
 
         return net.model
