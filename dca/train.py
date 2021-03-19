@@ -95,7 +95,7 @@ def train(adata, network, output_dir=None, optimizer='rmsprop', learning_rate=No
 
 def train_with_args(args):
 
-    K.set_session(tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=args.threads,
+    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(intra_op_parallelism_threads=args.threads,
                                                    inter_op_parallelism_threads=args.threads)))
     # set seed for reproducibility
     random.seed(42)
