@@ -18,7 +18,7 @@ from .network import AE_types
 
 def dca(adata,
         mode='denoise',
-        ae_type='zinb-conddisp',
+        ae_type='nb-conddisp',
         normalize_per_cell=True,
         scale=True,
         log1p=True,
@@ -58,7 +58,7 @@ def dca(adata,
         `denoise` overwrites `adata.X` with denoised expression values.
         In `latent` mode DCA adds `adata.obsm['X_dca']` to given adata
         object. This matrix represent latent representation of cells via DCA.
-    ae_type : `str`, optional. `zinb-conddisp`(default), `zinb`, `nb-conddisp` or `nb`.
+    ae_type : `str`, optional. `nb-conddisp`(default), `zinb`, `nb-conddisp` or `nb`.
         Type of the autoencoder. Return values and the architecture is
         determined by the type e.g. `nb` does not provide dropout
         probabilities.
