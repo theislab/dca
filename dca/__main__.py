@@ -114,6 +114,10 @@ def parse_args():
     parser.add_argument('--tensorboard', dest='tensorboard',
             action='store_true', help="Use tensorboard for saving weight distributions and "
                                       "visualization. (default: False)")
+    parser.add_argument('--checkcounts', dest='checkcounts', action='store_true',
+            help="Check if the expression matrix has raw (unnormalized) counts (default: True)")
+    parser.add_argument('--nocheckcounts', dest='checkcounts', action='store_false',
+            help="Do not check if the expression matrix has raw (unnormalized) counts")
     parser.add_argument('--denoisesubset', dest='denoisesubset', type=str,
                         help='Perform denoising only for the subset of genes '
                              'in the given file. Gene names should be line '
@@ -124,6 +128,7 @@ def parse_args():
                         saveweights=False,
                         sizefactors=True,
                         batchnorm=True,
+                        checkcounts=True,
                         norminput=True,
                         hyper=False,
                         debug=False,

@@ -123,6 +123,7 @@ def train_with_args(args):
 
     adata = io.read_dataset(args.input,
                             transpose=(not args.transpose), # assume gene x cell by default
+                            check_counts=args.checkcounts,
                             test_split=args.testsplit)
 
     adata = io.normalize(adata,

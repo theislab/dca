@@ -40,7 +40,8 @@ def dca(adata,
         training_kwds={},
         return_model=False,
         return_info=False,
-        copy=False
+        copy=False,
+        check_counts=True,
         ):
     """Deep count autoencoder(DCA) API.
 
@@ -116,6 +117,8 @@ def dca(adata,
         zinb or zinb-conddisp.
     copy : `bool`, optional. Default: `False`.
         If true, a copy of anndata is returned.
+    check_counts : `bool`. Default `True`.
+        Check if the counts are unnormalized (raw) counts.
 
     Returns
     -------
@@ -153,7 +156,8 @@ def dca(adata,
     adata = read_dataset(adata,
                          transpose=False,
                          test_split=False,
-                         copy=copy)
+                         copy=copy,
+                         check_counts=check_counts)
 
     # check for zero genes
     nonzero_genes, _ = sc.pp.filter_genes(adata.X, min_counts=1)

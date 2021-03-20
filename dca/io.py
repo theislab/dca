@@ -50,7 +50,7 @@ class AnnSequence:
         return {'count': batch, 'size_factors': batch_sf}, batch
 
 
-def read_dataset(adata, transpose=False, test_split=False, copy=False):
+def read_dataset(adata, transpose=False, test_split=False, copy=False, check_counts=True):
 
     if isinstance(adata, sc.AnnData):
         if copy:
@@ -60,13 +60,14 @@ def read_dataset(adata, transpose=False, test_split=False, copy=False):
     else:
         raise NotImplementedError
 
-    # check if observations are unnormalized using first 10
-    X_subset = adata.X[:10]
-    norm_error = 'Make sure that the dataset (adata.X) contains unnormalized count data.'
-    if sp.sparse.issparse(X_subset):
-        assert (X_subset.astype(int) != X_subset).nnz == 0, norm_error
-    else:
-        assert np.all(X_subset.astype(int) == X_subset), norm_error
+    if check_counts:
+        # check if observations are unnormalized using first 10
+        X_subset = adata.X[:10]
+        norm_error = 'Make sure that the dataset (adata.X) contains unnormalized count data.'
+        if sp.sparse.issparse(X_subset):
+            assert (X_subset.astype(int) != X_subset).nnz == 0, norm_error
+        else:
+            assert np.all(X_subset.astype(int) == X_subset), norm_error
 
     if transpose: adata = adata.transpose()
 
