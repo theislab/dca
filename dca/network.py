@@ -197,9 +197,9 @@ class Autoencoder():
             adata.X = self.model.predict({'count': adata.X,
                                           'size_factors': adata.obs.size_factors})
 
-            adata.uns['dca_loss'] = self.model.test_on_batch({'count': adata.X,
-                                                              'size_factors': adata.obs.size_factors},
-                                                             adata.raw.X)
+            #adata.uns['dca_loss'] = self.model.test_on_batch({'count': adata.X,
+            #                                                  'size_factors': adata.obs.size_factors},
+            #                                                 adata.raw.X)
         if mode in ('latent', 'full'):
             print('dca: Calculating low dimensional representations...')
 
