@@ -9,7 +9,7 @@ setup(
     packages=['dca'],
     install_requires=['numpy>=1.7',
                       'keras>=2.4,<2.6',
-                      'tensorflow>=2.0',
+                      'tensorflow>=2.0,<2.5',
                       'h5py',
                       'six>=1.10.0',
                       'scikit-learn',
