@@ -191,6 +191,11 @@ class Autoencoder():
 
         adata = adata.copy() if copy else adata
 
+        if mode in ('latent', 'full'):
+            print('dca: Calculating low dimensional representations...')
+
+            adata.obsm['X_dca'] = self.encoder.predict({'count': adata.X,
+                                                        'size_factors': adata.obs.size_factors})        
         if mode in ('denoise', 'full'):
             print('dca: Calculating reconstructions...')
 
@@ -200,11 +205,6 @@ class Autoencoder():
             #adata.uns['dca_loss'] = self.model.test_on_batch({'count': adata.X,
             #                                                  'size_factors': adata.obs.size_factors},
             #                                                 adata.raw.X)
-        if mode in ('latent', 'full'):
-            print('dca: Calculating low dimensional representations...')
-
-            adata.obsm['X_dca'] = self.encoder.predict({'count': adata.X,
-                                                        'size_factors': adata.obs.size_factors})
         if mode == 'latent':
             adata.X = adata.raw.X.copy() #recover normalized expression values
 
