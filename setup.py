@@ -2,14 +2,14 @@ from setuptools import setup
 
 setup(
     name='DCA',
-    version='0.3.3',
+    version='0.3.4',
     description='Count autoencoder for scRNA-seq denoising',
     author='Gokcen Eraslan',
     author_email="gokcen.eraslan@gmail.com",
     packages=['dca'],
     install_requires=['numpy>=1.7',
-                      'keras>=2.4,<2.6',
-                      'tensorflow>=2.0,<2.5',
+                      'tensorflow>=2.0,<2.11,!=2.6',
+                      'protobuf<=3.20',
                       'h5py',
                       'six>=1.10.0',
                       'scikit-learn',
@@ -17,6 +17,7 @@ setup(
                       'kopt',
                       'pandas' #for preprocessing
                       ],
+    extras_require={"test":["pytest"]},
     url='https://github.com/theislab/dca',
     entry_points={
         'console_scripts': [
