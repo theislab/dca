@@ -1,7 +1,6 @@
-from keras.engine.topology import Layer
-from keras.layers import Lambda, Dense
-from keras.engine.base_layer import InputSpec
-from keras import backend as K
+from tensorflow.keras.layers import Layer, Lambda, Dense
+from tensorflow.keras.layers import InputSpec
+from tensorflow.keras import backend as K
 import tensorflow as tf
 
 
@@ -81,5 +80,15 @@ class ElementwiseDense(Dense):
         return output
 
 
-nan2zeroLayer = Lambda(lambda x: tf.where(tf.is_nan(x), tf.zeros_like(x), x))
-ColwiseMultLayer = Lambda(lambda l: l[0]*tf.reshape(l[1], (-1,1)))
+class ColwiseMultLayer(Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def build(self, input_shape):
+        super().build(input_shape)
+
+    def call(self, l):
+        return l[0]*tf.reshape(l[1], (-1,1))
+
+    def compute_output_shape(self, input_shape):
+        return input_shape[0]

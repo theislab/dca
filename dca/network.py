@@ -15,18 +15,14 @@
 
 import os
 import pickle
-from abc import ABCMeta, abstractmethod
 
 import numpy as np
-import scanpy as sc
 
-import keras
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
-from keras.models import Model
-from keras.regularizers import l1_l2
-from keras.objectives import mean_squared_error
-from keras.initializers import Constant
-from keras import backend as K
+from tensorflow.keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
+from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import l1_l2
+from tensorflow.keras.losses import mean_squared_error
+from tensorflow.keras import backend as K
 
 import tensorflow as tf
 
@@ -130,7 +126,7 @@ class Autoencoder():
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
             if self.activation in advanced_activations:
-                last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                last_hidden = tf.keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
             else:
                 last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
@@ -146,7 +142,7 @@ class Autoencoder():
         mean = Dense(self.output_size, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
 
         # keep unscaled output as an extra model
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
@@ -236,7 +232,7 @@ class PoissonAutoencoder(Autoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                      kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                      name='mean')(self.decoder_output)
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         self.loss = poisson_loss
 
         self.extra_models['mean_norm'] = Model(inputs=self.input_layer, outputs=mean)
@@ -257,7 +253,7 @@ class NBConstantDispAutoencoder(Autoencoder):
         disp = ConstantDispersionLayer(name='dispersion')
         mean = disp(mean)
 
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
 
         nb = NB(disp.theta_exp)
         self.loss = nb.loss
@@ -302,7 +298,7 @@ class NBAutoencoder(Autoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
@@ -350,7 +346,7 @@ class NBSharedAutoencoder(NBAutoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)
@@ -378,7 +374,7 @@ class ZINBAutoencoder(Autoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
@@ -446,7 +442,7 @@ class ZINBAutoencoderElemPi(ZINBAutoencoder):
 
         mean = Activation(MeanAct, name='mean')(mean_no_act)
 
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
@@ -478,7 +474,7 @@ class ZINBSharedAutoencoder(ZINBAutoencoder):
         mean = Dense(self.output_size, activation=MeanAct, kernel_initializer=self.init,
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.decoder_output)
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
@@ -508,7 +504,7 @@ class ZINBConstantDispAutoencoder(Autoencoder):
         disp = ConstantDispersionLayer(name='dispersion')
         mean = disp(mean)
 
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
 
         zinb = ZINB(pi, theta=disp.theta_exp, ridge_lambda=self.ridge, debug=self.debug)
         self.loss = zinb.loss
@@ -622,7 +618,7 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
                 # Use separate act. layers to give user the option to get pre-activations
                 # of layers when requested
                 if self.activation in advanced_activations:
-                    last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                    last_hidden = tf.keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
                 else:
                     last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
@@ -646,7 +642,7 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp, pi])
 
         zinb = ZINB(pi, theta=disp, ridge_lambda=self.ridge, debug=self.debug)
@@ -726,7 +722,7 @@ class NBForkAutoencoder(NBAutoencoder):
                 # Use separate act. layers to give user the option to get pre-activations
                 # of layers when requested
                 if self.activation in advanced_activations:
-                    last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                    last_hidden = tf.keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
                 else:
                     last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
@@ -747,7 +743,7 @@ class NBForkAutoencoder(NBAutoencoder):
                        kernel_regularizer=l1_l2(self.l1_coef, self.l2_coef),
                        name='mean')(self.last_hidden_mean)
 
-        output = ColwiseMultLayer([mean, self.sf_layer])
+        output = ColwiseMultLayer()([mean, self.sf_layer])
         output = SliceLayer(0, name='slice')([output, disp])
 
         nb = NB(theta=disp, debug=self.debug)

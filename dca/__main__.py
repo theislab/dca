@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-import os, sys, argparse
+import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Autoencoder')
