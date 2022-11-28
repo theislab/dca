@@ -5,4 +5,6 @@ build
 *.egg-info
 .Rproj.user
 docs/build
-data/simulation/
+data/
+.idea
+
