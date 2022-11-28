@@ -22,14 +22,11 @@ import random
 
 from . import io
 from .network import AE_types
-from .hyper import hyper
 
 import numpy as np
 import tensorflow as tf
-import keras.optimizers as opt
-from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from keras import backend as K
-from keras.preprocessing.image import Iterator
+import tensorflow.keras.optimizers as opt
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 
 
 def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=None,
@@ -38,14 +35,8 @@ def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=No
           validation_split=0.1, tensorboard=False, verbose=True, threads=None,
           **kwds):
 
-    tf.compat.v1.keras.backend.set_session(
-        tf.compat.v1.Session(
-            config=tf.compat.v1.ConfigProto(
-                intra_op_parallelism_threads=threads,
-                inter_op_parallelism_threads=threads,
-            )
-        )
-    )
+    tf.config.threading.set_inter_op_parallelism_threads(threads)
+    tf.config.threading.set_intra_op_parallelism_threads(threads)
     model = network.model
     loss = network.loss
     if output_dir is not None:
@@ -102,14 +93,9 @@ def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=No
 
 def train_with_args(args):
 
-    tf.compat.v1.keras.backend.set_session(
-        tf.compat.v1.Session(
-            config=tf.compat.v1.ConfigProto(
-                intra_op_parallelism_threads=args.threads,
-                inter_op_parallelism_threads=args.threads,
-            )
-        )
-    )
+
+    tf.config.threading.set_inter_op_parallelism_threads(args.threads)
+    tf.config.threading.set_intra_op_parallelism_threads(args.threads)
     # set seed for reproducibility
     random.seed(42)
     np.random.seed(42)
@@ -118,6 +104,7 @@ def train_with_args(args):
 
     # do hyperpar optimization and exit
     if args.hyper:
+        from .hyper import hyper
         hyper(args)
         return
 

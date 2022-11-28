@@ -18,14 +18,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import pickle, os, numbers
+import pickle
 
 import numpy as np
 import scipy as sp
 import pandas as pd
 import scanpy as sc
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import scale
 
 
 #TODO: Fix this

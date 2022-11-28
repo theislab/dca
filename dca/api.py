@@ -1,4 +1,4 @@
-import os, tempfile, shutil, random
+import os, random
 import anndata
 import numpy as np
 import scanpy as sc
