@@ -4,23 +4,24 @@ A deep count autoencoder network to denoise scRNA-seq data and remove the dropou
 
 See our [manuscript](https://www.nature.com/articles/s41467-018-07931-2) and [tutorial](https://nbviewer.ipython.org/github/theislab/dca/blob/master/tutorial.ipynb) for more details.
 
-### Installation
+## Getting Started
 
-#### pip
+For hassle-free usage of this package, I recommend using Docker. You can pull the latest Docker image from Docker Hub using the following command:
 
-For a traditional Python installation of the count autoencoder and the required packages, use
+```bash
+docker pull rb16b/dca:latest
+```
+Once you have the Docker image, you can run a container with Jupyter Notebook inside it using the following command:
 
 ```
-$ pip install dca
-```
-
-#### conda
-
-Another approach for installing count autoencoder and the required packages is to use [Conda](https://conda.io/docs/) (most easily obtained via the [Miniconda Python distribution](https://conda.io/miniconda.html)). Afterwards run the following commands.
+docker run -p 8888:8888 -v /path/to/your/notebooks:/home/jovyan/work rb16b/dca:latest
 
 ```
-$ conda install -c bioconda dca
-```
+Replace /path/to/your/notebooks with the path to the directory where you want to store your Jupyter notebooks. This command will start a container with Jupyter Notebook running, and you can access it by opening your web browser and navigating to http://localhost:8888.
+
+
+Make sure to replace `username/image:latest` with the actual Docker image name and tag. Additionally, provide relevant information about mounting volumes if necessary, like the `-v` option in the Docker run command, which mounts a local directory to a directory inside the container.
+
 
 ### Usage
 
