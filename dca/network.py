@@ -20,13 +20,13 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import scanpy as sc
 
-import keras
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
-from keras.models import Model
-from keras.regularizers import l1_l2
-from keras.objectives import mean_squared_error
-from keras.initializers import Constant
-from keras import backend as K
+import tensorflow.keras
+from tensorflow.keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, Lambda
+from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import l1_l2
+from tensorflow.keras.metrics import mean_squared_error
+from tensorflow.keras.initializers import Constant
+from tensorflow.keras import backend as K
 
 import tensorflow as tf
 
@@ -130,7 +130,7 @@ class Autoencoder():
             # Use separate act. layers to give user the option to get pre-activations
             # of layers when requested
             if self.activation in advanced_activations:
-                last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                last_hidden = tensorflow.keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
             else:
                 last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
@@ -622,7 +622,7 @@ class ZINBForkAutoencoder(ZINBAutoencoder):
                 # Use separate act. layers to give user the option to get pre-activations
                 # of layers when requested
                 if self.activation in advanced_activations:
-                    last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                    last_hidden = tensorflow.keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
                 else:
                     last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 
@@ -726,7 +726,7 @@ class NBForkAutoencoder(NBAutoencoder):
                 # Use separate act. layers to give user the option to get pre-activations
                 # of layers when requested
                 if self.activation in advanced_activations:
-                    last_hidden = keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
+                    last_hidden = tensorflow.keras.layers.__dict__[self.activation](name='%s_act'%layer_name)(last_hidden)
                 else:
                     last_hidden = Activation(self.activation, name='%s_act'%layer_name)(last_hidden)
 

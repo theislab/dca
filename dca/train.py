@@ -26,10 +26,10 @@ from .hyper import hyper
 
 import numpy as np
 import tensorflow as tf
-import keras.optimizers as opt
-from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-from keras import backend as K
-from keras.preprocessing.image import Iterator
+import tensorflow.keras.optimizers as opt
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras import backend as K
+from tensorflow.keras.preprocessing.image import Iterator
 
 
 def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=None,
